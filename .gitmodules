@@ -1,0 +1,3 @@
+[submodule "vcml"]
+	path = vcml
+	url = https://github.com/machineware-gmbh/vcml.git
