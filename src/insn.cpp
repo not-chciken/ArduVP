@@ -230,6 +230,48 @@ void Andi::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->rf[rd] = result;
 }
 
+Asr::Asr() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "ASR";
+}
+
+void Asr::Execute(Cpu* cpu, uint rd) {
+  u8 reg = cpu->rf[rd];
+  u8 result = (reg >> 1) | (reg & 0x80);
+
+  cpu->sreg.n = (result & 0x80) != 0;
+  cpu->sreg.z = (result == 0);
+  cpu->sreg.c = (reg & 1) != 0;
+  cpu->sreg.v = cpu->sreg.v ^ cpu->sreg.c;
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
+
+  cpu->rf[rd] = result;
+}
+
+Bld::Bld() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "BLD";
+}
+
+void Bld::Execute(Cpu* cpu, uint rr, uint b) {
+  u8 reg = cpu->rf[rr];
+  u8 result = (cpu->sreg.t << b) | (reg & ~(1 << b));
+  cpu->rf[rr] = result;
+}
+
+Bst::Bst() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "BST";
+}
+
+void Bst::Execute(Cpu* cpu, uint rr, uint b) {
+  u8 reg = cpu->rf[rr];
+  cpu->sreg.t = (reg >> b) & 1;
+}
+
 Break::Break() {
   exec_func = Execute;
   cycles = 1;
@@ -785,4 +827,14 @@ Wdr::Wdr() {
 
 void Wdr::Execute(Cpu* cpu) {
   cpu->watchdog_timer = 0;
+}
+
+Illegal::Illegal() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "ILLEGAL";
+}
+
+void Illegal::Execute(Cpu* cpu) {
+  // TODO.
 }

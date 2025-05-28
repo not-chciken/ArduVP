@@ -102,9 +102,24 @@ struct Andi : public InsnImm8 {
   static void Execute(Cpu* cpu, uint rr, uint imm);
 };
 
+struct Asr : public InsnR {
+  Asr();
+  static void Execute(Cpu* cpu, uint rd);
+};
+
+struct Bld : public InsnRb {
+  Bld();
+  static void Execute(Cpu* cpu, uint rr, uint imm);
+};
+
 struct Break : public Insn0 {
   Break();
   static void Execute(Cpu* cpu);
+};
+
+struct Bst : public InsnRb {
+  Bst();
+  static void Execute(Cpu* cpu, uint rr, uint imm);
 };
 
 struct Call : public Insn32 {
@@ -292,6 +307,12 @@ struct Wdr : public Insn0 {
   static void Execute(Cpu* cpu);
 };
 
+
+struct Illegal : public Insn0 {
+  Illegal();
+  static void Execute(Cpu* cpu);
+};
+
 // TODO:
 // CPI
 // SBIC
@@ -319,21 +340,8 @@ struct Wdr : public Insn0 {
 
 // SBI
 // CBI
-// ASR
 // BSET
 // BCLR
-// BST
-// BLD
-// CLC
-
-// CLN
-// CLZ
-// SEI
-// CLI
-// CLS
-// CLV
-// CLT
-// CLH
 
 // MOVW
 // LDI
@@ -350,4 +358,3 @@ struct Wdr : public Insn0 {
 // SPM
 // IN
 // OUT
-// WDR
