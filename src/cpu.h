@@ -8,8 +8,9 @@ struct Cpu {
   std::array<RegType, 32> rf = {0};  // Register file
   u16 pc = 0;                        // Program counter
   u16 sp = 0;                        // Stack pointer
-  u16 z = 0;                         // Z register
+  u16 x = 0;                         // X register
   u16 y = 0;                         // Y register
+  u16 z = 0;                         // Z register
 
   u32 watchdog_timer = 0;
   struct Sreg {
