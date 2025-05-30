@@ -34,7 +34,7 @@ u32 InsnImm22::InitArgs(u32 insn) {
 
 string InsnImm22::GetStatementString(u32 insn) {
   u32 adr = InitArgs(insn);
-  return string(name) + " " + std::format("0x{:x}", adr);
+  return name + " " + std::format("0x{:x}", adr);
 }
 
 InsnRImm16::InsnRImm16() {
@@ -55,7 +55,7 @@ std::tuple<uint, uint> InsnRImm16::InitArgs(u32 insn) {
 
 string InsnRImm16::GetStatementString(u32 insn) {
   auto [rd, adr] = InitArgs(insn);
-  return string(name) + " R" + RegName(rd) + "," + std::format("0x{:x}", adr);
+  return name + " R" + RegName(rd) + "," + std::format("0x{:x}", adr);
 }
 
 std::function<void()> InsnRb::GenFunc(u16 insn, Cpu* cpu) {
@@ -73,7 +73,7 @@ std::tuple<uint, uint> InsnRb::InitArgs(u16 insn) {
 
 string InsnRb::GetStatementString(u16 insn) {
   auto [rr, b] = InitArgs(insn);
-  return string(name) + " " + RegName(rr) + "," + std::to_string(b);
+  return name + " " + RegName(rr) + "," + std::to_string(b);
 }
 
 std::function<void()> InsnRR::GenFunc(u16 insn, Cpu* cpu) {
@@ -91,7 +91,7 @@ std::tuple<uint, uint> InsnRR::InitArgs(u16 insn) {
 
 string InsnRR::GetStatementString(u16 insn) {
   auto [rd, rr] = InitArgs(insn);
-  return string(name) + " " + RegName(rd) + "," + RegName(rr);
+  return name + " " + RegName(rd) + "," + RegName(rr);
 }
 
 std::function<void()> InsnR::GenFunc(u16 insn, Cpu* cpu) {
@@ -107,7 +107,7 @@ uint InsnR::InitArgs(u16 insn) {
 
 string InsnR::GetStatementString(u16 insn) {
   auto rd = InitArgs(insn);
-  return string(name) + " " + RegName(rd);
+  return name + " " + RegName(rd);
 }
 
 std::function<void()> InsnRImm6::GenFunc(u16 insn, Cpu* cpu) {
@@ -121,6 +121,19 @@ std::tuple<uint, uint> InsnRImm6::InitArgs(u16 insn) {
   uint imm = ExtractBits(insn, 0, 3) | (ExtractBits(insn, 10, 2) << 3) | (ExtractBits(insn, 13, 1) << 5);
 
   return {rd, imm};
+}
+
+std::function<void()> InsnRIo::GenFunc(u16 insn, Cpu* cpu) {
+  assert(exec_func != nullptr);
+  auto [rd, io] = InitArgs(insn);
+  return std::bind(exec_func, cpu, rd, io);
+}
+
+std::tuple<uint, uint> InsnRIo::InitArgs(u16 insn) {
+  uint rd = ExtractBits(insn, 4, 5);
+  uint io = ExtractBits(insn, 0, 4) | (ExtractBits(insn, 9, 2) << 4);
+
+  return {rd, io};
 }
 
 std::function<void()> InsnRpImm6::GenFunc(u16 insn, Cpu* cpu) {
@@ -138,7 +151,27 @@ std::tuple<uint, uint> InsnRpImm6::InitArgs(u16 insn) {
 
 string InsnRpImm6::GetStatementString(u16 insn) {
   auto [rd, imm] = InitArgs(insn);
-  return string(name) + " " + RegName(rd * 2 + 24) + "," + std::to_string(imm);
+  return name + " " + RegName(rd * 2 + 24) + "," + std::to_string(imm);
+}
+
+std::function<void()> InsnRpRp::GenFunc(u16 insn, Cpu* cpu) {
+  assert(exec_func != nullptr);
+  auto [rd, rr] = InitArgs(insn);
+  return std::bind(exec_func, cpu, rd, rr);
+}
+
+std::tuple<uint, uint> InsnRpRp::InitArgs(u16 insn) {
+  uint rr = ExtractBits(insn, 0, 4);
+  uint rd = ExtractBits(insn, 4, 4);
+
+  return {rd, rr};
+}
+
+string InsnRpRp::GetStatementString(u16 insn) {
+  auto [rd, rr] = InitArgs(insn);
+  rd *= 2;
+  rr *= 2;
+  return name + " R" + RegName(rd) + "+1:R" + RegName(rd) + "," + "R" + RegName(rr) + "+1:R" + RegName(rr);
 }
 
 std::function<void()> InsnRuImm8::GenFunc(u16 insn, Cpu* cpu) {
@@ -156,7 +189,7 @@ std::tuple<uint, uint> InsnRuImm8::InitArgs(u16 insn) {
 
 string InsnRuImm8::GetStatementString(u16 insn) {
   auto [rd, imm] = InitArgs(insn);
-  return string(name) + " " + RegName(rd) + "," + std::format("0x{:x}", imm);
+  return name + " " + RegName(rd) + "," + std::format("0x{:x}", imm);
 }
 
 std::function<void()> InsnImm12::GenFunc(u16 insn, Cpu* cpu) {
@@ -172,7 +205,43 @@ uint InsnImm12::InitArgs(u16 insn) {
 
 string InsnImm12::GetStatementString(u16 insn) {
   uint adr = InitArgs(insn);
-  return string(name) + " " + std::format("0x{:x}", adr);
+  return name + " " + std::format("0x{:x}", adr);
+}
+
+std::function<void()> InsnIoB::GenFunc(u16 insn, Cpu* cpu) {
+  assert(exec_func != nullptr);
+  auto [io, b] = InitArgs(insn);
+  return std::bind(exec_func, cpu, io, b);
+}
+
+std::tuple<uint, uint> InsnIoB::InitArgs(u16 insn) {
+  uint b = ExtractBits(insn, 0, 3);
+  uint io = ExtractBits(insn, 3, 4);
+
+  return {io, b};
+}
+
+string InsnIoB::GetStatementString(u16 insn) {
+  auto [io, b] = InitArgs(insn);
+  return name + " " + std::format("0x{:x}", io) + "," + std::to_string(b);
+}
+
+std::function<void()> InsnSImm6::GenFunc(u16 insn, Cpu* cpu) {
+  assert(exec_func != nullptr);
+  auto [sreg, imm] = InitArgs(insn);
+  return std::bind(exec_func, cpu, sreg, imm);
+}
+
+std::tuple<uint, int> InsnSImm6::InitArgs(u16 insn) {
+  uint sreg = ExtractBits(insn, 0, 3);
+  int imm = SignExtend(ExtractBits(insn, 3, 6), 6);
+
+  return {sreg, imm};
+}
+
+string InsnSImm6::GetStatementString(u16 insn) {
+  auto [sreg, imm] = InitArgs(insn);
+  return name + " " + std::to_string(sreg) + "," + std::to_string(imm);
 }
 
 Adc::Adc() {
@@ -330,6 +399,16 @@ void Call::Execute(Cpu* cpu, u32 addr) {
   cpu->MemoryWrite<u16>(cpu->sp, cpu->pc + 2);
   cpu->sp -= 2;
   cpu->pc = addr;
+}
+
+Cbi::Cbi() {
+  exec_func = Execute;
+  cycles = 2;
+  name = "CBI";
+}
+
+void Cbi::Execute(Cpu* cpu, uint io, uint b) {
+  // TODO: Implement.
 }
 
 Com::Com() {
@@ -527,6 +606,17 @@ void Inc::Execute(Cpu* cpu, uint rd) {
   cpu->rf[rd] = result;
 }
 
+In::In() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "IN";
+}
+
+void In::Execute(Cpu* cpu, uint rd, uint io) {
+  // TODO: Implement.
+  // cpu->rf[rd] = cpu->MemoryReadIo(io);
+}
+
 Jmp::Jmp() {
   exec_func = Execute;
   cycles = 3;
@@ -549,7 +639,7 @@ void Lddy::Execute(Cpu* cpu, uint rd, uint imm) {
 
 string Lddy::GetStatementString(u16 insn) {
   auto [rd, imm] = InitArgs(insn);
-  return string(name) + " R" + std::to_string(rd) + ",Y+" + std::format("0x{:x}", imm);
+  return name + " R" + std::to_string(rd) + ",Y+" + std::format("0x{:x}", imm);
 }
 
 Lddz::Lddz() {
@@ -564,7 +654,7 @@ void Lddz::Execute(Cpu* cpu, uint rd, uint imm) {
 
 string Lddz::GetStatementString(u16 insn) {
   auto [rd, imm] = InitArgs(insn);
-  return string(name) + " R" + std::to_string(rd) + ",Z+" + std::format("0x{:x}", imm);
+  return name + " R" + std::to_string(rd) + ",Z+" + std::format("0x{:x}", imm);
 }
 
 Ldi::Ldi() {
@@ -599,7 +689,7 @@ void Ldx1::Execute(Cpu* cpu, uint rd) {
 
 string Ldx1::GetStatementString(u16 insn) {
   uint rd = InitArgs(insn);
-  return string(name) + " R" + std::to_string(rd) + "X";
+  return name + " R" + std::to_string(rd) + "X";
 }
 
 Ldx2::Ldx2() {
@@ -615,7 +705,7 @@ void Ldx2::Execute(Cpu* cpu, uint rd) {
 
 string Ldx2::GetStatementString(u16 insn) {
   uint rd = InitArgs(insn);
-  return string(name) + " R" + std::to_string(rd) + "X+";
+  return name + " R" + std::to_string(rd) + "X+";
 }
 
 Ldx3::Ldx3() {
@@ -631,7 +721,7 @@ void Ldx3::Execute(Cpu* cpu, uint rd) {
 
 string Ldx3::GetStatementString(u16 insn) {
   uint rd = InitArgs(insn);
-  return string(name) + " R" + std::to_string(rd) + "-X";
+  return name + " R" + std::to_string(rd) + "-X";
 }
 
 Ldy2::Ldy2() {
@@ -647,7 +737,7 @@ void Ldy2::Execute(Cpu* cpu, uint rd) {
 
 string Ldy2::GetStatementString(u16 insn) {
   uint rd = InitArgs(insn);
-  return string(name) + " R" + std::to_string(rd) + "Y+";
+  return name + " R" + std::to_string(rd) + "Y+";
 }
 
 Ldy3::Ldy3() {
@@ -663,7 +753,7 @@ void Ldy3::Execute(Cpu* cpu, uint rd) {
 
 string Ldy3::GetStatementString(u16 insn) {
   uint rd = InitArgs(insn);
-  return string(name) + " R" + std::to_string(rd) + "-Y";
+  return name + " R" + std::to_string(rd) + "-Y";
 }
 
 Ldz2::Ldz2() {
@@ -679,7 +769,7 @@ void Ldz2::Execute(Cpu* cpu, uint rd) {
 
 string Ldz2::GetStatementString(u16 insn) {
   uint rd = InitArgs(insn);
-  return string(name) + " R" + std::to_string(rd) + "Z+";
+  return name + " R" + std::to_string(rd) + "Z+";
 }
 
 Ldz3::Ldz3() {
@@ -695,7 +785,48 @@ void Ldz3::Execute(Cpu* cpu, uint rd) {
 
 string Ldz3::GetStatementString(u16 insn) {
   uint rd = InitArgs(insn);
-  return string(name) + " R" + std::to_string(rd) + "-Z";
+  return name + " R" + std::to_string(rd) + "-Z";
+}
+
+Lpm1::Lpm1() {
+  exec_func = Execute;
+  cycles = 3;
+  name = "LPM";
+}
+
+void Lpm1::Execute(Cpu* cpu) {
+  cpu->rf[0] = cpu->ProgMemoryRead(cpu->z);
+}
+
+Lpm2::Lpm2() {
+  exec_func = Execute;
+  cycles = 3;
+  name = "LPM";
+}
+
+void Lpm2::Execute(Cpu* cpu, uint rd) {
+  cpu->rf[rd] = cpu->ProgMemoryRead(cpu->z);
+}
+
+string Lpm2::GetStatementString(u16 insn) {
+  uint rd = InitArgs(insn);
+  return name + " R" + std::to_string(rd) + ",Z";
+}
+
+Lpmx::Lpmx() {
+  exec_func = Execute;
+  cycles = 3;
+  name = "LPM";
+}
+
+void Lpmx::Execute(Cpu* cpu, uint rd) {
+  cpu->rf[rd] = cpu->ProgMemoryRead(cpu->z);
+  ++cpu->z;
+}
+
+string Lpmx::GetStatementString(u16 insn) {
+  uint rd = InitArgs(insn);
+  return name + " R" + std::to_string(rd) + ",Z+";
 }
 
 Lsr::Lsr() {
@@ -724,6 +855,17 @@ Mov::Mov() {
 
 void Mov::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->rf[rd] = cpu->rf[rr];
+}
+
+Movw::Movw() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "MOVW";
+}
+
+void Movw::Execute(Cpu* cpu, uint rd, uint rr) {
+  cpu->rf[2 * rd] = cpu->rf[2 * rr];
+  cpu->rf[2 * rd + 1] = cpu->rf[2 * rr + 1];
 }
 
 Mul::Mul() {
@@ -823,6 +965,17 @@ void Ori::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.z = (result == 0);
 
   cpu->rf[rd] = result;
+}
+
+Out::Out() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "OUT";
+}
+
+void Out::Execute(Cpu* cpu, uint rr, uint io) {
+  // TODO: Implement.
+  // cpu->WriteIo(cpu->rf[rr], io);
 }
 
 Pop::Pop() {
@@ -930,6 +1083,16 @@ void Sbci::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->rf[rd] = result;
 }
 
+Sbi::Sbi() {
+  exec_func = Execute;
+  cycles = 2;
+  name = "SBI";
+}
+
+void Sbi::Execute(Cpu* cpu, uint io, uint b) {
+  // TODO: Implement.
+}
+
 Sbrc::Sbrc() {
   exec_func = Execute;
   cycles = 1;
@@ -966,6 +1129,26 @@ void Sleep::Execute(Cpu* cpu) {
   cpu->sleeping = true;
 }
 
+Spm::Spm() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "SPM";
+}
+
+void Spm::Execute(Cpu* cpu) {
+  // TODO: Implement.
+}
+
+Spmx::Spmx() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "SPM";
+}
+
+void Spmx::Execute(Cpu* cpu) {
+  // TODO: Implement.
+}
+
 Stdy::Stdy() {
   exec_func = Execute;
   cycles = 2;
@@ -978,7 +1161,7 @@ void Stdy::Execute(Cpu* cpu, uint rr, uint imm) {
 
 string Stdy::GetStatementString(u16 insn) {
   auto [rr, imm] = InitArgs(insn);
-  return string(name) + " Y+" + std::format("0x{:x}", imm) + ",R" + std::to_string(rr);
+  return name + " Y+" + std::format("0x{:x}", imm) + ",R" + std::to_string(rr);
 }
 
 Stdz::Stdz() {
@@ -993,7 +1176,7 @@ void Stdz::Execute(Cpu* cpu, uint rr, uint imm) {
 
 string Stdz::GetStatementString(u16 insn) {
   auto [rr, imm] = InitArgs(insn);
-  return string(name) + " Z+" + std::format("0x{:x}", imm) + ",R" + std::to_string(rr);
+  return name + " Z+" + std::format("0x{:x}", imm) + ",R" + std::to_string(rr);
 }
 
 Sts::Sts() {
@@ -1018,7 +1201,7 @@ void Stx1::Execute(Cpu* cpu, uint rr) {
 
 string Stx1::GetStatementString(u16 insn) {
   uint rr = InitArgs(insn);
-  return string(name) + " X, R" + std::to_string(rr);
+  return name + " X, R" + std::to_string(rr);
 }
 
 Stx2::Stx2() {
@@ -1034,7 +1217,7 @@ void Stx2::Execute(Cpu* cpu, uint rr) {
 
 string Stx2::GetStatementString(u16 insn) {
   uint rr = InitArgs(insn);
-  return string(name) + " X+, R" + std::to_string(rr);
+  return name + " X+, R" + std::to_string(rr);
 }
 
 Stx3::Stx3() {
@@ -1050,7 +1233,7 @@ void Stx3::Execute(Cpu* cpu, uint rr) {
 
 string Stx3::GetStatementString(u16 insn) {
   uint rr = InitArgs(insn);
-  return string(name) + " X-, R" + std::to_string(rr);
+  return name + " X-, R" + std::to_string(rr);
 }
 
 Sty2::Sty2() {
@@ -1066,7 +1249,7 @@ void Sty2::Execute(Cpu* cpu, uint rr) {
 
 string Sty2::GetStatementString(u16 insn) {
   uint rr = InitArgs(insn);
-  return string(name) + " Y+, R" + std::to_string(rr);
+  return name + " Y+, R" + std::to_string(rr);
 }
 
 Sty3::Sty3() {
@@ -1082,7 +1265,7 @@ void Sty3::Execute(Cpu* cpu, uint rr) {
 
 string Sty3::GetStatementString(u16 insn) {
   uint rr = InitArgs(insn);
-  return string(name) + " Y-, R" + std::to_string(rr);
+  return name + " Y-, R" + std::to_string(rr);
 }
 
 Stz2::Stz2() {
@@ -1098,7 +1281,7 @@ void Stz2::Execute(Cpu* cpu, uint rr) {
 
 string Stz2::GetStatementString(u16 insn) {
   uint rr = InitArgs(insn);
-  return string(name) + " Z+, R" + std::to_string(rr);
+  return name + " Z+, R" + std::to_string(rr);
 }
 
 Stz3::Stz3() {
@@ -1114,7 +1297,7 @@ void Stz3::Execute(Cpu* cpu, uint rr) {
 
 string Stz3::GetStatementString(u16 insn) {
   uint rr = InitArgs(insn);
-  return string(name) + " Z-, R" + std::to_string(rr);
+  return name + " Z-, R" + std::to_string(rr);
 }
 
 Sub::Sub() {
@@ -1165,6 +1348,16 @@ Swap::Swap() {
 void Swap::Execute(Cpu* cpu, uint rd) {
   u8 reg = cpu->rf[rd];
   cpu->rf[rd] = (reg << 4) | (reg >> 4);
+}
+
+Xch::Xch() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "XCH";
+}
+
+void Xch::Execute(Cpu* cpu, uint rd) {
+  // TODO: Raise illegal. Not part of ATmega328p.
 }
 
 Wdr::Wdr() {

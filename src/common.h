@@ -80,3 +80,9 @@ inline string RegName(size_t ind) {
 
   return names[ind];
 }
+
+inline string SregName(size_t ind) {
+  static string names[8] = {"C", "Z", "N", "V", "S", "H", "T", "I"};
+
+  return names[ind];
+}

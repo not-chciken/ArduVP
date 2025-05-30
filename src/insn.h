@@ -80,8 +80,25 @@ struct InsnRpImm6 : public Insn {
   virtual string GetStatementString(u16 insn) override;
 };
 
+// 0000 0000 dddd rrrr
+struct InsnRpRp : public Insn {
+  std::function<void(Cpu*, uint, uint)> exec_func;
+
+  std::tuple<uint, uint> InitArgs(u16 insn);
+  virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
+  virtual string GetStatementString(u16 insn) override;
+};
+
 // 00q0 qq0d dddd 0qqq
 struct InsnRImm6 : public Insn {
+  std::function<void(Cpu*, uint, uint)> exec_func;
+
+  std::tuple<uint, uint> InitArgs(u16 insn);
+  virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
+};
+
+// 1011 1AAr rrrr AAAA
+struct InsnRIo : public Insn {
   std::function<void(Cpu*, uint, uint)> exec_func;
 
   std::tuple<uint, uint> InitArgs(u16 insn);
@@ -102,6 +119,24 @@ struct InsnImm12 : public Insn {
   std::function<void(Cpu*, uint)> exec_func;
 
   uint InitArgs(u16 insn);
+  virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
+  virtual string GetStatementString(u16 insn) override;
+};
+
+// 0000 0000 AAAA Abbb
+struct InsnIoB : public Insn {
+  std::function<void(Cpu*, uint, uint)> exec_func;
+
+  std::tuple<uint, uint> InitArgs(u16 insn);
+  virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
+  virtual string GetStatementString(u16 insn) override;
+};
+
+// 0000 00kk kkkk ksss
+struct InsnSImm6 : public Insn {
+  std::function<void(Cpu*, uint, uint)> exec_func;
+
+  std::tuple<uint, int> InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
   virtual string GetStatementString(u16 insn) override;
 };
@@ -154,6 +189,11 @@ struct Bst : public InsnRb {
 struct Call : public InsnImm22 {
   Call();
   static void Execute(Cpu* cpu, u32 addr);
+};
+
+struct Cbi : public InsnIoB {
+  Cbi();
+  static void Execute(Cpu* cpu, uint io, uint b);
 };
 
 struct Com : public InsnR {
@@ -214,6 +254,11 @@ struct Ijmp : public Insn0 {
 struct Inc : public InsnR {
   Inc();
   static void Execute(Cpu* cpu, uint rd);
+};
+
+struct In : public InsnRIo {
+  In();
+  static void Execute(Cpu* cpu, uint rd, uint io);
 };
 
 struct Jmp : public InsnImm22 {
@@ -285,6 +330,23 @@ struct Ldz3 : public InsnR {
   virtual string GetStatementString(u16 insn) override;
 };
 
+struct Lpm1 : public Insn0 {
+  Lpm1();
+  static void Execute(Cpu* cpu);
+};
+
+struct Lpm2 : public InsnR {
+  Lpm2();
+  static void Execute(Cpu* cpu, uint rd);
+  virtual string GetStatementString(u16 insn) override;
+};
+
+struct Lpmx : public InsnR {
+  Lpmx();
+  static void Execute(Cpu* cpu, uint rd);
+  virtual string GetStatementString(u16 insn) override;
+};
+
 struct Lsr : public InsnR {
   Lsr();
   static void Execute(Cpu* cpu, uint rd);
@@ -292,6 +354,11 @@ struct Lsr : public InsnR {
 
 struct Mov : public InsnRR {
   Mov();
+  static void Execute(Cpu* cpu, uint rd, uint rr);
+};
+
+struct Movw : public InsnRpRp {
+  Movw();
   static void Execute(Cpu* cpu, uint rd, uint rr);
 };
 
@@ -323,6 +390,11 @@ struct Or : public InsnRR {
 struct Ori : public InsnRuImm8 {
   Ori();
   static void Execute(Cpu* cpu, uint rr, uint imm);
+};
+
+struct Out : public InsnRIo {
+  Out();
+  static void Execute(Cpu* cpu, uint rr, uint io);
 };
 
 struct Pop : public InsnR {
@@ -365,6 +437,11 @@ struct Sbci : public InsnRuImm8 {
   static void Execute(Cpu* cpu, uint rr, uint imm);
 };
 
+struct Sbi : public InsnIoB {
+  Sbi();
+  static void Execute(Cpu* cpu, uint io, uint b);
+};
+
 struct Sbrc : public InsnRb {
   Sbrc();
   static void Execute(Cpu* cpu, uint rr, uint imm);
@@ -377,6 +454,16 @@ struct Sbrs : public InsnRb {
 
 struct Sleep : public Insn0 {
   Sleep();
+  static void Execute(Cpu* cpu);
+};
+
+struct Spm : public Insn0 {
+  Spm();
+  static void Execute(Cpu* cpu);
+};
+
+struct Spmx : public Insn0 {
+  Spmx();
   static void Execute(Cpu* cpu);
 };
 
@@ -459,6 +546,11 @@ struct Wdr : public Insn0 {
   static void Execute(Cpu* cpu);
 };
 
+struct Xch : public InsnR {
+  Xch();
+  static void Execute(Cpu* cpu, uint rd);
+};
+
 struct Illegal : public Insn0 {
   Illegal();
   static void Execute(Cpu* cpu);
@@ -488,16 +580,5 @@ struct Illegal : public Insn0 {
 // BRVC
 // BRIE
 // BRID
-
-// SBI
-// CBI
 // BSET
 // BCLR
-
-// MOVW
-// LPM
-// LPM
-// LPM
-// SPM
-// IN
-// OUT

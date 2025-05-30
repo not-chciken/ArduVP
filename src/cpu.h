@@ -33,6 +33,11 @@ struct Cpu {
     return 0;
   }
 
+  u8 ProgMemoryRead(u32 adr) {
+    // TODO: Implement.
+    return 0;
+  }
+
   template <typename D>
   void MemoryWrite(u64 adr, D dat) {
     // TODO: Implement.
