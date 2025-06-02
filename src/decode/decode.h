@@ -2,16 +2,7 @@
 
 #pragma once
 
-#include "insts/btype.h"
-#include "insts/d_ext.h"
-#include "insts/f_ext.h"
-#include "insts/itype.h"
-#include "insts/jtype.h"
-#include "insts/misc.h"
-#include "insts/rtype.h"
-#include "insts/stype.h"
-#include "insts/utype.h"
-
+#include "insn.h"
 namespace Decode {
 
 
@@ -38,7 +29,6 @@ static Mulsu MULSU_obj;
 static Fmul FMUL_obj;
 static Fmuls FMULS_obj;
 static Fmulsu FMULSU_obj;
-static Des DES_obj;
 static Rjmp RJMP_obj;
 static Ijmp IJMP_obj;
 static Eijmp EIJMP_obj;
@@ -85,9 +75,6 @@ static Stdz STDZ_obj;
 static Lpm1 LPM1_obj;
 static Lpm2 LPM2_obj;
 static Lpmx LPMX_obj;
-static Elpm1 ELPM1_obj;
-static Elpm2 ELPM2_obj;
-static Elpmx ELPMX_obj;
 static Spm SPM_obj;
 static Spmx SPMX_obj;
 static In IN_obj;
@@ -115,7 +102,7 @@ static Wdr WDR_obj;
 static Illegal illegal_obj;
 static Nop nop_obj;
 
-inline Inst* DecodeInsn(uint16_t insn, Hart* hart)
+inline Insn* DecodeInsn(uint16_t insn)
 {
     switch (insn & 0xd000) {
     case 0x0000:
@@ -331,16 +318,6 @@ inline Inst* DecodeInsn(uint16_t insn, Hart* hart)
                     /* 1001000. ....0101 */
                     /* insn.decode:149 */
                     return &LPMX_obj;
-                    break;
-                case 0x0006:
-                    /* 1001000. ....0110 */
-                    /* insn.decode:151 */
-                    return &ELPM2_obj;
-                    break;
-                case 0x0007:
-                    /* 1001000. ....0111 */
-                    /* insn.decode:152 */
-                    return &ELPMX_obj;
                     break;
                 case 0x0009:
                     /* 1001000. ....1001 */
@@ -583,11 +560,6 @@ inline Inst* DecodeInsn(uint16_t insn, Hart* hart)
                             /* insn.decode:147 */
                             return &LPM1_obj;
                             break;
-                        case 0x5:
-                            /* 10010101 11011000 */
-                            /* insn.decode:150 */
-                            return &ELPM1_obj;
-                            break;
                         case 0x6:
                             /* 10010101 11101000 */
                             /* insn.decode:153 */
@@ -609,16 +581,6 @@ inline Inst* DecodeInsn(uint16_t insn, Hart* hart)
                         /* 1001010. ....1010 */
                         /* insn.decode:69 */
                         return &DEC_obj;
-                        break;
-                    case 0x0001:
-                        /* 1001010. ....1011 */
-                        switch ((insn >> 8) & 0x1) {
-                        case 0x0:
-                            /* 10010100 ....1011 */
-                            /* insn.decode:76 */
-                            return &DES_obj;
-                            break;
-                        }
                         break;
                     }
                     break;

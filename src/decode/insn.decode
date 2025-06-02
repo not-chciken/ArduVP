@@ -73,7 +73,7 @@ MULSU           0000 0011 0 ... 0 ...       @fmul
 FMUL            0000 0011 0 ... 1 ...       @fmul
 FMULS           0000 0011 1 ... 0 ...       @fmul
 FMULSU          0000 0011 1 ... 1 ...       @fmul
-DES             1001 0100 imm:4 1011
+# DES             1001 0100 imm:4 1011    # Not part of ATmega328P
 
 #
 # Branch Instructions
@@ -147,9 +147,9 @@ STDZ            10 . 0 .. 1 ..... 0 ...     @ldst_d
 LPM1            1001 0101 1100 1000
 LPM2            1001 000 rd:5 0100
 LPMX            1001 000 rd:5 0101
-ELPM1           1001 0101 1101 1000
-ELPM2           1001 000 rd:5 0110
-ELPMX           1001 000 rd:5 0111
+# ELPM1           1001 0101 1101 1000       # Not part of ATmega328P
+# ELPM2           1001 000 rd:5 0110        # Not part of ATmega328P
+# ELPMX           1001 000 rd:5 0111        # Not part of ATmega328P
 SPM             1001 0101 1110 1000
 SPMX            1001 0101 1111 1000
 IN              1011 0 .. ..... ....        @io_rd_imm

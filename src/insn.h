@@ -11,7 +11,7 @@ struct Insn {
   bool is_32bit;
 
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) = 0;
-  virtual std::function<void()> GenFunc32(u32 insn, Cpu* cpu);
+  virtual std::function<void()> GenFunc32(u16 insn, u16 imm, Cpu* cpu);
   virtual string GetStatementString(u16 insn);
 };
 
@@ -27,9 +27,10 @@ struct Insn0 : public Insn {
 struct InsnImm22 : public Insn {
   InsnImm22();
   std::function<void(Cpu*, u32)> exec_func;
-  u32 InitArgs(u32 insn);
-  std::function<void()> GenFunc32(u32 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u32 insn);
+  u32 InitArgs(u16 insn, u16 imm);
+  virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override{ return {}; };
+  std::function<void()> GenFunc32(u16 insn, u16 imm, Cpu* cpu) override;
+  virtual string GetStatementString(u16 insn, u16 imm);
   static void Execute(Cpu* cpu, u32 addr);
 };
 
@@ -38,9 +39,10 @@ struct InsnImm22 : public Insn {
 struct InsnRImm16 : public Insn {
   InsnRImm16();
   std::function<void(Cpu*, uint, uint)> exec_func;
-  std::tuple<uint, uint> InitArgs(u32 insn);
-  std::function<void()> GenFunc32(u32 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u32 insn);
+  std::tuple<uint, uint> InitArgs(u16 insn, u16 imm);
+  virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override { return {}; };
+  std::function<void()> GenFunc32(u16 insn, u16 imm, Cpu* cpu) override;
+  virtual string GetStatementString(u16 insn, u16 imm);
   static void Execute(Cpu* cpu, uint rd, uint adr);
 };
 
@@ -141,6 +143,15 @@ struct InsnSImm6 : public Insn {
   virtual string GetStatementString(u16 insn) override;
 };
 
+// 0000 0000 0sss 0000
+struct InsnS : public Insn {
+  std::function<void(Cpu*, uint)> exec_func;
+
+  uint InitArgs(u16 insn);
+  virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
+  virtual string GetStatementString(u16 insn) override;
+};
+
 struct Adc : public InsnRR {
   Adc();
   static void Execute(Cpu* cpu, uint rd, uint rr);
@@ -171,14 +182,34 @@ struct Asr : public InsnR {
   static void Execute(Cpu* cpu, uint rd);
 };
 
+struct Bclr : public InsnS {
+  Bclr();
+  static void Execute(Cpu* cpu, uint sreg);
+};
+
 struct Bld : public InsnRb {
   Bld();
   static void Execute(Cpu* cpu, uint rr, uint imm);
 };
 
+struct Brbc : public InsnSImm6 {
+  Brbc();
+  static void Execute(Cpu* cpu, uint sreg, int imm);
+};
+
+struct Brbs : public InsnSImm6 {
+  Brbs();
+  static void Execute(Cpu* cpu, uint sreg, int imm);
+};
+
 struct Break : public Insn0 {
   Break();
   static void Execute(Cpu* cpu);
+};
+
+struct Bset : public InsnS {
+  Bset();
+  static void Execute(Cpu* cpu, uint sreg);
 };
 
 struct Bst : public InsnRb {
@@ -211,6 +242,11 @@ struct Cpc : public InsnRR {
   static void Execute(Cpu* cpu, uint rd, uint rr);
 };
 
+struct Cpi : public InsnRuImm8 {
+  Cpi();
+  static void Execute(Cpu* cpu, uint rr, uint imm);
+};
+
 struct Cpse : public InsnRR {
   Cpse();
   static void Execute(Cpu* cpu, uint rd, uint rr);
@@ -219,6 +255,16 @@ struct Cpse : public InsnRR {
 struct Dec : public InsnR {
   Dec();
   static void Execute(Cpu* cpu, uint rd);
+};
+
+struct Eicall : public Insn0 {
+  Eicall();
+  static void Execute(Cpu* cpu);
+};
+
+struct Eijmp : public Insn0 {
+  Eijmp();
+  static void Execute(Cpu* cpu);
 };
 
 struct Eor : public InsnRR {
@@ -264,6 +310,21 @@ struct In : public InsnRIo {
 struct Jmp : public InsnImm22 {
   Jmp();
   static void Execute(Cpu* cpu, u32 addr);
+};
+
+struct Lac : public InsnR {
+  Lac();
+  static void Execute(Cpu* cpu, uint rd);
+};
+
+struct Las : public InsnR {
+  Las();
+  static void Execute(Cpu* cpu, uint rd);
+};
+
+struct Lat : public InsnR {
+  Lat();
+  static void Execute(Cpu* cpu, uint rd);
 };
 
 struct Lddy : public InsnRImm6 {
@@ -367,6 +428,11 @@ struct Mul : public InsnRR {
   static void Execute(Cpu* cpu, uint rd, uint rr);
 };
 
+struct Muls : public InsnRR {
+  Muls();
+  static void Execute(Cpu* cpu, uint rd, uint rr);
+};
+
 struct Mulsu : public InsnRR {
   Mulsu();
   static void Execute(Cpu* cpu, uint rd, uint rr);
@@ -432,6 +498,11 @@ struct Ror : public InsnR {
   static void Execute(Cpu* cpu, uint rd);
 };
 
+struct Sbc : public InsnRR {
+  Sbc();
+  static void Execute(Cpu* cpu, uint rd, uint rr);
+};
+
 struct Sbci : public InsnRuImm8 {
   Sbci();
   static void Execute(Cpu* cpu, uint rr, uint imm);
@@ -440,6 +511,21 @@ struct Sbci : public InsnRuImm8 {
 struct Sbi : public InsnIoB {
   Sbi();
   static void Execute(Cpu* cpu, uint io, uint b);
+};
+
+struct Sbic : public InsnIoB {
+  Sbic();
+  static void Execute(Cpu* cpu, uint io, uint b);
+};
+
+struct Sbis : public InsnIoB {
+  Sbis();
+  static void Execute(Cpu* cpu, uint io, uint b);
+};
+
+struct Sbiw : public InsnRpImm6 {
+  Sbiw();
+  static void Execute(Cpu* cpu, uint rp, uint imm);
 };
 
 struct Sbrc : public InsnRb {
@@ -531,7 +617,7 @@ struct Sub : public InsnRR {
   static void Execute(Cpu* cpu, uint rd, uint rr);
 };
 
-struct Subi : public InsnRpImm6 {
+struct Subi : public InsnRuImm8 {
   Subi();
   static void Execute(Cpu* cpu, uint rr, uint imm);
 };
@@ -580,5 +666,3 @@ struct Illegal : public Insn0 {
 // BRVC
 // BRIE
 // BRID
-// BSET
-// BCLR

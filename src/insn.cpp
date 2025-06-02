@@ -8,7 +8,7 @@ string Insn::GetStatementString(u16 inst) {
   return name;
 }
 
-std::function<void()> Insn::GenFunc32(u32 insn, Cpu* cpu) {
+std::function<void()> Insn::GenFunc32(u16 insn, u16 imm, Cpu* cpu) {
   assert(false);
 }
 
@@ -21,19 +21,19 @@ InsnImm22::InsnImm22() {
   is_32bit = true;
 }
 
-std::function<void()> InsnImm22::GenFunc32(u32 insn, Cpu* cpu) {
+std::function<void()> InsnImm22::GenFunc32(u16 insn, u16 imm, Cpu* cpu) {
   assert(exec_func != nullptr);
-  u32 adr = InitArgs(insn);
+  u32 adr = InitArgs(insn, imm);
   return std::bind(exec_func, cpu, adr);
 }
 
-u32 InsnImm22::InitArgs(u32 insn) {
-  u32 adr = ExtractBits(insn, 0, 17) | (ExtractBits(insn, 20, 5) << 17);
+u32 InsnImm22::InitArgs(u16 insn, u16 imm) {
+  u32 adr =  (ExtractBits(insn, 4, 5) << 17) | (ExtractBits(insn, 0, 1) << 16) | imm ;
   return adr;
 }
 
-string InsnImm22::GetStatementString(u32 insn) {
-  u32 adr = InitArgs(insn);
+string InsnImm22::GetStatementString(u16 insn, u16 imm) {
+  u32 adr = InitArgs(insn, imm);
   return name + " " + std::format("0x{:x}", adr);
 }
 
@@ -41,20 +41,19 @@ InsnRImm16::InsnRImm16() {
   is_32bit = true;
 }
 
-std::function<void()> InsnRImm16::GenFunc32(u32 insn, Cpu* cpu) {
+std::function<void()> InsnRImm16::GenFunc32(u16 insn, u16 imm, Cpu* cpu) {
   assert(exec_func != nullptr);
-  auto [rd, adr] = InitArgs(insn);
+  auto [rd, adr] = InitArgs(insn, imm);
   return std::bind(exec_func, cpu, rd, adr);
 }
 
-std::tuple<uint, uint> InsnRImm16::InitArgs(u32 insn) {
-  u16 adr = ExtractBits(insn, 0, 16);
-  uint rd = ExtractBits(insn, 20, 5);
-  return {rd, adr};
+std::tuple<uint, uint> InsnRImm16::InitArgs(u16 insn, u16 imm) {
+  uint rd = ExtractBits(insn, 4, 5);
+  return {rd, imm};
 }
 
-string InsnRImm16::GetStatementString(u32 insn) {
-  auto [rd, adr] = InitArgs(insn);
+string InsnRImm16::GetStatementString(u16 insn, u16 imm) {
+  auto [rd, adr] = InitArgs(insn, imm);
   return name + " R" + RegName(rd) + "," + std::format("0x{:x}", adr);
 }
 
@@ -244,6 +243,22 @@ string InsnSImm6::GetStatementString(u16 insn) {
   return name + " " + std::to_string(sreg) + "," + std::to_string(imm);
 }
 
+std::function<void()> InsnS::GenFunc(u16 insn, Cpu* cpu) {
+  assert(exec_func != nullptr);
+  uint sreg = InitArgs(insn);
+  return std::bind(exec_func, cpu, sreg);
+}
+
+uint InsnS::InitArgs(u16 insn) {
+  uint sreg = ExtractBits(insn, 4, 3);
+  return sreg;
+}
+
+string InsnS::GetStatementString(u16 insn) {
+  auto sreg = InitArgs(insn);
+  return name + " " + std::to_string(sreg);
+}
+
 Adc::Adc() {
   exec_func = Execute;
   cycles = 1;
@@ -299,7 +314,8 @@ void Adiw::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result < reg) || (result < imm);
 
-  cpu->rf[rd] = result;
+  cpu->rf[rd * 2 + 24] = result & 0xFF;
+  cpu->rf[rd * 2 + 25] = (result >> 8);
 }
 
 And::And() {
@@ -356,6 +372,26 @@ void Asr::Execute(Cpu* cpu, uint rd) {
   cpu->rf[rd] = result;
 }
 
+Bclr::Bclr() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "BCLR";
+}
+
+void Bclr::Execute(Cpu* cpu, uint sreg) {
+  switch (sreg) {
+    case 0: cpu->sreg.c = false; break;
+    case 1: cpu->sreg.z = false; break;
+    case 2: cpu->sreg.n = false; break;
+    case 3: cpu->sreg.v = false; break;
+    case 4: cpu->sreg.s = false; break;
+    case 5: cpu->sreg.h = false; break;
+    case 6: cpu->sreg.t = false; break;
+    case 7: cpu->sreg.i = false; break;
+    default: assert(false);
+  }
+}
+
 Bld::Bld() {
   exec_func = Execute;
   cycles = 1;
@@ -366,6 +402,54 @@ void Bld::Execute(Cpu* cpu, uint rr, uint b) {
   u8 reg = cpu->rf[rr];
   u8 result = (cpu->sreg.t << b) | (reg & ~(1 << b));
   cpu->rf[rr] = result;
+}
+
+Brbc::Brbc() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "BRBC";
+}
+
+void Brbc::Execute(Cpu* cpu, uint sreg, int imm) {
+  bool condition = false;
+  switch (sreg) {
+    case 0: condition = !cpu->sreg.c; break;
+    case 1: condition = !cpu->sreg.z; break;
+    case 2: condition = !cpu->sreg.n; break;
+    case 3: condition = !cpu->sreg.v; break;
+    case 4: condition = !cpu->sreg.s; break;
+    case 5: condition = !cpu->sreg.h; break;
+    case 6: condition = !cpu->sreg.t; break;
+    case 7: condition = !cpu->sreg.i; break;
+    default: assert(false);
+  }
+  if (condition) {
+    cpu->new_pc += imm * 2;
+  }
+}
+
+Brbs::Brbs() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "BRBS";
+}
+
+void Brbs::Execute(Cpu* cpu, uint sreg, int imm) {
+  bool condition = false;
+  switch (sreg) {
+    case 0: condition = cpu->sreg.c; break;
+    case 1: condition = cpu->sreg.z; break;
+    case 2: condition = cpu->sreg.n; break;
+    case 3: condition = cpu->sreg.v; break;
+    case 4: condition = cpu->sreg.s; break;
+    case 5: condition = cpu->sreg.h; break;
+    case 6: condition = cpu->sreg.t; break;
+    case 7: condition = cpu->sreg.i; break;
+    default: assert(false);
+  }
+  if (condition) {
+    cpu->new_pc += imm * 2;
+  }
 }
 
 Bst::Bst() {
@@ -387,6 +471,26 @@ Break::Break() {
 
 void Break::Execute(Cpu* cpu) {
   cpu->break_hit = true;
+}
+
+Bset::Bset() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "BSET";
+}
+
+void Bset::Execute(Cpu* cpu, uint sreg) {
+  switch (sreg) {
+    case 0: cpu->sreg.c = true; break;
+    case 1: cpu->sreg.z = true; break;
+    case 2: cpu->sreg.n = true; break;
+    case 3: cpu->sreg.v = true; break;
+    case 4: cpu->sreg.s = true; break;
+    case 5: cpu->sreg.h = true; break;
+    case 6: cpu->sreg.t = true; break;
+    case 7: cpu->sreg.i = true; break;
+    default: assert(false);
+  }
 }
 
 Call::Call() {
@@ -465,6 +569,23 @@ void Cpc::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.c = (result > reg) || (result > rs1);
 }
 
+Cpi::Cpi() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "CPI";
+}
+
+void Cpi::Execute(Cpu* cpu, uint rd, uint imm) {
+  u8 reg = cpu->rf[rd];
+  u8 result = reg - imm;
+
+  cpu->sreg.h = ((reg & 0x0F) - (imm & 0x0F)) < 0;
+  cpu->sreg.v = ((reg ^ result) & (imm ^ result)) & 0x80;
+  cpu->sreg.n = (result & 0x80) != 0;
+  cpu->sreg.z = (result == 0);
+  cpu->sreg.c = (result > reg) || (result > imm);
+}
+
 Cpse::Cpse() {
   exec_func = Execute;
   cycles = 1;
@@ -490,6 +611,26 @@ void Dec::Execute(Cpu* cpu, uint rd) {
   cpu->sreg.z = (result == 0);
 
   cpu->rf[rd] = result;
+}
+
+Eicall::Eicall() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "EICALL";
+}
+
+void Eicall::Execute(Cpu* cpu) {
+  throw Cpu::IllegalInsnException(); // Not part of ATmega328p.
+}
+
+Eijmp::Eijmp() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "EIJMP";
+}
+
+void Eijmp::Execute(Cpu* cpu) {
+  throw Cpu::IllegalInsnException(); // Not part of ATmega328p.
 }
 
 Eor::Eor() {
@@ -625,6 +766,36 @@ Jmp::Jmp() {
 
 void Jmp::Execute(Cpu* cpu, u32 addr) {
   cpu->pc = addr;
+}
+
+Lac::Lac() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "LAC";
+}
+
+void Lac::Execute(Cpu* cpu, uint rd) {
+  throw Cpu::IllegalInsnException(); // Not part of ATmega328p.
+}
+
+Las::Las() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "LAS";
+}
+
+void Las::Execute(Cpu* cpu, uint rd) {
+  throw Cpu::IllegalInsnException(); // Not part of ATmega328p.
+}
+
+Lat::Lat() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "LAT";
+}
+
+void Lat::Execute(Cpu* cpu, uint rd) {
+  throw Cpu::IllegalInsnException(); // Not part of ATmega328p.
 }
 
 Lddy::Lddy() {
@@ -886,6 +1057,24 @@ void Mul::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->rf[1] = result >> 8;
 }
 
+Muls::Muls() {
+  exec_func = Execute;
+  cycles = 2;
+  name = "MULS";
+}
+
+void Muls::Execute(Cpu* cpu, uint rd, uint rr) {
+  u8 reg = cpu->rf[rd];
+  u8 rs1 = cpu->rf[rr];
+  u16 result = (i16)reg * (i16)rs1;
+
+  cpu->sreg.z = (result == 0);
+  cpu->sreg.c = result & 0x8000;
+
+  cpu->rf[0] = result & 0xff;
+  cpu->rf[1] = result >> 8;
+}
+
 Mulsu::Mulsu() {
   exec_func = Execute;
   cycles = 2;
@@ -1083,6 +1272,26 @@ void Sbci::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->rf[rd] = result;
 }
 
+Sbc::Sbc() {
+  exec_func = Execute;
+  cycles = 1;
+  name = "SBC";
+}
+
+void Sbc::Execute(Cpu* cpu, uint rd, uint rr) {
+  u8 reg = cpu->rf[rd];
+  u8 rs1 = cpu->rf[rr];
+  u8 result = reg - rs1 - cpu->sreg.c;
+
+  cpu->sreg.h = ((reg & 0x0F) - (rs1 & 0x0F) - cpu->sreg.c) < 0;
+  cpu->sreg.v = ((reg ^ result) & (rs1 ^ result)) & 0x80;
+  cpu->sreg.n = (result & 0x80) != 0;
+  cpu->sreg.z = (result == 0);
+  cpu->sreg.c = (result > reg) || (result > rs1);
+
+  cpu->rf[rd] = result;
+}
+
 Sbi::Sbi() {
   exec_func = Execute;
   cycles = 2;
@@ -1091,6 +1300,46 @@ Sbi::Sbi() {
 
 void Sbi::Execute(Cpu* cpu, uint io, uint b) {
   // TODO: Implement.
+}
+
+Sbic::Sbic() {
+  exec_func = Execute;
+  cycles = 2;
+  name = "SBIC";
+}
+
+void Sbic::Execute(Cpu* cpu, uint io, uint b) {
+  // TODO: Implement.
+}
+
+Sbis::Sbis() {
+  exec_func = Execute;
+  cycles = 2;
+  name = "SBI";
+}
+
+void Sbis::Execute(Cpu* cpu, uint io, uint b) {
+  // TODO: Implement.
+}
+
+Sbiw::Sbiw() {
+  exec_func = Execute;
+  cycles = 2;
+  name = "SBIW";
+}
+
+void Sbiw::Execute(Cpu* cpu, uint rp, uint imm) {
+  u16 reg = (u16)cpu->rf[rp * 2 + 24] | ((u16)cpu->rf[rp * 2 + 25] << 8);
+  u16 result = reg - imm;
+
+  cpu->sreg.n = (result & 0x8000) != 0;
+  cpu->sreg.z = (result == 0);
+  cpu->sreg.c = (result > reg) || (result > imm);
+  cpu->sreg.v = ((reg ^ result) & (imm ^ result)) & 0x8000;
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
+
+  cpu->rf[rp * 2 + 24] = result;
+  cpu->rf[rp * 2 + 25] = result >> 8;
 }
 
 Sbrc::Sbrc() {
@@ -1357,7 +1606,7 @@ Xch::Xch() {
 }
 
 void Xch::Execute(Cpu* cpu, uint rd) {
-  // TODO: Raise illegal. Not part of ATmega328p.
+  throw Cpu::IllegalInsnException(); // Not part of ATmega328p.
 }
 
 Wdr::Wdr() {
@@ -1377,5 +1626,5 @@ Illegal::Illegal() {
 }
 
 void Illegal::Execute(Cpu* cpu) {
-  // TODO.
+  throw Cpu::IllegalInsnException(); // Not part of ATmega328p.
 }

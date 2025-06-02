@@ -1592,16 +1592,7 @@ def main():
     output(
       r'''#pragma once
 
-#include "insts/btype.h"
-#include "insts/d_ext.h"
-#include "insts/f_ext.h"
-#include "insts/itype.h"
-#include "insts/jtype.h"
-#include "insts/misc.h"
-#include "insts/rtype.h"
-#include "insts/stype.h"
-#include "insts/utype.h"
-
+#include "insn.h"
 ''')
 
     output("namespace Decode {\n")
@@ -1651,8 +1642,8 @@ def main():
 
     # output(decode_scope, 'bool ', decode_function,
     #        '(DisasContext *ctx, ', insntype, ' insn)\n{\n')
-    output(decode_scope, 'inline Inst* ', decode_function, # Changed
-           '(', insntype, ' insn, Hart* hart)\n{\n')
+    output(decode_scope, 'inline Insn* ', decode_function, # Changed
+           '(', insntype, ' insn)\n{\n')
 
     i4 = str_indent(4)
 
