@@ -181,7 +181,7 @@ std::function<void()> InsnRuImm8::GenFunc(u16 insn, Cpu* cpu) {
 
 std::tuple<uint, uint> InsnRuImm8::InitArgs(u16 insn) {
   uint rd = ExtractBits(insn, 4, 4) + 16;
-  uint imm = ExtractBits(insn, 0, 4) | (ExtractBits(insn, 7, 4) << 4);
+  uint imm = ExtractBits(insn, 0, 4) | (ExtractBits(insn, 8, 4) << 4);
 
   return {rd, imm};
 }
@@ -424,7 +424,7 @@ void Brbc::Execute(Cpu* cpu, uint sreg, int imm) {
     default: assert(false);
   }
   if (condition) {
-    cpu->new_pc += imm * 2;
+    cpu->new_pc = cpu->pc + imm + 1;
   }
 }
 
@@ -448,7 +448,7 @@ void Brbs::Execute(Cpu* cpu, uint sreg, int imm) {
     default: assert(false);
   }
   if (condition) {
-    cpu->new_pc += imm * 2;
+    cpu->new_pc = cpu->pc + imm + 1;
   }
 }
 
@@ -500,9 +500,12 @@ Call::Call() {
 }
 
 void Call::Execute(Cpu* cpu, u32 addr) {
-  cpu->MemoryWrite<u16>(cpu->sp, cpu->pc + 2);
-  cpu->sp -= 2;
-  cpu->pc = addr;
+  u16 old_pc = cpu->pc + 2;
+  cpu->MemoryWrite(cpu->sp, old_pc >> 8);
+  --cpu->sp;
+  cpu->MemoryWrite(cpu->sp, old_pc & 0xff);
+  --cpu->sp;
+  cpu->new_pc = addr;
 }
 
 Cbi::Cbi() {
@@ -512,7 +515,7 @@ Cbi::Cbi() {
 }
 
 void Cbi::Execute(Cpu* cpu, uint io, uint b) {
-  // TODO: Implement.
+  cpu->IoWrite(io, cpu->IoRead(io) & ~(1 << b));
 }
 
 Com::Com() {
@@ -715,9 +718,12 @@ Icall::Icall() {
 }
 
 void Icall::Execute(Cpu* cpu) {
-  cpu->MemoryWrite<u16>(cpu->sp, cpu->pc + 1);
-  cpu->sp -= 2;
-  cpu->pc = cpu->z;
+  auto new_pc = cpu->pc + 1;
+  cpu->MemoryWrite(cpu->sp, new_pc >> 8);
+  cpu->sp -= 1;
+  cpu->MemoryWrite(cpu->sp, new_pc & 0xff);
+  cpu->sp -= 1;
+  cpu->new_pc = cpu->z;
 }
 
 Ijmp::Ijmp() {
@@ -727,7 +733,7 @@ Ijmp::Ijmp() {
 }
 
 void Ijmp::Execute(Cpu* cpu) {
-  cpu->pc = cpu->z;
+  cpu->new_pc = cpu->z;
 }
 
 Inc::Inc() {
@@ -754,8 +760,7 @@ In::In() {
 }
 
 void In::Execute(Cpu* cpu, uint rd, uint io) {
-  // TODO: Implement.
-  // cpu->rf[rd] = cpu->MemoryReadIo(io);
+  cpu->rf[rd] = cpu->IoRead(io);
 }
 
 Jmp::Jmp() {
@@ -765,7 +770,7 @@ Jmp::Jmp() {
 }
 
 void Jmp::Execute(Cpu* cpu, u32 addr) {
-  cpu->pc = addr;
+  cpu->new_pc = addr;
 }
 
 Lac::Lac() {
@@ -805,7 +810,7 @@ Lddy::Lddy() {
 }
 
 void Lddy::Execute(Cpu* cpu, uint rd, uint imm) {
-  cpu->rf[rd] = cpu->MemoryRead<u8>(cpu->y + imm);  // TODO: Is imm signed or unsigned?
+  cpu->rf[rd] = cpu->MemoryRead(cpu->y + imm);  // TODO: Is imm signed or unsigned?
 }
 
 string Lddy::GetStatementString(u16 insn) {
@@ -820,7 +825,7 @@ Lddz::Lddz() {
 }
 
 void Lddz::Execute(Cpu* cpu, uint rd, uint imm) {
-  cpu->rf[rd] = cpu->MemoryRead<u8>(cpu->z + imm);  // TODO: Is imm signed or unsigned?
+  cpu->rf[rd] = cpu->MemoryRead(cpu->z + imm);  // TODO: Is imm signed or unsigned?
 }
 
 string Lddz::GetStatementString(u16 insn) {
@@ -845,7 +850,7 @@ Lds::Lds() {
 }
 
 void Lds::Execute(Cpu* cpu, uint rd, uint adr) {
-  cpu->rf[rd] = cpu->MemoryRead<u8>(adr);
+  cpu->rf[rd] = cpu->MemoryRead(adr);
 }
 
 Ldx1::Ldx1() {
@@ -855,7 +860,7 @@ Ldx1::Ldx1() {
 }
 
 void Ldx1::Execute(Cpu* cpu, uint rd) {
-  cpu->rf[rd] = cpu->MemoryRead<u8>(cpu->x);
+  cpu->rf[rd] = cpu->MemoryRead(cpu->x);
 }
 
 string Ldx1::GetStatementString(u16 insn) {
@@ -870,7 +875,7 @@ Ldx2::Ldx2() {
 }
 
 void Ldx2::Execute(Cpu* cpu, uint rd) {
-  cpu->rf[rd] = cpu->MemoryRead<u8>(cpu->x);
+  cpu->rf[rd] = cpu->MemoryRead(cpu->x);
   ++cpu->x;
 }
 
@@ -887,7 +892,7 @@ Ldx3::Ldx3() {
 
 void Ldx3::Execute(Cpu* cpu, uint rd) {
   --cpu->x;
-  cpu->rf[rd] = cpu->MemoryRead<u8>(cpu->x);
+  cpu->rf[rd] = cpu->MemoryRead(cpu->x);
 }
 
 string Ldx3::GetStatementString(u16 insn) {
@@ -902,7 +907,7 @@ Ldy2::Ldy2() {
 }
 
 void Ldy2::Execute(Cpu* cpu, uint rd) {
-  cpu->rf[rd] = cpu->MemoryRead<u8>(cpu->y);
+  cpu->rf[rd] = cpu->MemoryRead(cpu->y);
   ++cpu->y;
 }
 
@@ -919,7 +924,7 @@ Ldy3::Ldy3() {
 
 void Ldy3::Execute(Cpu* cpu, uint rd) {
   --cpu->y;
-  cpu->rf[rd] = cpu->MemoryRead<u8>(cpu->y);
+  cpu->rf[rd] = cpu->MemoryRead(cpu->y);
 }
 
 string Ldy3::GetStatementString(u16 insn) {
@@ -934,7 +939,7 @@ Ldz2::Ldz2() {
 }
 
 void Ldz2::Execute(Cpu* cpu, uint rd) {
-  cpu->rf[rd] = cpu->MemoryRead<u8>(cpu->z);
+  cpu->rf[rd] = cpu->MemoryRead(cpu->z);
   ++cpu->z;
 }
 
@@ -951,7 +956,7 @@ Ldz3::Ldz3() {
 
 void Ldz3::Execute(Cpu* cpu, uint rd) {
   --cpu->z;
-  cpu->rf[rd] = cpu->MemoryRead<u8>(cpu->z);
+  cpu->rf[rd] = cpu->MemoryRead(cpu->z);
 }
 
 string Ldz3::GetStatementString(u16 insn) {
@@ -1163,8 +1168,7 @@ Out::Out() {
 }
 
 void Out::Execute(Cpu* cpu, uint rr, uint io) {
-  // TODO: Implement.
-  // cpu->WriteIo(cpu->rf[rr], io);
+  cpu->IoWrite(io, cpu->rf[rr]);
 }
 
 Pop::Pop() {
@@ -1175,7 +1179,7 @@ Pop::Pop() {
 
 void Pop::Execute(Cpu* cpu, uint rd) {
   cpu->sp += 1;
-  cpu->rf[rd] = cpu->MemoryRead<u8>(cpu->sp);
+  cpu->rf[rd] = cpu->MemoryRead(cpu->sp);
 }
 
 Push::Push() {
@@ -1185,7 +1189,7 @@ Push::Push() {
 }
 
 void Push::Execute(Cpu* cpu, uint rd) {
-  cpu->MemoryWrite<u8>(cpu->sp, cpu->rf[rd]);
+  cpu->MemoryWrite(cpu->sp, cpu->rf[rd]);
   cpu->sp -= 1;
 }
 
@@ -1196,9 +1200,12 @@ Rcall::Rcall() {
 }
 
 void Rcall::Execute(Cpu* cpu, uint addr) {
-  cpu->MemoryWrite<u16>(cpu->sp, cpu->pc + 2);
-  cpu->sp -= 2;
-  cpu->pc += addr + 1;
+  auto new_pc = cpu->pc + 2;
+  cpu->MemoryWrite(cpu->sp, new_pc >> 8);
+  cpu->sp -= 1;
+  cpu->MemoryWrite(cpu->sp, new_pc & 0xff);
+  cpu->sp -= 1;
+  cpu->new_pc = cpu->pc + addr + 1;
 }
 
 Ret::Ret() {
@@ -1208,8 +1215,11 @@ Ret::Ret() {
 }
 
 void Ret::Execute(Cpu* cpu) {
-  cpu->sp += 2;
-  cpu->pc = cpu->MemoryRead<u16>(cpu->sp);
+  cpu->sp += 1;
+  u16 new_pc = cpu->MemoryRead(cpu->sp);
+  cpu->sp += 1;
+  new_pc |= cpu->MemoryRead(cpu->sp) << 8;
+  cpu->new_pc = new_pc;
 }
 
 Reti::Reti() {
@@ -1219,8 +1229,11 @@ Reti::Reti() {
 }
 
 void Reti::Execute(Cpu* cpu) {
-  cpu->sp += 2;
-  cpu->pc = cpu->MemoryRead<u16>(cpu->sp);
+  cpu->sp += 1;
+  u16 new_pc = cpu->MemoryRead(cpu->sp);
+  cpu->sp += 1;
+  new_pc |= cpu->MemoryRead(cpu->sp) << 8;
+  cpu->new_pc = new_pc;
   cpu->sreg.i = true;
 }
 
@@ -1231,7 +1244,7 @@ Rjmp::Rjmp() {
 }
 
 void Rjmp::Execute(Cpu* cpu, u32 addr) {
-  cpu->pc += addr + 1;
+  cpu->new_pc = cpu->pc + addr + 1;
 }
 
 Ror::Ror() {
@@ -1299,7 +1312,7 @@ Sbi::Sbi() {
 }
 
 void Sbi::Execute(Cpu* cpu, uint io, uint b) {
-  // TODO: Implement.
+  cpu->IoWrite(io, cpu->IoRead(io) | (1 << b));
 }
 
 Sbic::Sbic() {
@@ -1309,7 +1322,10 @@ Sbic::Sbic() {
 }
 
 void Sbic::Execute(Cpu* cpu, uint io, uint b) {
-  // TODO: Implement.
+  u8 reg = cpu->IoRead(io);
+  if (!(reg & (1 << b))) {
+    cpu->skip = true;
+  }
 }
 
 Sbis::Sbis() {
@@ -1319,7 +1335,10 @@ Sbis::Sbis() {
 }
 
 void Sbis::Execute(Cpu* cpu, uint io, uint b) {
-  // TODO: Implement.
+  u8 reg = cpu->IoRead(io);
+  if (reg & (1 << b)) {
+    cpu->skip = true;
+  }
 }
 
 Sbiw::Sbiw() {
@@ -1405,7 +1424,7 @@ Stdy::Stdy() {
 }
 
 void Stdy::Execute(Cpu* cpu, uint rr, uint imm) {
-  cpu->MemoryWrite<u8>(cpu->y + imm, cpu->rf[rr]);  // TODO: Is imm signed or unsigned?
+  cpu->MemoryWrite(cpu->y + imm, cpu->rf[rr]);  // TODO: Is imm signed or unsigned?
 }
 
 string Stdy::GetStatementString(u16 insn) {
@@ -1420,7 +1439,7 @@ Stdz::Stdz() {
 }
 
 void Stdz::Execute(Cpu* cpu, uint rr, uint imm) {
-  cpu->MemoryWrite<u8>(cpu->z + imm, cpu->rf[rr]);  // TODO: Is imm signed or unsigned?
+  cpu->MemoryWrite(cpu->z + imm, cpu->rf[rr]);  // TODO: Is imm signed or unsigned?
 }
 
 string Stdz::GetStatementString(u16 insn) {
@@ -1435,7 +1454,7 @@ Sts::Sts() {
 }
 
 void Sts::Execute(Cpu* cpu, uint rr, uint adr) {
-  cpu->MemoryWrite<u8>(cpu->rf[rr], adr);
+  cpu->MemoryWrite(adr, cpu->rf[rr]);
 }
 
 Stx1::Stx1() {
@@ -1445,7 +1464,7 @@ Stx1::Stx1() {
 }
 
 void Stx1::Execute(Cpu* cpu, uint rr) {
-  cpu->MemoryWrite<u8>(cpu->x, cpu->rf[rr]);
+  cpu->MemoryWrite(cpu->x, cpu->rf[rr]);
 }
 
 string Stx1::GetStatementString(u16 insn) {
@@ -1460,7 +1479,7 @@ Stx2::Stx2() {
 }
 
 void Stx2::Execute(Cpu* cpu, uint rr) {
-  cpu->MemoryWrite<u8>(cpu->x, cpu->rf[rr]);
+  cpu->MemoryWrite(cpu->x, cpu->rf[rr]);
   ++cpu->x;
 }
 
@@ -1477,7 +1496,7 @@ Stx3::Stx3() {
 
 void Stx3::Execute(Cpu* cpu, uint rr) {
   --cpu->x;
-  cpu->MemoryWrite<u8>(cpu->x, cpu->rf[rr]);
+  cpu->MemoryWrite(cpu->x, cpu->rf[rr]);
 }
 
 string Stx3::GetStatementString(u16 insn) {
@@ -1492,7 +1511,7 @@ Sty2::Sty2() {
 }
 
 void Sty2::Execute(Cpu* cpu, uint rr) {
-  cpu->MemoryWrite<u8>(cpu->y, cpu->rf[rr]);
+  cpu->MemoryWrite(cpu->y, cpu->rf[rr]);
   ++cpu->y;
 }
 
@@ -1509,7 +1528,7 @@ Sty3::Sty3() {
 
 void Sty3::Execute(Cpu* cpu, uint rr) {
   --cpu->y;
-  cpu->MemoryWrite<u8>(cpu->y, cpu->rf[rr]);
+  cpu->MemoryWrite(cpu->y, cpu->rf[rr]);
 }
 
 string Sty3::GetStatementString(u16 insn) {
@@ -1524,7 +1543,7 @@ Stz2::Stz2() {
 }
 
 void Stz2::Execute(Cpu* cpu, uint rr) {
-  cpu->MemoryWrite<u8>(cpu->z, cpu->rf[rr]);
+  cpu->MemoryWrite(cpu->z, cpu->rf[rr]);
   ++cpu->z;
 }
 
@@ -1541,7 +1560,7 @@ Stz3::Stz3() {
 
 void Stz3::Execute(Cpu* cpu, uint rr) {
   --cpu->z;
-  cpu->MemoryWrite<u8>(cpu->z, cpu->rf[rr]);
+  cpu->MemoryWrite(cpu->z, cpu->rf[rr]);
 }
 
 string Stz3::GetStatementString(u16 insn) {

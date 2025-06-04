@@ -1,6 +1,7 @@
+#include <vcml.h>
+
 #include <array>
 #include <functional>
-#include <vcml.h>
 
 #include "common.h"
 
@@ -11,10 +12,10 @@ struct Cpu : public vcml::processor {
 
   std::array<RegType, 32> rf = {0};  // Register file
   u16 pc = 0;                        // Program counter
-  u16 sp = 0;                        // Stack pointer
-  u16 x = 0;                         // X register
-  u16 y = 0;                         // Y register
-  u16 z = 0;                         // Z register
+  u16 sp = 0x8ff;                    // Stack pointer
+  u16& x;                            // X register (R26-R27)
+  u16& y;                            // Y register (R28-R29)
+  u16& z;                            // Z register (R30-R31)
 
   u32 watchdog_timer = 0;
   struct Sreg {
@@ -38,28 +39,108 @@ struct Cpu : public vcml::processor {
 
   std::function<void()> FetchInstruction(vcml::u64 adr);
 
-  template <typename D>
-  D MemoryRead(u32 adr) {
-    // TODO: Implement.
-    return 0;
-  }
-
-  u8 ProgMemoryRead(u32 adr) {
-    // TODO: Implement.
-    return 0;
-  }
-
-  template <typename D>
-  void MemoryWrite(u64 adr, D dat) {
-    // TODO: Implement.
-    return;
-  }
-
-  struct SimulationException {
+  enum IoRegisters {
+    PINB = 0x23,
+    DDRB = 0x24,
+    PORTB = 0x25,
+    PINC = 0x26,
+    DDRC = 0x27,
+    PORTC = 0x28,
+    PIND = 0x29,
+    DDRD = 0x2a,
+    PORTD = 0x2b,
+    TIFRO = 0x35,
+    TIFR1 = 0x36,
+    TIFR2 = 0x37,
+    PCIFR = 0x3b,
+    EIFR = 0x3c,
+    EIMSK = 0x3d,
+    GPIOR0 = 0x3e,
+    EECR = 0x3f,
+    EEDR = 0x40,
+    EEARL = 0x41,
+    EEARH = 0x42,
+    GTCCR = 0x43,
+    TCCR0A = 0x44,
+    TCCR0B = 0x45,
+    TCNT0 = 0x46,
+    OCR0A = 0x47,
+    OCR0B = 0x48,
+    GPIOR1 = 0x5a,
+    GPIOR2 = 0x5b,
+    SPCR = 0x4c,
+    SPSR = 0x4d,
+    SPDR = 0x4e,
+    ACSR = 0x50,
+    SCMR = 0x53,
+    MCUSR = 0x54,
+    MCUCR = 0x55,
+    SPMCSR = 0x57,
+    SPL = 0x5d,
+    SPH = 0x5e,
+    SREG = 0x5f,
+    WDTCSR = 0x60,
+    CLKPR = 0x61,
+    PRR = 0x64,
+    OSCCAL = 0x66,
+    PCICR = 0x68,
+    EICRA = 0x69,
+    PCMSK0 = 0x6b,
+    PCMSK1 = 0x6c,
+    PCMSK2 = 0x6d,
+    TIMSK0 = 0x6e,
+    TIMSK1 = 0x6f,
+    TIMSK2 = 0x70,
+    ADCL = 0x78,
+    ADCH = 0x79,
+    ADCSRA = 0x7a,
+    ADCSRB = 0x7b,
+    ADMUX = 0x7c,
+    DIDR0 = 0x7e,
+    DIDR1 = 0x7f,
+    TCCR1A = 0x80,
+    TCCR1B = 0x81,
+    TCCR1C = 0x82,
+    TCNT1L = 0x84,
+    TCNT1H = 0x85,
+    ICR1L = 0x86,
+    ICR1H = 0x87,
+    OCR1AL = 0x88,
+    OCR1AH = 0x89,
+    OCR1BL = 0x8a,
+    OCR1BH = 0x8b,
+    TCCR2A = 0xb0,
+    TCCR2B = 0xb1,
+    TCNT2 = 0xb2,
+    OCR2A = 0xb3,
+    OCR2B = 0xb4,
+    ASSR = 0xb6,
+    TWBR = 0xb8,
+    TWSR = 0xb9,
+    TWAR = 0xba,
+    TWDR = 0xbb,
+    TWCR = 0xbc,
+    TWAMR = 0xbd,
+    UCSR0A = 0xc0,
+    UCSR0B = 0xc1,
+    UCSR0C = 0xc2,
+    UBRR0L = 0xc4,
+    UBRR0H = 0xc5,
+    UDR0 = 0xc6
   };
 
-  struct IllegalInsnException : public SimulationException {
-  };
+  u8 gpior1 = 0;
+  u8 gpior2 = 0;
+
+  u8 MemoryRead(u32 adr);
+  u8 IoRead(u32 adr);
+  void IoWrite(u32 adr, u8 value);
+  u8 ProgMemoryRead(u32 adr);
+  void MemoryWrite(u64 adr, u8 dat);
+
+  struct SimulationException {};
+
+  struct IllegalInsnException : public SimulationException {};
 
   virtual mwr::u64 cycle_count() const override;
   virtual void reset() override;
@@ -69,10 +150,10 @@ struct Cpu : public vcml::processor {
   virtual bool insert_breakpoint(vcml::u64 addr) override;
   virtual bool remove_breakpoint(vcml::u64 addr) override;
 
-protected:
+ protected:
+  virtual vcml::u64 read_pmem_dbg(vcml::u64 addr, void* ptr, vcml::u64 sz) override;
   virtual bool read_reg_dbg(size_t idx, void* buf, size_t len) override;
   virtual bool write_reg_dbg(size_t idx, const void*, size_t l) override;
   std::vector<u16> breakpoints_;
   std::vector<u16> watchpoints_;
-
 };
