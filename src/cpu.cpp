@@ -15,7 +15,7 @@ Cpu::Cpu()
   for (int i = 0; i < rf.size(); ++i)
     define_cpureg_rw(i, RegName(i), sizeof(RegType));
 
-  define_cpureg_rw(32, "sreg", sizeof(RegType));
+  //define_cpureg_rw(32, "sreg", sizeof(RegType));
   define_cpureg_rw(33, "sp", sizeof(AddrType));
   define_cpureg_rw(34, "pc", sizeof(u32));
 
@@ -93,6 +93,15 @@ Cpu::Cpu()
   define_cpureg_rw(IoRegisters::TCNT2, "tcnt2", 1);
   define_cpureg_rw(IoRegisters::OCR2A, "ocr2a", 1);
   define_cpureg_rw(IoRegisters::OCR2B, "ocr2b", 1);
+  define_cpureg_rw(IoRegisters::ASSR, "assr", 1);
+  define_cpureg_rw(IoRegisters::TWBR, "twbr", 1);
+  define_cpureg_rw(IoRegisters::TWSR, "twsr", 1);
+  define_cpureg_rw(IoRegisters::TWAR, "twar", 1);
+  define_cpureg_rw(IoRegisters::TWDR, "twdr", 1);
+  define_cpureg_rw(IoRegisters::TWCR, "twcr", 1);
+  define_cpureg_rw(IoRegisters::TWAMR, "twamr", 1);
+  define_cpureg_rw(IoRegisters::UCSR0A, "ucsr0a", 1);
+  define_cpureg_rw(IoRegisters::UCSR0B, "ucsr0b", 1);
 }
 
 std::function<void()> Cpu::FetchInstruction(vcml::u64 adr) {
@@ -130,7 +139,7 @@ std::function<void()> Cpu::FetchInstruction(vcml::u64 adr) {
 void Cpu::simulate(size_t cycles) {
   for (int i = 0; i < cycles; ++i) {
     if (std::find(breakpoints_.begin(), breakpoints_.end(), pc) != breakpoints_.end()) {
-      notify_breakpoint_hit(pc);
+      notify_breakpoint_hit(pc, local_time_stamp());
       return;
     }
 

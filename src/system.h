@@ -12,13 +12,13 @@ class ArduSystem : public vcml::system {
   ArduSystem(const sc_core::sc_module_name& nm)
       : vcml::system(nm),
         cpu(),
-        hex_file("hex_file",""),
+        loader_("loader"),
         mem_range_program_("mem_range_program", vcml::range(0, 0x7fff)),
         mem_range_sram_("mem_range_sram", vcml::range(0x100, 0x8ff)),
         mem_range_ext_io_("mem_range_ext_io", vcml::range(0x60, 0xff)),
         mem_range_io_("mem_range_io", vcml::range(0x20, 0x5f)),
         bus_("bus"),
-        clock_("clock", 1 * vcml::GHz),
+        clock_("clock", 20 * vcml::MHz),
         program_mem_("program_mem", mem_range_program_.get().length()),
         sram_mem_("sram_mem", mem_range_sram_.get().length()),
         ext_io_mem_("ext_io_mem", mem_range_ext_io_.get().length()),
@@ -29,6 +29,8 @@ class ArduSystem : public vcml::system {
     bus_.bind(io_mem_.in, mem_range_io_);
     bus_.bind(ext_io_mem_.in, mem_range_ext_io_);
     bus_.bind(sram_mem_.in, mem_range_sram_);
+    bus_.bind(loader_.insn);
+    bus_.bind(loader_.data);
 
     cpu.insn.bind(program_mem_.in);
 
@@ -47,9 +49,6 @@ class ArduSystem : public vcml::system {
     reset_.rst.bind(io_mem_.rst);
     reset_.rst.bind(ext_io_mem_.rst);
 
-    if (!hex_file.get().empty()) {
-        program_mem_.load_image(hex_file, 0, vcml::debugging::image_type::IMAGE_IHEX);
-    }
   }
 
   virtual int run() override {
@@ -59,7 +58,7 @@ class ArduSystem : public vcml::system {
  public:
   Cpu cpu;
 
-  vcml::property<std::string> hex_file;
+  vcml::meta::loader loader_;
 
   vcml::property<vcml::range> mem_range_program_;
   vcml::property<vcml::range> mem_range_sram_;
