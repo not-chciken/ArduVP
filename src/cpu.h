@@ -18,16 +18,29 @@ struct Cpu : public vcml::processor {
   u16& z;                            // Z register (R30-R31)
 
   u32 watchdog_timer = 0;
+
   struct Sreg {
-    bool c;  // Carry
-    bool z;  // Zero
-    bool n;  // Negative
-    bool v;  // Two's complement overflow
-    bool s;  // Sign
-    bool h;  // Half-carry
-    bool t;  // Transfer
-    bool i;  // Global interrupt enable
+    union {
+      struct {
+        u8 c : 1;  // Carry
+        u8 z : 1;  // Zero
+        u8 n : 1;  // Negative
+        u8 v : 1;  // Two's complement overflow
+        u8 s : 1;  // Sign
+        u8 h : 1;  // Half-carry
+        u8 t : 1;  // Transfer
+        u8 i : 1;  // Global interrupt enable
+      };
+      u8 value;  
+    };
+
+    operator u8() const { return value; }
+    Sreg& operator=(u8 v) {
+      value = v;
+      return *this;
+    }
   } sreg;
+
   bool skip;
   bool break_hit;
   bool sleeping;
@@ -151,6 +164,7 @@ struct Cpu : public vcml::processor {
   virtual bool remove_breakpoint(vcml::u64 addr) override;
 
  protected:
+  static u32 constexpr kIoOffset = 0x20;
   virtual vcml::u64 read_pmem_dbg(vcml::u64 addr, void* ptr, vcml::u64 sz) override;
   virtual bool read_reg_dbg(size_t idx, void* buf, size_t len) override;
   virtual bool write_reg_dbg(size_t idx, const void*, size_t l) override;

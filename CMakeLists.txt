@@ -24,6 +24,7 @@ set(ALL_CPPS
   ${CMAKE_SOURCE_DIR}/src/cpu.cpp
   ${CMAKE_SOURCE_DIR}/src/main.cpp
   ${CMAKE_SOURCE_DIR}/src/insn.cpp
+  ${CMAKE_SOURCE_DIR}/src/timer.cpp
 )
 
 add_subdirectory(vcml)

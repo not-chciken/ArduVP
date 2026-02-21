@@ -6,49 +6,54 @@
 #include <iostream>
 
 #include "cpu.h"
+#include "timer.h"
 
 class ArduSystem : public vcml::system {
  public:
   ArduSystem(const sc_core::sc_module_name& nm)
       : vcml::system(nm),
         cpu(),
+        timer_("timer"),
         loader_("loader"),
         mem_range_program_("mem_range_program", vcml::range(0, 0x7fff)),
         mem_range_sram_("mem_range_sram", vcml::range(0x100, 0x8ff)),
-        mem_range_ext_io_("mem_range_ext_io", vcml::range(0x60, 0xff)),
-        mem_range_io_("mem_range_io", vcml::range(0x20, 0x5f)),
         bus_("bus"),
-        clock_("clock", 20 * vcml::MHz),
+        prog_bus_("prog_bus"),
+        clock_("clock", 16 * vcml::MHz),
         program_mem_("program_mem", mem_range_program_.get().length()),
         sram_mem_("sram_mem", mem_range_sram_.get().length()),
-        ext_io_mem_("ext_io_mem", mem_range_ext_io_.get().length()),
-        io_mem_("io_mem", mem_range_io_.get().length()),
         reset_("reset")
       {
 
-    bus_.bind(io_mem_.in, mem_range_io_);
-    bus_.bind(ext_io_mem_.in, mem_range_ext_io_);
     bus_.bind(sram_mem_.in, mem_range_sram_);
-    bus_.bind(loader_.insn);
-    bus_.bind(loader_.data);
 
-    cpu.insn.bind(program_mem_.in);
+    bus_.bind(timer_.in, vcml::range(0x35, 0x37), 0x35);
+    bus_.bind(timer_.in, vcml::range(0x43, 0x48), 0x43);
+    bus_.bind(timer_.in, vcml::range(0x6e, 0x70), 0x6e);
+    bus_.bind(timer_.in, vcml::range(0x80, 0x8b), 0x80);
+    bus_.bind(timer_.in, vcml::range(0xb0, 0xb6), 0xb0);
+
+    prog_bus_.bind(program_mem_.in, mem_range_program_);
+    prog_bus_.bind(loader_.insn);
+    prog_bus_.bind(loader_.data);
+    prog_bus_.bind(cpu.insn);
 
     bus_.bind(cpu.data);
     clock_.clk.bind(cpu.clk);
     reset_.rst.bind(cpu.rst);
 
+    clock_.clk.bind(timer_.clk);
+    reset_.rst.bind(timer_.rst);
+
     clock_.clk.bind(bus_.clk);
+    clock_.clk.bind(prog_bus_.clk);
     clock_.clk.bind(sram_mem_.clk);
     clock_.clk.bind(program_mem_.clk);
-    clock_.clk.bind(ext_io_mem_.clk);
-    clock_.clk.bind(io_mem_.clk);
+
     reset_.rst.bind(bus_.rst);
+    reset_.rst.bind(prog_bus_.rst);
     reset_.rst.bind(sram_mem_.rst);
     reset_.rst.bind(program_mem_.rst);
-    reset_.rst.bind(io_mem_.rst);
-    reset_.rst.bind(ext_io_mem_.rst);
-
   }
 
   virtual int run() override {
@@ -57,19 +62,17 @@ class ArduSystem : public vcml::system {
 
  public:
   Cpu cpu;
+  Timer timer_;
 
   vcml::meta::loader loader_;
 
   vcml::property<vcml::range> mem_range_program_;
   vcml::property<vcml::range> mem_range_sram_;
-  vcml::property<vcml::range> mem_range_ext_io_;
-  vcml::property<vcml::range> mem_range_io_;
 
   vcml::generic::bus bus_;
+  vcml::generic::bus prog_bus_;
   vcml::generic::clock clock_;
   vcml::generic::memory program_mem_;
   vcml::generic::memory sram_mem_;
-  vcml::generic::memory ext_io_mem_;
-  vcml::generic::memory io_mem_;
   vcml::generic::reset reset_;
 };

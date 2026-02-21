@@ -147,8 +147,9 @@ void Cpu::simulate(size_t cycles) {
     if (inst_func) {
       try {
         inst_func();
+        //log_error("instruction at PC=0x%04x", pc * 2);
       } catch (...) {
-        log_error("Illegal instruction at PC=0x%04x", pc);
+        log_error("Illegal instruction at PC=0x%04x", pc * 2);
         exit(1);
       }
     }
@@ -165,7 +166,14 @@ void Cpu::reset() {
   x = 0;
   y = 0;
   z = 0;
-  sreg = {false, false, false, false, false, false, false, true};  // Global interrupt enabled
+  sreg.c = 0;
+  sreg.z = 0;
+  sreg.n = 0;
+  sreg.v = 0;
+  sreg.s = 0;
+  sreg.h = 0;
+  sreg.t = 0;
+  sreg.i = 1; // Global interrupt enabled
   skip = false;
   break_hit = false;
   sleeping = false;
@@ -214,9 +222,16 @@ u8 Cpu::IoRead(u32 adr) {
   case 0x3e:
     return (sp >> 8);
   case 0x3f:
-    return 0;  // TODO: SREG.
-  default:
-    return 0;  // TODO: Case IO registers.
+    return (u8)sreg;
+  default: {
+    u8 value;
+    log_warn("reading unimplemented IO register addr=0x%08x", adr);
+    auto rs = data.read(adr + kIoOffset, &value, 1, vcml::SBI_NONE);  
+    if (rs != tlm::TLM_OK_RESPONSE) {
+      log_bus_error(data, vcml::VCML_ACCESS_READ, rs, adr + kIoOffset, 1);
+    }
+    return value;
+  }
   }
 }
 
@@ -235,15 +250,29 @@ void Cpu::IoWrite(u32 adr, u8 value) {
     sp = (sp & 0xff) | (value << 8);
     break;
   case 0x3f:
+    sreg = value;
     break;  // TODO: SREG.
-  default:
+  default: {
+        auto rs = data.write(adr + kIoOffset, &value, 1, vcml::SBI_NONE);
+        if (rs != tlm::TLM_OK_RESPONSE) {
+          log_bus_error(data, vcml::VCML_ACCESS_WRITE, rs, adr + kIoOffset, 1);
+        }
+        log_warn("writing unimplemented IO register addr=0x%08x", adr);
+    }
     break;  // TODO: Case IO registers.
   }
 }
 
 u8 Cpu::ProgMemoryRead(u32 adr) {
-  // TODO: Implement.
-  return 0;
+  u8 data;
+  tlm::tlm_response_status rs = insn.read(adr, &data, 1, vcml::SBI_NONE);
+
+  if (rs != tlm::TLM_OK_RESPONSE) {
+    log_bus_error(insn, vcml::VCML_ACCESS_READ, rs, adr, sizeof(u8));
+    exit(1);
+  }
+
+  return data;
 }
 
 void Cpu::MemoryWrite(u64 adr, u8 dat) {
@@ -253,6 +282,7 @@ void Cpu::MemoryWrite(u64 adr, u8 dat) {
     } else if (adr <= 0x5f) {
       IoWrite(adr - 0x20, dat);
     } else {
+      log_warn("unimplemented memory write addr=0x%08x", adr);
       return;  // TODO: Case external IO registers.
     }
     return;

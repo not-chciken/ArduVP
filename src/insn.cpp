@@ -215,7 +215,7 @@ std::function<void()> InsnIoB::GenFunc(u16 insn, Cpu* cpu) {
 
 std::tuple<uint, uint> InsnIoB::InitArgs(u16 insn) {
   uint b = ExtractBits(insn, 0, 3);
-  uint io = ExtractBits(insn, 3, 4);
+  uint io = ExtractBits(insn, 3, 5);
 
   return {io, b};
 }
