@@ -15,7 +15,7 @@ Cpu::Cpu()
   for (int i = 0; i < rf.size(); ++i)
     define_cpureg_rw(i, RegName(i), sizeof(RegType));
 
-  //define_cpureg_rw(32, "sreg", sizeof(RegType));
+  define_cpureg_rw(32, "sreg", sizeof(RegType));
   define_cpureg_rw(33, "sp", sizeof(AddrType));
   define_cpureg_rw(34, "pc", sizeof(u32));
 
@@ -57,7 +57,7 @@ Cpu::Cpu()
   define_cpureg_rw(IoRegisters::SPMCSR, "spmcsr", 1);
   define_cpureg_rw(IoRegisters::SPL, "spl", 1);
   define_cpureg_rw(IoRegisters::SPH, "sph", 1);
-  define_cpureg_rw(IoRegisters::SREG, "sreg", 1);
+  define_cpureg_rw(IoRegisters::SREG, "TODO", 1);
   define_cpureg_rw(IoRegisters::WDTCSR, "wdtcsr", 1);
   define_cpureg_rw(IoRegisters::CLKPR, "clkpr", 1);
   define_cpureg_rw(IoRegisters::PRR, "prr", 1);
@@ -187,25 +187,20 @@ void Cpu::reset() {
 }
 
 u8 Cpu::MemoryRead(u32 adr) {
-  if (adr <= 0xff) {
+  if (adr <= 0x5f) {
     if (adr <= 0x1f) {
       return rf[adr];
-    } else if (adr <= 0x5f) {
-      return IoRead(adr - 0x20);
     } else {
-      return 0;  // TODO: Case external IO registers.
+      return IoRead(adr - 0x20);
     }
   }
 
   u8 dat;
   tlm::tlm_response_status rs = data.read(adr, &dat, sizeof(u8), vcml::SBI_NONE);
 
-  if (rs == tlm::TLM_ADDRESS_ERROR_RESPONSE) {
+  if (rs != tlm::TLM_OK_RESPONSE) {
     log_bus_error(insn, vcml::VCML_ACCESS_READ, rs, adr, sizeof(u8));
-    exit(1);  // TODO: What happens in this case?
-  } else if (rs != tlm::TLM_OK_RESPONSE) {
-    log_bus_error(insn, vcml::VCML_ACCESS_READ, rs, adr, sizeof(u8));
-    exit(1);
+    log_warn("unimplemented memory read addr=%lx", adr);
   }
 
   return dat;
@@ -225,9 +220,9 @@ u8 Cpu::IoRead(u32 adr) {
     return (u8)sreg;
   default: {
     u8 value;
-    log_warn("reading unimplemented IO register addr=0x%08x", adr);
     auto rs = data.read(adr + kIoOffset, &value, 1, vcml::SBI_NONE);  
     if (rs != tlm::TLM_OK_RESPONSE) {
+      log_warn("unimplemented memory read addr=%lx", adr);
       log_bus_error(data, vcml::VCML_ACCESS_READ, rs, adr + kIoOffset, 1);
     }
     return value;
@@ -251,15 +246,15 @@ void Cpu::IoWrite(u32 adr, u8 value) {
     break;
   case 0x3f:
     sreg = value;
-    break;  // TODO: SREG.
+    break; 
   default: {
         auto rs = data.write(adr + kIoOffset, &value, 1, vcml::SBI_NONE);
         if (rs != tlm::TLM_OK_RESPONSE) {
+          log_warn("unimplemented memory read addr=%x", adr);
           log_bus_error(data, vcml::VCML_ACCESS_WRITE, rs, adr + kIoOffset, 1);
         }
-        log_warn("writing unimplemented IO register addr=0x%08x", adr);
     }
-    break;  // TODO: Case IO registers.
+    break;
   }
 }
 
@@ -276,15 +271,12 @@ u8 Cpu::ProgMemoryRead(u32 adr) {
 }
 
 void Cpu::MemoryWrite(u64 adr, u8 dat) {
-  if (adr <= 0xff) {
+  if (adr <= 0x5f) {
     if (adr <= 0x1f) {
       rf[adr] = dat;
-    } else if (adr <= 0x5f) {
-      IoWrite(adr - 0x20, dat);
     } else {
-      log_warn("unimplemented memory write addr=0x%08x", adr);
-      return;  // TODO: Case external IO registers.
-    }
+      IoWrite(adr - 0x20, dat);
+    } 
     return;
   }
 
@@ -292,10 +284,9 @@ void Cpu::MemoryWrite(u64 adr, u8 dat) {
   tlm::tlm_response_status rs = data.write(adr, d, sizeof(u8), vcml::SBI_NONE);
 
   if (rs != tlm::TLM_OK_RESPONSE) {
+    log_warn("unimplemented memory write addr=%lx", adr);
     log_bus_error(insn, vcml::VCML_ACCESS_WRITE, rs, adr, sizeof(u8));
-    exit(1);
   }
-  return;
 }
 
 mwr::u64 Cpu::cycle_count() const {
@@ -303,7 +294,7 @@ mwr::u64 Cpu::cycle_count() const {
 };
 
 vcml::u64 Cpu::program_counter() {
-  return pc;
+  return pc * 2;
 }
 
 vcml::u64 Cpu::stack_pointer() {
@@ -325,7 +316,7 @@ bool Cpu::read_reg_dbg(size_t regno, void* buf, size_t len) {
   if (regno < rf.size())
     *(RegType*)buf = rf[regno];
   else if (regno == 32)
-    *(RegType*)buf = 0;  // TODO: sreg
+    *(RegType*)buf = sreg; 
   else if (regno == 33)
     *(AddrType*)buf = sp;
   else if (regno == 34)
@@ -340,7 +331,7 @@ bool Cpu::write_reg_dbg(size_t regno, const void* buf, size_t len) {
   if (regno < rf.size())
     rf[regno] = *(RegType*)buf;
   else if (regno == 32)
-    *(RegType*)buf;  // TODO: sreg
+    sreg = *(RegType*)buf;
   else if (regno == 33)
     sp = *(AddrType*)buf;
   else if (regno == 34)
