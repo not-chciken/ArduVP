@@ -64,6 +64,17 @@ class ArduSystem : public vcml::system {
     reset_.rst.bind(prog_bus_.rst);
     reset_.rst.bind(sram_mem_.rst);
     reset_.rst.bind(program_mem_.rst);
+
+    timer_.ocie2a_out.bind(cpu.irq[0]);
+    timer_.ocie2b_out.bind(cpu.irq[1]);
+    timer_.toie2_out.bind(cpu.irq[2]);
+    timer_.icie1_out.bind(cpu.irq[3]);
+    timer_.ocie1a_out.bind(cpu.irq[4]);
+    timer_.ocie1b_out.bind(cpu.irq[5]);
+    timer_.toie1_out.bind(cpu.irq[6]);
+    timer_.ocie0a_out.bind(cpu.irq[7]);
+    timer_.ocie0b_out.bind(cpu.irq[8]);
+    timer_.toie0_out.bind(cpu.irq[9]);
   }
 
   virtual int run() override { return vcml::system::run(); }

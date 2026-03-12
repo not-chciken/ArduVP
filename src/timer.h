@@ -6,6 +6,22 @@
 struct Timer : public vcml::peripheral {
   vcml::tlm_target_socket in;
 
+  // Timer0 interrupts
+  vcml::gpio_initiator_socket ocie0a_out;
+  vcml::gpio_initiator_socket ocie0b_out;
+  vcml::gpio_initiator_socket toie0_out;
+
+  // Timer1 interrupts
+  vcml::gpio_initiator_socket ocie1a_out;
+  vcml::gpio_initiator_socket ocie1b_out;
+  vcml::gpio_initiator_socket toie1_out;
+  vcml::gpio_initiator_socket icie1_out;
+
+  // Timer2 interrupts
+  vcml::gpio_initiator_socket ocie2a_out;
+  vcml::gpio_initiator_socket ocie2b_out;
+  vcml::gpio_initiator_socket toie2_out;
+
   // Shared
   vcml::reg<u8> gtccr; // 0x43
 
@@ -83,6 +99,9 @@ struct Timer : public vcml::peripheral {
   void write_tifr0(u8 val, bool dbg);
   void write_tifr1(u8 val, bool dbg);
   void write_tifr2(u8 val, bool dbg);
+  void write_timsk0(u8 val, bool dbg);
+  void write_timsk1(u8 val, bool dbg);
+  void write_timsk2(u8 val, bool dbg);
 
   u8 read_tcnt1l(bool dbg);
   u8 read_tcnt1h(bool dbg);
@@ -118,6 +137,8 @@ struct Timer : public vcml::peripheral {
   void set_tifr0(u8 mask);
   void set_tifr1(u8 mask);
   void set_tifr2(u8 mask);
+
+  void check_interrupts();
 
   void sync_16bit_regs_from_state();
 };

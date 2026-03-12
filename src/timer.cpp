@@ -34,6 +34,16 @@ static inline u8 clamp_u8(int v) {
 Timer::Timer(const sc_core::sc_module_name& nm)
     : peripheral(nm),
       in("in"),
+      ocie0a_out("ocie0a_out"),
+      ocie0b_out("ocie0b_out"),
+      toie0_out("toie0_out"),
+      ocie1a_out("ocie1a_out"),
+      ocie1b_out("ocie1b_out"),
+      toie1_out("toie1_out"),
+      icie1_out("icie1_out"),
+      ocie2a_out("ocie2a_out"),
+      ocie2b_out("ocie2b_out"),
+      toie2_out("toie2_out"),
       gtccr("gtccr", 0x43, 0x00),
       tifr0("tifr0", 0x35, 0x00),
       tccr0a("tccr0a", 0x44, 0x00),
@@ -112,6 +122,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
   ocr0b.allow_read_write();
   timsk0.sync_always();
   timsk0.allow_read_write();
+  timsk0.on_write(&Timer::write_timsk0, this);
 
   tccr1a.sync_always();
   tccr1a.allow_read_write();
@@ -163,6 +174,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
 
   timsk1.sync_always();
   timsk1.allow_read_write();
+  timsk1.on_write(&Timer::write_timsk1, this);
 
   tccr2a.sync_always();
   tccr2a.allow_read_write();
@@ -178,6 +190,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
   assr.allow_read_write();
   timsk2.sync_always();
   timsk2.allow_read_write();
+  timsk2.on_write(&Timer::write_timsk2, this);
 
   SC_THREAD(run);
 }
@@ -271,16 +284,37 @@ void Timer::write_gtccr(u8 val, bool dbg) {
 void Timer::write_tifr0(u8 val, bool dbg) {
   // Clear flags by writing 1.
   tifr0 = (u8)(tifr0 & ~val);
+  check_interrupts();
   (void)dbg;
 }
 
 void Timer::write_tifr1(u8 val, bool dbg) {
   tifr1 = (u8)(tifr1 & ~val);
+  check_interrupts();
   (void)dbg;
 }
 
 void Timer::write_tifr2(u8 val, bool dbg) {
   tifr2 = (u8)(tifr2 & ~val);
+  check_interrupts();
+  (void)dbg;
+}
+
+void Timer::write_timsk0(u8 val, bool dbg) {
+  timsk0 = val;
+  check_interrupts();
+  (void)dbg;
+}
+
+void Timer::write_timsk1(u8 val, bool dbg) {
+  timsk1 = val;
+  check_interrupts();
+  (void)dbg;
+}
+
+void Timer::write_timsk2(u8 val, bool dbg) {
+  timsk2 = val;
+  check_interrupts();
   (void)dbg;
 }
 
@@ -380,14 +414,17 @@ void Timer::write_icr1l(u8 val, bool dbg) {
 
 void Timer::set_tifr0(u8 mask) {
   tifr0 = (u8)(tifr0 | mask);
+  check_interrupts();
 }
 
 void Timer::set_tifr1(u8 mask) {
   tifr1 = (u8)(tifr1 | mask);
+  check_interrupts();
 }
 
 void Timer::set_tifr2(u8 mask) {
   tifr2 = (u8)(tifr2 | mask);
+  check_interrupts();
 }
 
 u32 Timer::timer0_div() const {
@@ -613,6 +650,104 @@ void Timer::tick_timer1() {
   }
 
   (void)fast_pwm;
+}
+
+void Timer::check_interrupts() {
+  // Timer0 interrupts
+  static constexpr u8 TIMSK0_TOIE0 = 1u << 0;
+  static constexpr u8 TIMSK0_OCIE0A = 1u << 1;
+  static constexpr u8 TIMSK0_OCIE0B = 1u << 2;
+
+  // Timer1 interrupts
+  static constexpr u8 TIMSK1_TOIE1 = 1u << 0;
+  static constexpr u8 TIMSK1_OCIE1A = 1u << 1;
+  static constexpr u8 TIMSK1_OCIE1B = 1u << 2;
+  static constexpr u8 TIMSK1_ICIE1 = 1u << 5;
+
+  // Timer2 interrupts
+  static constexpr u8 TIMSK2_TOIE2 = 1u << 0;
+  static constexpr u8 TIMSK2_OCIE2A = 1u << 1;
+  static constexpr u8 TIMSK2_OCIE2B = 1u << 2;
+
+  const u8 t0_flags = (u8)tifr0;
+  const u8 t0_mask = (u8)timsk0;
+  const u8 t1_flags = (u8)tifr1;
+  const u8 t1_mask = (u8)timsk1;
+  const u8 t2_flags = (u8)tifr2;
+  const u8 t2_mask = (u8)timsk2;
+
+  // Timer0
+  if ((t0_flags & TIFR0_TOV0) && (t0_mask & TIMSK0_TOIE0)) {
+    toie0_out = true;
+    log_debug("Timer0 overflow interrupt");
+  } else {
+    toie0_out = false;
+  }
+
+  if ((t0_flags & TIFR0_OCF0A) && (t0_mask & TIMSK0_OCIE0A)) {
+    ocie0a_out = true;
+    log_debug("Timer0 compare A interrupt");
+  } else {
+    ocie0a_out = false;
+  }
+
+  if ((t0_flags & TIFR0_OCF0B) && (t0_mask & TIMSK0_OCIE0B)) {
+    ocie0b_out = true;
+    log_debug("Timer0 compare B interrupt");
+  } else {
+    ocie0b_out = false;
+  }
+
+  // Timer1
+  if ((t1_flags & TIFR1_TOV1) && (t1_mask & TIMSK1_TOIE1)) {
+    toie1_out = true;
+    log_debug("Timer1 overflow interrupt");
+  } else {
+    toie1_out = false;
+  }
+
+  if ((t1_flags & TIFR1_OCF1A) && (t1_mask & TIMSK1_OCIE1A)) {
+    ocie1a_out = true;
+    log_debug("Timer1 compare A interrupt");
+  } else {
+    ocie1a_out = false;
+  }
+
+  if ((t1_flags & TIFR1_OCF1B) && (t1_mask & TIMSK1_OCIE1B)) {
+    ocie1b_out = true;
+    log_debug("Timer1 compare B interrupt");
+  } else {
+    ocie1b_out = false;
+  }
+
+  if ((t1_flags & TIFR1_ICF1) && (t1_mask & TIMSK1_ICIE1)) {
+    icie1_out = true;
+    log_debug("Timer1 input capture interrupt");
+  } else {
+    icie1_out = false;
+  }
+
+  // Timer2
+  if ((t2_flags & TIFR2_TOV2) && (t2_mask & TIMSK2_TOIE2)) {
+    toie2_out = true;
+    log_debug("Timer2 overflow interrupt");
+  } else {
+    toie2_out = false;
+  }
+
+  if ((t2_flags & TIFR2_OCF2A) && (t2_mask & TIMSK2_OCIE2A)) {
+    ocie2a_out = true;
+    log_debug("Timer2 compare A interrupt");
+  } else {
+    ocie2a_out = false;
+  }
+
+  if ((t2_flags & TIFR2_OCF2B) && (t2_mask & TIMSK2_OCIE2B)) {
+    ocie2b_out = true;
+    log_debug("Timer2 compare B interrupt");
+  } else {
+    ocie2b_out = false;
+  }
 }
 
 void Timer::run() {

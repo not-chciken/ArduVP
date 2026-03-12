@@ -102,6 +102,9 @@ Cpu::Cpu()
   define_cpureg_rw(IoRegisters::TWAMR, "twamr", 1);
   define_cpureg_rw(IoRegisters::UCSR0A, "ucsr0a", 1);
   define_cpureg_rw(IoRegisters::UCSR0B, "ucsr0b", 1);
+
+  data.allow_dmi = false;
+  insn.allow_dmi = false;
 }
 
 std::function<void()> Cpu::FetchInstruction(vcml::u64 adr) {
