@@ -31,7 +31,7 @@ struct Cpu : public vcml::processor {
         u8 t : 1;  // Transfer
         u8 i : 1;  // Global interrupt enable
       };
-      u8 value;  
+      u8 value;
     };
 
     operator u8() const { return value; }
@@ -163,11 +163,23 @@ struct Cpu : public vcml::processor {
   virtual bool insert_breakpoint(vcml::u64 addr) override;
   virtual bool remove_breakpoint(vcml::u64 addr) override;
 
+  // AVR semantics: after SEI, interrupts are enabled after the following
+  // instruction. Instruction implementations may set this when they execute SEI.
+  bool irq_sei_delay = false;
+
  protected:
   static u32 constexpr kIoOffset = 0x20;
   virtual vcml::u64 read_pmem_dbg(vcml::u64 addr, void* ptr, vcml::u64 sz) override;
   virtual bool read_reg_dbg(size_t idx, void* buf, size_t len) override;
   virtual bool write_reg_dbg(size_t idx, const void*, size_t l) override;
+  virtual void interrupt(size_t irq, bool set) override;
+
+  bool service_pending_interrupt();
+
+  // IRQ handling state (simple level-triggered model).
+  u64 irq_level_mask_ = 0; // bit i: irq[i] currently asserted
+  u64 irq_acked_mask_ = 0; // bit i: irq[i] already accepted, wait for deassert
+
   std::vector<u16> breakpoints_;
   std::vector<u16> watchpoints_;
 };

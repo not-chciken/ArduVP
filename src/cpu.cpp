@@ -141,6 +141,12 @@ std::function<void()> Cpu::FetchInstruction(vcml::u64 adr) {
 
 void Cpu::simulate(size_t cycles) {
   for (int i = 0; i < cycles; ++i) {
+    // Accept pending interrupts between instructions.
+    if (service_pending_interrupt()) {
+      ++cycle_counter;
+      continue;
+    }
+
     if (std::find(breakpoints_.begin(), breakpoints_.end(), pc) != breakpoints_.end()) {
       notify_breakpoint_hit(pc, local_time_stamp());
       return;
@@ -187,6 +193,10 @@ void Cpu::reset() {
   }
 
   watchdog_timer = 0;
+
+  irq_level_mask_ = 0;
+  irq_acked_mask_ = 0;
+  irq_sei_delay = false;
 }
 
 u8 Cpu::MemoryRead(u32 adr) {
@@ -203,7 +213,7 @@ u8 Cpu::MemoryRead(u32 adr) {
 
   if (rs != tlm::TLM_OK_RESPONSE) {
     log_bus_error(insn, vcml::VCML_ACCESS_READ, rs, adr, sizeof(u8));
-    log_warn("unimplemented memory read addr=%lx", adr);
+    log_warn("unimplemented memory read addr=%x", adr);
   }
 
   return dat;
@@ -223,9 +233,9 @@ u8 Cpu::IoRead(u32 adr) {
     return (u8)sreg;
   default: {
     u8 value;
-    auto rs = data.read(adr + kIoOffset, &value, 1, vcml::SBI_NONE);  
+    auto rs = data.read(adr + kIoOffset, &value, 1, vcml::SBI_NONE);
     if (rs != tlm::TLM_OK_RESPONSE) {
-      log_warn("unimplemented memory read addr=%lx", adr);
+      log_warn("unimplemented memory read addr=%x", adr);
       log_bus_error(data, vcml::VCML_ACCESS_READ, rs, adr + kIoOffset, 1);
     }
     return value;
@@ -249,7 +259,7 @@ void Cpu::IoWrite(u32 adr, u8 value) {
     break;
   case 0x3f:
     sreg = value;
-    break; 
+    break;
   default: {
         auto rs = data.write(adr + kIoOffset, &value, 1, vcml::SBI_NONE);
         if (rs != tlm::TLM_OK_RESPONSE) {
@@ -279,7 +289,7 @@ void Cpu::MemoryWrite(u64 adr, u8 dat) {
       rf[adr] = dat;
     } else {
       IoWrite(adr - 0x20, dat);
-    } 
+    }
     return;
   }
 
@@ -319,7 +329,7 @@ bool Cpu::read_reg_dbg(size_t regno, void* buf, size_t len) {
   if (regno < rf.size())
     *(RegType*)buf = rf[regno];
   else if (regno == 32)
-    *(RegType*)buf = sreg; 
+    *(RegType*)buf = sreg;
   else if (regno == 33)
     *(AddrType*)buf = sp;
   else if (regno == 34)
@@ -341,6 +351,115 @@ bool Cpu::write_reg_dbg(size_t regno, const void* buf, size_t len) {
     pc = (*(u32*)buf) / 2;
 
   return true;
+}
+
+void Cpu::interrupt(size_t irq, bool set) {
+  if (irq >= 64) {
+    // Current implementation uses a 64-bit mask.
+    return;
+  }
+
+  const u64 bit = 1ull << irq;
+  if (set) {
+    irq_level_mask_ |= bit;
+  } else {
+    irq_level_mask_ &= ~bit;
+    // Once the line is deasserted, it can be accepted again.
+    irq_acked_mask_ &= ~bit;
+  }
+
+  // If the CPU is currently waiting, try to service immediately.
+  // If interrupts are disabled, service_pending_interrupt() will defer.
+  (void)service_pending_interrupt();
+}
+
+namespace {
+
+struct irq_desc {
+  u16 vector_word;      // vector address in words (pc units)
+  u16 tifr_data_addr;   // data space address of TIFR0/1/2
+  u8 tifr_write1_mask;  // bit mask to clear by writing 1
+};
+
+// Timer flag masks (ATmega328P)
+static constexpr u8 TIFR0_TOV0  = 1u << 0;
+static constexpr u8 TIFR0_OCF0A = 1u << 1;
+static constexpr u8 TIFR0_OCF0B = 1u << 2;
+
+static constexpr u8 TIFR1_TOV1  = 1u << 0;
+static constexpr u8 TIFR1_OCF1A = 1u << 1;
+static constexpr u8 TIFR1_OCF1B = 1u << 2;
+static constexpr u8 TIFR1_ICF1  = 1u << 5;
+
+static constexpr u8 TIFR2_TOV2  = 1u << 0;
+static constexpr u8 TIFR2_OCF2A = 1u << 1;
+static constexpr u8 TIFR2_OCF2B = 1u << 2;
+
+// IRQ indices are defined by wiring in system.h:
+// 0..2: Timer2 COMPA/B/OVF
+// 3..6: Timer1 CAPT/COMPA/COMPB/OVF
+// 7..9: Timer0 COMPA/COMPB/OVF
+static constexpr irq_desc IRQ_TABLE[] = {
+    {0x000E, Cpu::IoRegisters::TIFR2, (u8)TIFR2_OCF2A},
+    {0x0010, Cpu::IoRegisters::TIFR2, (u8)TIFR2_OCF2B},
+    {0x0012, Cpu::IoRegisters::TIFR2, (u8)TIFR2_TOV2},
+    {0x0014, Cpu::IoRegisters::TIFR1, (u8)TIFR1_ICF1},
+    {0x0016, Cpu::IoRegisters::TIFR1, (u8)TIFR1_OCF1A},
+    {0x0018, Cpu::IoRegisters::TIFR1, (u8)TIFR1_OCF1B},
+    {0x001A, Cpu::IoRegisters::TIFR1, (u8)TIFR1_TOV1},
+    {0x001C, Cpu::IoRegisters::TIFRO, (u8)TIFR0_OCF0A},
+    {0x001E, Cpu::IoRegisters::TIFRO, (u8)TIFR0_OCF0B},
+    {0x0020, Cpu::IoRegisters::TIFRO, (u8)TIFR0_TOV0},
+};
+
+}  // namespace
+
+bool Cpu::service_pending_interrupt() {
+  // SEI has a one-instruction delay before interrupts can be taken.
+  if (irq_sei_delay) {
+    irq_sei_delay = false;
+    return false;
+  }
+
+  if (!sreg.i)
+    return false;
+
+  // Find the highest-priority asserted IRQ that hasn't been acked.
+  for (size_t idx = 0; idx < std::size(IRQ_TABLE); ++idx) {
+    const u64 bit = 1ull << idx;
+    if ((irq_level_mask_ & bit) == 0)
+      continue;
+    if ((irq_acked_mask_ & bit) != 0)
+      continue;
+
+    // Accept interrupt.
+    irq_acked_mask_ |= bit;
+
+    // Wake from sleep.
+    sleeping = false;
+
+    // Push return address (word address). For interrupts, this is the
+    // address of the next instruction to execute.
+    const u16 ret_pc = pc;
+    MemoryWrite(sp, (u8)(ret_pc >> 8));
+    --sp;
+    MemoryWrite(sp, (u8)(ret_pc & 0xff));
+    --sp;
+
+    // Clear global interrupt enable.
+    sreg.i = false;
+
+    // Clear the corresponding timer flag by writing a 1.
+    const irq_desc& d = IRQ_TABLE[idx];
+    MemoryWrite(d.tifr_data_addr, d.tifr_write1_mask);
+
+    // Jump to interrupt vector.
+    pc = d.vector_word;
+    new_pc = d.vector_word;
+    return true;
+  }
+
+  return false;
 }
 
 // Reads always target program memory.

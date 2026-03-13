@@ -488,7 +488,12 @@ void Bset::Execute(Cpu* cpu, uint sreg) {
     case 4: cpu->sreg.s = true; break;
     case 5: cpu->sreg.h = true; break;
     case 6: cpu->sreg.t = true; break;
-    case 7: cpu->sreg.i = true; break;
+    case 7:
+      if (!cpu->sreg.i) {
+        cpu->sreg.i = true;
+        cpu->irq_sei_delay = true;
+      }
+      break;
     default: assert(false);
   }
 }
@@ -1235,6 +1240,7 @@ void Reti::Execute(Cpu* cpu) {
   new_pc |= cpu->MemoryRead(cpu->sp) << 8;
   cpu->new_pc = new_pc;
   cpu->sreg.i = true;
+  cpu->irq_sei_delay = false;
 }
 
 Rjmp::Rjmp() {
