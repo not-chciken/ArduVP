@@ -462,11 +462,18 @@ bool Cpu::service_pending_interrupt() {
   return false;
 }
 
-// Reads always target program memory.
+// For GDB, everything below 0x800000 is instruction memory.
+// At 0x800000, the data memory starts.
 vcml::u64 Cpu::read_pmem_dbg(vcml::u64 addr, void* buffer, vcml::u64 size) {
+  constexpr vcml::u64 GDB_DATA_MEM_START_ADR = 0x800000;
   try {
-    if (vcml::success(insn.read(addr, buffer, size, vcml::SBI_DEBUG)))
-      return size;
+    if (addr < GDB_DATA_MEM_START_ADR) {
+      if (vcml::success(insn.read(addr, buffer, size, vcml::SBI_DEBUG)))
+        return size;
+    } else {
+      if (vcml::success(data.read(addr - GDB_DATA_MEM_START_ADR, buffer, size, vcml::SBI_DEBUG)))
+        return size;
+    }
   } catch (vcml::report& r) {
     log_warn("error reading %llu bytes to memory at address 0x%llx: %s", size, addr, r.message());
   }
