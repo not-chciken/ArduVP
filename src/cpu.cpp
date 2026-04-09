@@ -147,8 +147,8 @@ void Cpu::simulate(size_t cycles) {
       continue;
     }
 
-    if (std::find(breakpoints_.begin(), breakpoints_.end(), pc) != breakpoints_.end()) {
-      notify_breakpoint_hit(pc, local_time_stamp());
+    if (std::find(breakpoints_.begin(), breakpoints_.end(), pc * 2) != breakpoints_.end()) {
+      notify_breakpoint_hit(pc * 2, local_time_stamp());
       return;
     }
 
@@ -355,7 +355,6 @@ bool Cpu::write_reg_dbg(size_t regno, const void* buf, size_t len) {
 
 void Cpu::interrupt(size_t irq, bool set) {
   if (irq >= 64) {
-    // Current implementation uses a 64-bit mask.
     return;
   }
 
