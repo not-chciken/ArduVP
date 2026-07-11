@@ -170,7 +170,6 @@ void Cpu::simulate(size_t max_cycles) {
     cycles += cyc;
   }
   cycle_counter += cycles;
-  wait_clock_cycles(cycles);
 };
 
 void Cpu::reset() {
