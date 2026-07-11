@@ -9,92 +9,90 @@
 #include "timer.h"
 #include "usart.h"
 
-class ArduSystem : public vcml::system {
- public:
+struct ArduSystem : public vcml::system {
   ArduSystem(const sc_core::sc_module_name& nm)
       : vcml::system(nm),
         cpu(),
-        timer_("timer"),
-        usart_("usart"),
-        serial_term_("serial"),
-        loader_("loader"),
-        mem_range_program_("mem_range_program", vcml::range(0, 0x7fff)),
-        mem_range_sram_("mem_range_sram", vcml::range(0x100, 0x8ff)),
-        mem_range_sram_elf_("mem_range_sram_elf_", vcml::range(0x800000, 0x8007ff)),
-        bus_("bus"),
-        prog_bus_("prog_bus"),
-        clock_("clock", 16 * vcml::MHz),
-        program_mem_("program_mem", mem_range_program_.get().length()),
-        sram_mem_("sram_mem", mem_range_sram_.get().length()),
-        reset_("reset") {
-    bus_.bind(sram_mem_.in, mem_range_sram_);
-    bus_.bind(timer_.in, vcml::range(0x35, 0x37), 0x35);
-    bus_.bind(timer_.in, vcml::range(0x43, 0x48), 0x43);
-    bus_.bind(timer_.in, vcml::range(0x6e, 0x70), 0x6e);
-    bus_.bind(timer_.in, vcml::range(0x80, 0x8b), 0x80);
-    bus_.bind(timer_.in, vcml::range(0xb0, 0xb6), 0xb0);
-    bus_.bind(usart_.in, vcml::range(0xc0, 0xc6), 0xc0);
+        timer("timer"),
+        usart("usart"),
+        serial_term("serial"),
+        loader("loader"),
+        mem_range_program("mem_range_program", vcml::range(0, 0x7fff)),
+        mem_range_sram("mem_range_sram", vcml::range(0x100, 0x8ff)),
+        mem_range_sram_elf("mem_range_sram_elf_", vcml::range(0x800000, 0x8007ff)),
+        bus("bus"),
+        prog_bus("prog_bus"),
+        clock("clock", 16 * vcml::MHz),
+        program_mem("program_mem", mem_range_program.get().length()),
+        sram_mem("sram_mem", mem_range_sram.get().length()),
+        reset("reset") {
+    bus.bind(sram_mem.in, mem_range_sram);
+    bus.bind(timer.in, vcml::range(0x35, 0x37), 0x35);
+    bus.bind(timer.in, vcml::range(0x43, 0x48), 0x43);
+    bus.bind(timer.in, vcml::range(0x6e, 0x70), 0x6e);
+    bus.bind(timer.in, vcml::range(0x80, 0x8b), 0x80);
+    bus.bind(timer.in, vcml::range(0xb0, 0xb6), 0xb0);
+    bus.bind(usart.in, vcml::range(0xc0, 0xc6), 0xc0);
 
-    //prog_bus_.bind(sram_mem_.in, mem_range_sram_elf_);
-    prog_bus_.bind(program_mem_.in, mem_range_program_);
-    prog_bus_.bind(loader_.insn);
-    prog_bus_.bind(loader_.data);
-    prog_bus_.bind(cpu.insn);
+    // prog_bus.bind(sram_mem.in, mem_range_sram_elf);
+    prog_bus.bind(program_mem.in, mem_range_program);
+    prog_bus.bind(loader.insn);
+    prog_bus.bind(loader.data);
+    prog_bus.bind(cpu.insn);
 
-    bus_.bind(cpu.data);
-    clock_.clk.bind(cpu.clk);
-    reset_.rst.bind(cpu.rst);
+    bus.bind(cpu.data);
+    clock.clk.bind(cpu.clk);
+    reset.rst.bind(cpu.rst);
 
-    clock_.clk.bind(timer_.clk);
-    reset_.rst.bind(timer_.rst);
+    clock.clk.bind(timer.clk);
+    reset.rst.bind(timer.rst);
 
-    clock_.clk.bind(usart_.clk);
-    reset_.rst.bind(usart_.rst);
+    clock.clk.bind(usart.clk);
+    reset.rst.bind(usart.rst);
 
-    serial_term_.backends = "stdout";
-    usart_.serial_tx.bind(serial_term_.serial_rx);
-    serial_term_.serial_tx.bind(usart_.serial_rx);
+    serial_term.backends = "stdout";
+    usart.serial_tx.bind(serial_term.serial_rx);
+    serial_term.serial_tx.bind(usart.serial_rx);
 
-    clock_.clk.bind(bus_.clk);
-    clock_.clk.bind(prog_bus_.clk);
-    clock_.clk.bind(sram_mem_.clk);
-    clock_.clk.bind(program_mem_.clk);
+    clock.clk.bind(bus.clk);
+    clock.clk.bind(prog_bus.clk);
+    clock.clk.bind(sram_mem.clk);
+    clock.clk.bind(program_mem.clk);
 
-    reset_.rst.bind(bus_.rst);
-    reset_.rst.bind(prog_bus_.rst);
-    reset_.rst.bind(sram_mem_.rst);
-    reset_.rst.bind(program_mem_.rst);
+    reset.rst.bind(bus.rst);
+    reset.rst.bind(prog_bus.rst);
+    reset.rst.bind(sram_mem.rst);
+    reset.rst.bind(program_mem.rst);
 
-    timer_.ocie2a_out.bind(cpu.irq[0]);
-    timer_.ocie2b_out.bind(cpu.irq[1]);
-    timer_.toie2_out.bind(cpu.irq[2]);
-    timer_.icie1_out.bind(cpu.irq[3]);
-    timer_.ocie1a_out.bind(cpu.irq[4]);
-    timer_.ocie1b_out.bind(cpu.irq[5]);
-    timer_.toie1_out.bind(cpu.irq[6]);
-    timer_.ocie0a_out.bind(cpu.irq[7]);
-    timer_.ocie0b_out.bind(cpu.irq[8]);
-    timer_.toie0_out.bind(cpu.irq[9]);
+    timer.ocie2a_out.bind(cpu.irq[0]);
+    timer.ocie2b_out.bind(cpu.irq[1]);
+    timer.toie2_out.bind(cpu.irq[2]);
+    timer.icie1_out.bind(cpu.irq[3]);
+    timer.ocie1a_out.bind(cpu.irq[4]);
+    timer.ocie1b_out.bind(cpu.irq[5]);
+    timer.toie1_out.bind(cpu.irq[6]);
+    timer.ocie0a_out.bind(cpu.irq[7]);
+    timer.ocie0b_out.bind(cpu.irq[8]);
+    timer.toie0_out.bind(cpu.irq[9]);
   }
 
   virtual int run() override { return vcml::system::run(); }
 
- public:
   Cpu cpu;
-  Timer timer_;
-  Usart usart_;
-  vcml::serial::terminal serial_term_;
+  Timer timer;
+  Usart usart;
+  vcml::serial::terminal serial_term;
 
-  vcml::meta::loader loader_;
+  vcml::meta::loader loader;
 
-  vcml::property<vcml::range> mem_range_program_;
-  vcml::property<vcml::range> mem_range_sram_;
-  vcml::property<vcml::range> mem_range_sram_elf_;
+  vcml::property<vcml::range> mem_range_program;
+  vcml::property<vcml::range> mem_range_sram;
+  vcml::property<vcml::range> mem_range_sram_elf;
 
-  vcml::generic::bus bus_;
-  vcml::generic::bus prog_bus_;
-  vcml::generic::clock clock_;
-  vcml::generic::memory program_mem_;
-  vcml::generic::memory sram_mem_;
-  vcml::generic::reset reset_;
+  vcml::generic::bus bus;
+  vcml::generic::bus prog_bus;
+  vcml::generic::clock clock;
+  vcml::generic::memory program_mem;
+  vcml::generic::memory sram_mem;
+  vcml::generic::reset reset;
 };
