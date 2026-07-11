@@ -107,7 +107,7 @@ Cpu::Cpu()
   insn.allow_dmi = false;
 }
 
-std::function<void()> Cpu::FetchInstruction(vcml::u64 adr) {
+std::function<void()> Cpu::FetchInstruction(vcml::u64 adr, uint* cycles) {
   u16 data;
   tlm::tlm_response_status rs = insn.read(adr, &data, 2, vcml::SBI_NONE);
 
@@ -121,6 +121,7 @@ std::function<void()> Cpu::FetchInstruction(vcml::u64 adr) {
 
   new_pc += 1;
   Insn* inst = Decode::DecodeInsn(data);
+  *cycles = inst->cycles;
 
   if (inst->is_32bit) {
     new_pc += 1;
@@ -139,8 +140,9 @@ std::function<void()> Cpu::FetchInstruction(vcml::u64 adr) {
   return inst->GenFunc(data, this);
 }
 
-void Cpu::simulate(size_t cycles) {
-  for (int i = 0; i < cycles; ++i) {
+void Cpu::simulate(size_t max_cycles) {
+  uint cycles = 0;
+  while (cycles < max_cycles) {
     // Accept pending interrupts between instructions.
     if (service_pending_interrupt()) {
       ++cycle_counter;
@@ -152,11 +154,12 @@ void Cpu::simulate(size_t cycles) {
       return;
     }
 
-    auto inst_func = FetchInstruction(pc * 2);
+    uint cyc = 0;
+    auto inst_func = FetchInstruction(pc * 2, &cyc);
     if (inst_func) {
       try {
         inst_func();
-        //log_error("instruction at PC=0x%04x", pc * 2);
+        // log_error("instruction at PC=0x%04x", pc * 2);
       } catch (...) {
         log_error("Illegal instruction at PC=0x%04x", pc * 2);
         exit(1);
@@ -164,12 +167,14 @@ void Cpu::simulate(size_t cycles) {
     }
     pc = new_pc;
     ++retired_instructions;
-    ++cycle_counter;
+    cycles += cyc;
   }
+  cycle_counter += cycles;
   wait_clock_cycles(cycles);
 };
 
 void Cpu::reset() {
+  processor::reset();
   pc = start_pc;
   sp = 0x8ff;
   x = 0;
@@ -182,7 +187,7 @@ void Cpu::reset() {
   sreg.s = 0;
   sreg.h = 0;
   sreg.t = 0;
-  sreg.i = 1; // Global interrupt enabled
+  sreg.i = 1;  // Global interrupt enabled
   skip = false;
   break_hit = false;
   sleeping = false;
@@ -261,13 +266,12 @@ void Cpu::IoWrite(u32 adr, u8 value) {
     sreg = value;
     break;
   default: {
-        auto rs = data.write(adr + kIoOffset, &value, 1, vcml::SBI_NONE);
-        if (rs != tlm::TLM_OK_RESPONSE) {
-          log_warn("unimplemented memory read addr=%x", adr);
-          log_bus_error(data, vcml::VCML_ACCESS_WRITE, rs, adr + kIoOffset, 1);
-        }
+    auto rs = data.write(adr + kIoOffset, &value, 1, vcml::SBI_NONE);
+    if (rs != tlm::TLM_OK_RESPONSE) {
+      log_warn("unimplemented memory read addr=%x", adr);
+      log_bus_error(data, vcml::VCML_ACCESS_WRITE, rs, adr + kIoOffset, 1);
     }
-    break;
+  } break;
   }
 }
 
@@ -381,16 +385,16 @@ struct irq_desc {
 };
 
 // Timer flag masks (ATmega328P)
-static constexpr u8 TIFR0_TOV0  = 1u << 0;
+static constexpr u8 TIFR0_TOV0 = 1u << 0;
 static constexpr u8 TIFR0_OCF0A = 1u << 1;
 static constexpr u8 TIFR0_OCF0B = 1u << 2;
 
-static constexpr u8 TIFR1_TOV1  = 1u << 0;
+static constexpr u8 TIFR1_TOV1 = 1u << 0;
 static constexpr u8 TIFR1_OCF1A = 1u << 1;
 static constexpr u8 TIFR1_OCF1B = 1u << 2;
-static constexpr u8 TIFR1_ICF1  = 1u << 5;
+static constexpr u8 TIFR1_ICF1 = 1u << 5;
 
-static constexpr u8 TIFR2_TOV2  = 1u << 0;
+static constexpr u8 TIFR2_TOV2 = 1u << 0;
 static constexpr u8 TIFR2_OCF2A = 1u << 1;
 static constexpr u8 TIFR2_OCF2B = 1u << 2;
 
@@ -399,16 +403,11 @@ static constexpr u8 TIFR2_OCF2B = 1u << 2;
 // 3..6: Timer1 CAPT/COMPA/COMPB/OVF
 // 7..9: Timer0 COMPA/COMPB/OVF
 static constexpr irq_desc IRQ_TABLE[] = {
-    {0x000E, Cpu::IoRegisters::TIFR2, (u8)TIFR2_OCF2A},
-    {0x0010, Cpu::IoRegisters::TIFR2, (u8)TIFR2_OCF2B},
-    {0x0012, Cpu::IoRegisters::TIFR2, (u8)TIFR2_TOV2},
-    {0x0014, Cpu::IoRegisters::TIFR1, (u8)TIFR1_ICF1},
-    {0x0016, Cpu::IoRegisters::TIFR1, (u8)TIFR1_OCF1A},
-    {0x0018, Cpu::IoRegisters::TIFR1, (u8)TIFR1_OCF1B},
-    {0x001A, Cpu::IoRegisters::TIFR1, (u8)TIFR1_TOV1},
-    {0x001C, Cpu::IoRegisters::TIFRO, (u8)TIFR0_OCF0A},
-    {0x001E, Cpu::IoRegisters::TIFRO, (u8)TIFR0_OCF0B},
-    {0x0020, Cpu::IoRegisters::TIFRO, (u8)TIFR0_TOV0},
+    {0x000E, Cpu::IoRegisters::TIFR2, (u8)TIFR2_OCF2A}, {0x0010, Cpu::IoRegisters::TIFR2, (u8)TIFR2_OCF2B},
+    {0x0012, Cpu::IoRegisters::TIFR2, (u8)TIFR2_TOV2},  {0x0014, Cpu::IoRegisters::TIFR1, (u8)TIFR1_ICF1},
+    {0x0016, Cpu::IoRegisters::TIFR1, (u8)TIFR1_OCF1A}, {0x0018, Cpu::IoRegisters::TIFR1, (u8)TIFR1_OCF1B},
+    {0x001A, Cpu::IoRegisters::TIFR1, (u8)TIFR1_TOV1},  {0x001C, Cpu::IoRegisters::TIFRO, (u8)TIFR0_OCF0A},
+    {0x001E, Cpu::IoRegisters::TIFRO, (u8)TIFR0_OCF0B}, {0x0020, Cpu::IoRegisters::TIFRO, (u8)TIFR0_TOV0},
 };
 
 }  // namespace

@@ -50,7 +50,7 @@ struct Cpu : public vcml::processor {
   u64 cycle_counter = 0;
   u64 retired_instructions = 0;
 
-  std::function<void()> FetchInstruction(vcml::u64 adr);
+  std::function<void()> FetchInstruction(vcml::u64 adr, uint* cyc);
 
   enum IoRegisters {
     PINB = 0x23,
@@ -157,7 +157,7 @@ struct Cpu : public vcml::processor {
 
   virtual mwr::u64 cycle_count() const override;
   virtual void reset() override;
-  virtual void simulate(size_t cycles) override;
+  virtual void simulate(size_t max_cycles) override;
   virtual vcml::u64 program_counter() override;
   virtual vcml::u64 stack_pointer() override;
   virtual bool insert_breakpoint(vcml::u64 addr) override;
