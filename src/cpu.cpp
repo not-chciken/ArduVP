@@ -191,6 +191,7 @@ void Cpu::reset() {
   break_hit = false;
   sleeping = false;
   cycle_counter = 0;
+  retired_instructions = 0;
 
   for (auto& reg : rf) {
     reg = 0;
