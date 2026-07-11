@@ -51,4 +51,4 @@ target_link_libraries(arduvp_test vcml)
 target_compile_options(arduvp_test PUBLIC -O0 -g --coverage)
 add_dependencies(arduvp_test vcml)
 
-#add_subdirectory(tests)
+add_subdirectory(test)
