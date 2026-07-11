@@ -24,3 +24,4 @@ macro(create_test_case test_name)
 endmacro()
 
 create_test_case(system)
+create_test_case(usart)

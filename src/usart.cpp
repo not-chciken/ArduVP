@@ -1,41 +1,33 @@
 #include "usart.h"
 
 #include <algorithm>
-// #include <mwr/types.h>
 
-namespace {
+static constexpr u8 UCSRNA_MPCMN = mwr::bit(0);
+static constexpr u8 UCSRNA_U2XN = mwr::bit(1);
+static constexpr u8 UCSRNA_UPEN = mwr::bit(2);
+static constexpr u8 UCSRNA_DORN = mwr::bit(3);
+static constexpr u8 UCSRNA_FEN = mwr::bit(4);
+static constexpr u8 UCSRNA_UDREN = mwr::bit(5);
+static constexpr u8 UCSRNA_TXCN = mwr::bit(6);
+static constexpr u8 UCSRNA_RXCN = mwr::bit(7);
 
-// UCSR0A bits
-static constexpr u8 UCSR0A_MPCM0 = 1u << 0;
-static constexpr u8 UCSR0A_U2X0 = 1u << 1;
-static constexpr u8 UCSR0A_UPE0 = 1u << 2;
-static constexpr u8 UCSR0A_DOR0 = 1u << 3;
-static constexpr u8 UCSR0A_FE0 = 1u << 4;
-static constexpr u8 UCSR0A_UDRE0 = 1u << 5;
-static constexpr u8 UCSR0A_TXC0 = 1u << 6;
-static constexpr u8 UCSR0A_RXC0 = 1u << 7;
+static constexpr u8 UCSRNB_TXB8N = mwr::bit(0);
+static constexpr u8 UCSRNB_RXB8N = mwr::bit(1);
+static constexpr u8 UCSRNB_UCSZN2 = mwr::bit(2);
+static constexpr u8 UCSRNB_TXENN = mwr::bit(3);
+static constexpr u8 UCSRNB_RXENN = mwr::bit(4);
+static constexpr u8 UCSRNB_UDRIEN = mwr::bit(5);
+static constexpr u8 UCSRNB_TXCIEN = mwr::bit(6);
+static constexpr u8 UCSRNB_RXCIEN = mwr::bit(7);
 
-// UCSR0B bits
-static constexpr u8 UCSR0B_TXB80 = 1u << 0;
-static constexpr u8 UCSR0B_RXB80 = 1u << 1;
-static constexpr u8 UCSR0B_UCSZ02 = 1u << 2;
-static constexpr u8 UCSR0B_TXEN0 = 1u << 3;
-static constexpr u8 UCSR0B_RXEN0 = 1u << 4;
-static constexpr u8 UCSR0B_UDRIE0 = 1u << 5;
-static constexpr u8 UCSR0B_TXCIE0 = 1u << 6;
-static constexpr u8 UCSR0B_RXCIE0 = 1u << 7;
-
-// UCSR0C bits
-static constexpr u8 UCSR0C_UCPOL0 = 1u << 0;
-static constexpr u8 UCSR0C_UCSZ00 = 1u << 1;
-static constexpr u8 UCSR0C_UCSZ01 = 1u << 2;
-static constexpr u8 UCSR0C_USBS0 = 1u << 3;
-static constexpr u8 UCSR0C_UPM00 = 1u << 4;
-static constexpr u8 UCSR0C_UPM01 = 1u << 5;
-static constexpr u8 UCSR0C_UMSEL00 = 1u << 6;
-static constexpr u8 UCSR0C_UMSEL01 = 1u << 7;
-
-}  // namespace
+static constexpr u8 UCSRNC_UCPOLN = mwr::bit(0);
+static constexpr u8 UCSRNC_UCSZ0N = mwr::bit(1);
+static constexpr u8 UCSRNC_UCSZN1 = mwr::bit(2);
+static constexpr u8 UCSRNC_USBSN = mwr::bit(3);
+static constexpr u8 UCSRNC_UPM0N = mwr::bit(4);
+static constexpr u8 UCSRNC_UPMN1 = mwr::bit(5);
+static constexpr u8 UCSRNC_UMSEL0N = mwr::bit(6);
+static constexpr u8 UCSRNC_UMSELN1 = mwr::bit(7);
 
 Usart::Usart(const sc_core::sc_module_name& nm)
     : peripheral(nm),
@@ -43,47 +35,46 @@ Usart::Usart(const sc_core::sc_module_name& nm)
       in("in"),
       serial_tx("serial_tx"),
       serial_rx("serial_rx"),
-      ucsr0a("ucsr0a", 0xc0, 0x20),
-      ucsr0b("ucsr0b", 0xc1, 0x00),
-      ucsr0c("ucsr0c", 0xc2, 0x06),
-      ubrr0l("ubrr0l", 0xc4, 0x00),
-      ubrr0h("ubrr0h", 0xc5, 0x00),
-      udr0("udr0", 0xc6, 0x00),
+      ucsrna("ucsrna", 0x0, UCSRNA_UDREN),
+      ucsrnb("ucsrnb", 0x1, 0x00),
+      ucsrnc("ucsrnc", 0x2, UCSRNC_UCSZ0N | UCSRNC_UCSZN1),
+      ubrrnl("ubrrnl", 0x4, 0x00),
+      ubrrnh("ubrrnh", 0x5, 0x00),
+      udrn("udrn", 0x6, 0x00),
+      irq_rx("irq_rx"),
+      irq_tx("irq_tx"),
+      irq_udre("irq_udre"),
       tx_ev_("tx_ev"),
       rx_pending_(false),
       rx_data_(0) {
   set_little_endian();
 
-  // UCSR0A: status + U2X0 + MPCM0. TXC0 is cleared by writing 1.
-  ucsr0a.sync_always();
-  ucsr0a.allow_read_write();
-  ucsr0a.on_read(&Usart::read_ucsr0a, this);
-  ucsr0a.on_write(&Usart::write_ucsr0a, this);
+  ucsrna.sync_always();
+  ucsrna.allow_read_write();
+  ucsrna.on_read(&Usart::read_ucsrna, this);
+  ucsrna.on_write(&Usart::write_ucsrna, this);
 
-  // UCSR0B: control bits.
-  ucsr0b.sync_always();
-  ucsr0b.allow_read_write();
-  ucsr0b.on_write(&Usart::write_ucsr0b, this);
+  ucsrnb.sync_always();
+  ucsrnb.allow_read_write();
+  ucsrnb.on_write(&Usart::write_ucsrnb, this);
 
-  // UCSR0C: frame format.
-  ucsr0c.sync_always();
-  ucsr0c.allow_read_write();
-  ucsr0c.on_write(&Usart::write_ucsr0c, this);
+  ucsrnc.sync_always();
+  ucsrnc.allow_read_write();
+  ucsrnc.on_write(&Usart::write_ucsrnc, this);
 
-  ubrr0l.sync_always();
-  ubrr0l.allow_read_write();
-  ubrr0l.on_write(&Usart::write_ubrr0l, this);
+  ubrrnl.sync_always();
+  ubrrnl.allow_read_write();
+  ubrrnl.on_write(&Usart::write_ubrrnl, this);
 
-  ubrr0h.sync_always();
-  ubrr0h.allow_read_write();
-  ubrr0h.on_write(&Usart::write_ubrr0h, this);
+  ubrrnh.sync_always();
+  ubrrnh.allow_read_write();
+  ubrrnh.on_write(&Usart::write_ubrrnh, this);
 
-  udr0.sync_always();
-  udr0.allow_read_write();
-  udr0.on_read(&Usart::read_udr0, this);
-  udr0.on_write(&Usart::write_udr0, this);
+  udrn.sync_always();
+  udrn.allow_read_write();
+  udrn.on_read(&Usart::read_udrn, this);
+  udrn.on_write(&Usart::write_udrn, this);
 
-  // Default serial settings.
   update_serial_format();
   update_serial_baud();
 
@@ -93,72 +84,70 @@ Usart::Usart(const sc_core::sc_module_name& nm)
 void Usart::reset() {
   peripheral::reset();
 
-  // Reset values (ATmega328P):
-  // UCSR0A: UDRE0=1, TXC0=1 after reset; keep U2X0=0, MPCM0=0.
-  ucsr0a = (u8)(UCSR0A_UDRE0 | UCSR0A_TXC0);
-  ucsr0b = 0x00;
-  ucsr0c = 0x06;  // async, no parity, 1 stop, 8-bit.
-  ubrr0l = 0x00;
-  ubrr0h = 0x00;
-  udr0 = 0x00;
-
   rx_pending_ = false;
   rx_data_ = 0;
+
+  irq_rx = false;
+  irq_tx = false;
+  irq_udre = false;
 
   update_serial_format();
   update_serial_baud();
 }
 
 bool Usart::rx_enabled() const {
-  return (ucsr0b & UCSR0B_RXEN0) != 0;
+  return (ucsrnb & UCSRNB_RXENN) != 0;
 }
 
 bool Usart::tx_enabled() const {
-  return (ucsr0b & UCSR0B_TXEN0) != 0;
+  return (ucsrnb & UCSRNB_TXENN) != 0;
 }
 
 u16 Usart::ubrr() const {
-  return (u16)((u16)(ubrr0h & 0x0f) << 8) | ubrr0l;
+  return (u16)((u16)(ubrrnh & 0x0f) << 8) | ubrrnl;
 }
 
 void Usart::set_rx_complete(bool set) {
   if (set)
-    ucsr0a = (u8)(ucsr0a | UCSR0A_RXC0);
+    ucsrna = (u8)(ucsrna | UCSRNA_RXCN);
   else
-    ucsr0a = (u8)(ucsr0a & ~UCSR0A_RXC0);
+    ucsrna = (u8)(ucsrna & ~UCSRNA_RXCN);
 }
 
 void Usart::set_tx_complete(bool set) {
-  if (set)
-    ucsr0a = (u8)(ucsr0a | UCSR0A_TXC0);
-  else
-    ucsr0a = (u8)(ucsr0a & ~UCSR0A_TXC0);
+  if (set) {
+    ucsrna = (u8)(ucsrna | UCSRNA_TXCN);
+    if (ucsrnb & UCSRNB_TXCIEN)
+      irq_tx = true;
+  } else {
+    ucsrna = (u8)(ucsrna & ~UCSRNA_TXCN);
+  }
 }
 
 void Usart::set_udre(bool set) {
-  if (set)
-    ucsr0a = (u8)(ucsr0a | UCSR0A_UDRE0);
-  else
-    ucsr0a = (u8)(ucsr0a & ~UCSR0A_UDRE0);
+  if (set) {
+    ucsrna = (u8)(ucsrna | UCSRNA_UDREN);
+    if (ucsrnb & UCSRNB_RXCIEN)
+      irq_tx = true;
+  } else {
+    ucsrna = (u8)(ucsrna & ~UCSRNA_UDREN);
+  }
 }
 
 void Usart::update_serial_baud() {
-  // AVR baud rate generation (async normal: fosc/(16*(ubrr+1)), double: /8).
-  const u32 divisor = (ucsr0a & UCSR0A_U2X0) ? 8u : 16u;
-  const u16 n = (u16)(ubrr() + 1u);
-  const mwr::hz_t fosc = clock_hz();
-  const mwr::hz_t baud = (n == 0 || divisor == 0) ? vcml::SERIAL_9600BD : (fosc / (divisor * n));
+  u32 divisor = (ucsrna & UCSRNA_U2XN) ? 8u : 16u;
+  u16 n = (u16)(ubrr() + 1u);
+  mwr::hz_t fosc = clock_hz();
+  mwr::hz_t baud = (n == 0 || divisor == 0) ? vcml::SERIAL_9600BD : (fosc / (divisor * n));
 
-  // VCML sockets take hz_t as baud. Clamp to something sane.
   serial_tx.set_baud(std::max<mwr::hz_t>(baud, 1));
 }
 
 void Usart::update_serial_format() {
-  // Only asynchronous mode is modeled; sync/MSPI are ignored.
-  const u8 umsel = (u8)((ucsr0c & (UCSR0C_UMSEL00 | UCSR0C_UMSEL01)) >> 6);
+  u8 umsel = (u8)((ucsrnc & (UCSRNC_UMSEL0N | UCSRNC_UMSELN1)) >> 6);
   (void)umsel;
 
-  const u8 upm = (u8)((ucsr0c & (UCSR0C_UPM00 | UCSR0C_UPM01)) >> 4);
+  u8 upm = (u8)((ucsrnc & (UCSRNC_UPM0N | UCSRNC_UPMN1)) >> 4);
   vcml::serial_parity parity = vcml::SERIAL_PARITY_NONE;
   switch (upm) {
   case 0:
@@ -175,12 +164,10 @@ void Usart::update_serial_format() {
     break;
   }
 
-  const bool two_stop = (ucsr0c & UCSR0C_USBS0) != 0;
+  bool two_stop = (ucsrnc & UCSRNC_USBSN) != 0;
   vcml::serial_stop stop = two_stop ? vcml::SERIAL_STOP_2 : vcml::SERIAL_STOP_1;
 
-  // Character size (UCSZ02:0)
-  const u8 ucsz =
-      (u8)(((ucsr0b & UCSR0B_UCSZ02) ? 1u : 0u) << 2) | (u8)((ucsr0c & (UCSR0C_UCSZ00 | UCSR0C_UCSZ01)) >> 1);
+  u8 ucsz = (u8)(((ucsrnb & UCSRNB_UCSZN2) ? 1u : 0u) << 2) | (u8)((ucsrnc & (UCSRNC_UCSZ0N | UCSRNC_UCSZN1)) >> 1);
 
   vcml::serial_bits bits = vcml::SERIAL_8_BITS;
   switch (ucsz) {
@@ -198,7 +185,7 @@ void Usart::update_serial_format() {
     break;
   default:
     bits = vcml::SERIAL_8_BITS;
-    break;  // 9-bit not modeled
+    break;
   }
 
   serial_tx.set_parity(parity);
@@ -206,79 +193,69 @@ void Usart::update_serial_format() {
   serial_tx.set_data_width(bits);
 }
 
-u8 Usart::read_ucsr0a(bool dbg) {
-  (void)dbg;
-  // Status bits are stored in ucsr0a, but RXC0 must reflect pending RX.
+u8 Usart::read_ucsrna([[maybe_unused]] bool dbg) {
   if (rx_pending_)
-    ucsr0a = (u8)(ucsr0a | UCSR0A_RXC0);
+    ucsrna = (u8)(ucsrna | UCSRNA_RXCN);
   else
-    ucsr0a = (u8)(ucsr0a & ~UCSR0A_RXC0);
-  return ucsr0a;
+    ucsrna = (u8)(ucsrna & ~UCSRNA_RXCN);
+  return ucsrna;
 }
 
-void Usart::write_ucsr0a(u8 val, bool dbg) {
-  (void)dbg;
+void Usart::write_ucsrna(u8 val, [[maybe_unused]] bool dbg) {
+  u8 keep_ro = (u8)(ucsrna & (UCSRNA_UPEN | UCSRNA_DORN | UCSRNA_FEN | UCSRNA_UDREN | UCSRNA_RXCN));
+  u8 new_rw = (u8)(val & (UCSRNA_MPCMN | UCSRNA_U2XN));
+  ucsrna = (u8)(keep_ro | new_rw | (ucsrna & UCSRNA_TXCN));
 
-  // Writable bits: MPCM0, U2X0. TXC0 is cleared by writing a 1.
-  const u8 keep_ro = (u8)(ucsr0a & (UCSR0A_UPE0 | UCSR0A_DOR0 | UCSR0A_FE0 | UCSR0A_UDRE0 | UCSR0A_RXC0));
-  const u8 new_rw = (u8)(val & (UCSR0A_MPCM0 | UCSR0A_U2X0));
-  ucsr0a = (u8)(keep_ro | new_rw | (ucsr0a & UCSR0A_TXC0));
-
-  // Clear TXC0 on write-1.
-  if (val & UCSR0A_TXC0)
+  if (val & UCSRNA_TXCN)
     set_tx_complete(false);
 
   update_serial_baud();
 }
 
-void Usart::write_ucsr0b(u8 val, [[maybe_unused]] bool dbg) {
-  ucsr0b = val;
+void Usart::write_ucsrnb(u8 val, [[maybe_unused]] bool dbg) {
+  ucsrnb = val;
   update_serial_format();
 }
 
-void Usart::write_ucsr0c(u8 val, [[maybe_unused]] bool dbg) {
+void Usart::write_ucsrnc(u8 val, [[maybe_unused]] bool dbg) {
   (void)dbg;
   update_serial_format();
 }
 
-void Usart::write_ubrr0l(u8 val, [[maybe_unused]] bool dbg) {
-  ubrr0l = val;
+void Usart::write_ubrrnl(u8 val, [[maybe_unused]] bool dbg) {
+  ubrrnl = val;
   update_serial_baud();
 }
 
-void Usart::write_ubrr0h(u8 val, [[maybe_unused]] bool dbg) {
-  // only lower 4 bits exist
-  ubrr0h = (u8)(val & 0x0f);
+void Usart::write_ubrrnh(u8 val, [[maybe_unused]] bool dbg) {
+  ubrrnh = (u8)(val & 0x0f);
   update_serial_baud();
 }
 
-u8 Usart::read_udr0(bool dbg) {
+u8 Usart::read_udrn(bool dbg) {
   (void)dbg;
   if (!rx_pending_) {
-    // reading with no data returns last value; keep udr0 as-is
-    return udr0;
+    return udrn;
   }
 
-  // Consume the pending RX byte.
   const u8 val = rx_data_;
-  udr0 = val;
+  udrn = val;
   rx_pending_ = false;
   set_rx_complete(false);
-  // Clear error flags for this simplified model.
-  ucsr0a = (u8)(ucsr0a & ~(UCSR0A_FE0 | UCSR0A_DOR0 | UCSR0A_UPE0));
+  ucsrna = (u8)(ucsrna & ~(UCSRNA_FEN | UCSRNA_DORN | UCSRNA_UPEN));
   return val;
 }
 
-void Usart::write_udr0(u8 val, bool dbg) {
-  (void)dbg;
-  udr0 = val;
+void Usart::write_udrn(u8 val, [[maybe_unused]] bool dbg) {
+  if (!(ucsrna & UCSRNA_UDREN))
+    return;
+
+  udrn = val;
 
   if (!tx_enabled()) {
-    // If TX disabled, behave as a write to a holding register without output.
     return;
   }
 
-  // Writing UDR0 starts a transmission: buffer becomes non-empty.
   set_udre(false);
   set_tx_complete(false);
   tx_ev_.notify(sc_core::SC_ZERO_TIME);
@@ -289,32 +266,26 @@ void Usart::tx_thread() {
     wait(tx_ev_);
 
     if (!tx_enabled()) {
-      // If TX got disabled, consider buffer empty again.
       set_udre(true);
       continue;
     }
 
-    // Send current UDR0 byte.
-    const u8 data = udr0;
+    const u8 data = udrn;
     serial_tx.send(data);
 
-    // Approximate transmitter timing.
     wait(serial_tx.cycle());
 
-    // Data register empty + transmission complete.
     set_udre(true);
     set_tx_complete(true);
   }
 }
 
 void Usart::serial_receive(u8 data) {
-  // Incoming byte on serial_rx.
   if (!rx_enabled())
     return;
 
   if (rx_pending_) {
-    // Data overrun (simplified): drop new byte and set DOR0.
-    ucsr0a = (u8)(ucsr0a | UCSR0A_DOR0);
+    ucsrna = (u8)(ucsrna | UCSRNA_DORN);
     return;
   }
 

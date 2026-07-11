@@ -32,7 +32,7 @@ struct ArduSystem : public vcml::system {
     bus.bind(timer.in, vcml::range(0x6e, 0x70), 0x6e);
     bus.bind(timer.in, vcml::range(0x80, 0x8b), 0x80);
     bus.bind(timer.in, vcml::range(0xb0, 0xb6), 0xb0);
-    bus.bind(usart.in, vcml::range(0xc0, 0xc6), 0xc0);
+    bus.bind(usart.in, vcml::range(0xc0, 0xc6));
 
     // prog_bus.bind(sram_mem.in, mem_range_sram_elf);
     prog_bus.bind(program_mem.in, mem_range_program);
@@ -74,6 +74,9 @@ struct ArduSystem : public vcml::system {
     timer.ocie0a_out.bind(cpu.irq[7]);
     timer.ocie0b_out.bind(cpu.irq[8]);
     timer.toie0_out.bind(cpu.irq[9]);
+    usart.irq_rx.bind(cpu.irq[11]);
+    usart.irq_udre.bind(cpu.irq[12]);
+    usart.irq_tx.bind(cpu.irq[13]);
   }
 
   virtual int run() override { return vcml::system::run(); }

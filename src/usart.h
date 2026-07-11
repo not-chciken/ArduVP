@@ -11,12 +11,16 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
 
   Usart(const sc_core::sc_module_name& nm = "usart");
 
-  vcml::reg<u8> ucsr0a; // 0xc0
-  vcml::reg<u8> ucsr0b; // 0xc1
-  vcml::reg<u8> ucsr0c; // 0xc2
-  vcml::reg<u8> ubrr0l; // 0xc4
-  vcml::reg<u8> ubrr0h; // 0xc5
-  vcml::reg<u8> udr0;   // 0xc6
+  vcml::reg<u8> ucsrna;
+  vcml::reg<u8> ucsrnb;
+  vcml::reg<u8> ucsrnc;
+  vcml::reg<u8> ubrrnl;
+  vcml::reg<u8> ubrrnh;
+  vcml::reg<u8> udrn;  
+
+  vcml::gpio_initiator_socket irq_rx;
+  vcml::gpio_initiator_socket irq_tx;
+  vcml::gpio_initiator_socket irq_udre;
 
   virtual void reset() override;
 
@@ -38,17 +42,16 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
   void update_serial_format();
   void update_serial_baud();
 
-  u8 read_ucsr0a(bool dbg);
-  void write_ucsr0a(u8 val, bool dbg);
-  void write_ucsr0b(u8 val, bool dbg);
-  void write_ucsr0c(u8 val, bool dbg);
-  void write_ubrr0l(u8 val, bool dbg);
-  void write_ubrr0h(u8 val, bool dbg);
+  u8 read_ucsrna(bool dbg);
+  void write_ucsrna(u8 val, bool dbg);
+  void write_ucsrnb(u8 val, bool dbg);
+  void write_ucsrnc(u8 val, bool dbg);
+  void write_ubrrnl(u8 val, bool dbg);
+  void write_ubrrnh(u8 val, bool dbg);
 
-  u8 read_udr0(bool dbg);
-  void write_udr0(u8 val, bool dbg);
+  u8 read_udrn(bool dbg);
+  void write_udrn(u8 val, bool dbg);
 
-  // helpers
   bool rx_enabled() const;
   bool tx_enabled() const;
   u16 ubrr() const;
