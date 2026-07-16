@@ -52,6 +52,7 @@ struct UsartTest : public test_base {
     add_test("transmit", &UsartTest::TestTransmit);
     add_test("receive", &UsartTest::TestReceive);
     add_test("parity", &UsartTest::TestParity);
+    add_test("character_size", &UsartTest::TestCharacterSize);
   }
 
   void TestInit() {
@@ -151,6 +152,34 @@ struct UsartTest : public test_base {
     serial_buffer.tx.transport(payload);
     sc_core::wait(1, sc_core::SC_MS);
     ASSERT_TRUE((u8)usart.ucsrna & 0x4) << "Wrong parity bit should not be set";
+  }
+
+  void TestCharacterSize() {
+    struct {
+      u8 ucsrnc_val;
+      vcml::serial_bits expected_width;
+      u8 expected_mask;
+      const char* label;
+    } cases[] = {
+        {0x00, vcml::SERIAL_5_BITS, 0x1f, "5 bits"},
+        {0x02, vcml::SERIAL_6_BITS, 0x3f, "6 bits"},
+        {0x04, vcml::SERIAL_7_BITS, 0x7f, "7 bits"},
+        {0x06, vcml::SERIAL_8_BITS, 0xff, "8 bits"},
+    };
+
+    socket.writew<u8>(0xc1, 0x10);
+
+    for (auto& c : cases) {
+      socket.writew<u8>(0xc2, c.ucsrnc_val);
+      ASSERT_EQ(usart.serial_tx.data_width(), c.expected_width) << c.label;
+
+      serial_buffer.tx.send(0xff);
+      sc_core::wait(1, sc_core::SC_MS);
+
+      u8 data;
+      socket.readw<u8>(0xc6, data);
+      ASSERT_EQ(data, c.expected_mask) << "Received symbol should be masked to " << c.label;
+    }
   }
 };
 

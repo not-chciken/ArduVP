@@ -304,6 +304,6 @@ void Usart::serial_receive(const vcml::serial_target_socket& socket, vcml::seria
   }
 
   rx_pending_ = true;
-  rx_data_ = (u8)(tx.data & tx.mask);
+  rx_data_ = (u8)(tx.data & vcml::serial_mask(serial_tx.data_width()));
   set_rx_complete(true);
 }
