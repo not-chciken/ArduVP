@@ -24,7 +24,6 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
 
   virtual void reset() override;
 
-  // serial_host
   virtual void serial_receive(u8 data) override;
 
   virtual ~Usart() = default;
