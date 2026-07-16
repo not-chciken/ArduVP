@@ -24,7 +24,8 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
 
   virtual void reset() override;
 
-  virtual void serial_receive(u8 data) override;
+  virtual void serial_receive(const vcml::serial_target_socket& socket,
+                               vcml::serial_payload& tx) override;
 
   virtual ~Usart() = default;
 
@@ -42,14 +43,14 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
   void update_serial_baud();
 
   u8 read_ucsrna(bool dbg);
-  void write_ucsrna(u8 val, bool dbg);
-  void write_ucsrnb(u8 val, bool dbg);
-  void write_ucsrnc(u8 val, bool dbg);
-  void write_ubrrnl(u8 val, bool dbg);
-  void write_ubrrnh(u8 val, bool dbg);
+  void write_ucsrna(u8 val);
+  void write_ucsrnb(u8 val);
+  void write_ucsrnc(u8 val);
+  void write_ubrrnl(u8 val);
+  void write_ubrrnh(u8 val);
 
   u8 read_udrn(bool dbg);
-  void write_udrn(u8 val, bool dbg);
+  void write_udrn(u8 val);
 
   bool rx_enabled() const;
   bool tx_enabled() const;

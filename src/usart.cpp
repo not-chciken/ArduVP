@@ -51,29 +51,29 @@ Usart::Usart(const sc_core::sc_module_name& nm)
 
   ucsrna.sync_always();
   ucsrna.allow_read_write();
-  ucsrna.on_read(&Usart::read_ucsrna, this);
-  ucsrna.on_write(&Usart::write_ucsrna, this);
+  ucsrna.on_read(&Usart::read_ucsrna);
+  ucsrna.on_write(&Usart::write_ucsrna);
 
   ucsrnb.sync_always();
   ucsrnb.allow_read_write();
-  ucsrnb.on_write(&Usart::write_ucsrnb, this);
+  ucsrnb.on_write(&Usart::write_ucsrnb);
 
   ucsrnc.sync_always();
   ucsrnc.allow_read_write();
-  ucsrnc.on_write(&Usart::write_ucsrnc, this);
+  ucsrnc.on_write(&Usart::write_ucsrnc);
 
   ubrrnl.sync_always();
   ubrrnl.allow_read_write();
-  ubrrnl.on_write(&Usart::write_ubrrnl, this);
+  ubrrnl.on_write(&Usart::write_ubrrnl);
 
   ubrrnh.sync_always();
   ubrrnh.allow_read_write();
-  ubrrnh.on_write(&Usart::write_ubrrnh, this);
+  ubrrnh.on_write(&Usart::write_ubrrnh);
 
   udrn.sync_always();
   udrn.allow_read_write();
-  udrn.on_read(&Usart::read_udrn, this);
-  udrn.on_write(&Usart::write_udrn, this);
+  udrn.on_read(&Usart::read_udrn);
+  udrn.on_write(&Usart::write_udrn);
 
   update_serial_format();
   update_serial_baud();
@@ -201,7 +201,7 @@ u8 Usart::read_ucsrna([[maybe_unused]] bool dbg) {
   return ucsrna;
 }
 
-void Usart::write_ucsrna(u8 val, [[maybe_unused]] bool dbg) {
+void Usart::write_ucsrna(u8 val) {
   u8 keep_ro = (u8)(ucsrna & (UCSRNA_UPEN | UCSRNA_DORN | UCSRNA_FEN | UCSRNA_UDREN | UCSRNA_RXCN));
   u8 new_rw = (u8)(val & (UCSRNA_MPCMN | UCSRNA_U2XN));
   ucsrna = (u8)(keep_ro | new_rw | (ucsrna & UCSRNA_TXCN));
@@ -212,28 +212,27 @@ void Usart::write_ucsrna(u8 val, [[maybe_unused]] bool dbg) {
   update_serial_baud();
 }
 
-void Usart::write_ucsrnb(u8 val, [[maybe_unused]] bool dbg) {
+void Usart::write_ucsrnb(u8 val) {
   ucsrnb = val;
   update_serial_format();
 }
 
-void Usart::write_ucsrnc(u8 val, [[maybe_unused]] bool dbg) {
-  (void)dbg;
+void Usart::write_ucsrnc(u8 val) {
+  ucsrnc = val;
   update_serial_format();
 }
 
-void Usart::write_ubrrnl(u8 val, [[maybe_unused]] bool dbg) {
+void Usart::write_ubrrnl(u8 val) {
   ubrrnl = val;
   update_serial_baud();
 }
 
-void Usart::write_ubrrnh(u8 val, [[maybe_unused]] bool dbg) {
+void Usart::write_ubrrnh(u8 val) {
   ubrrnh = (u8)(val & 0x0f);
   update_serial_baud();
 }
 
 u8 Usart::read_udrn(bool dbg) {
-  (void)dbg;
   if (!rx_pending_) {
     return udrn;
   }
@@ -246,7 +245,7 @@ u8 Usart::read_udrn(bool dbg) {
   return val;
 }
 
-void Usart::write_udrn(u8 val, [[maybe_unused]] bool dbg) {
+void Usart::write_udrn(u8 val) {
   if (!(ucsrna & UCSRNA_UDREN))
     return;
 
@@ -280,7 +279,7 @@ void Usart::tx_thread() {
   }
 }
 
-void Usart::serial_receive(u8 data) {
+void Usart::serial_receive(const vcml::serial_target_socket& socket, vcml::serial_payload& tx) {
   if (!rx_enabled())
     return;
 
@@ -289,7 +288,22 @@ void Usart::serial_receive(u8 data) {
     return;
   }
 
+  if (tx.parity != serial_tx.parity()) {
+    log_error("USART parity mismatch");
+  }
+
+  vcml::serial_parity par = serial_tx.parity();
+
+  if (par == vcml::SERIAL_PARITY_ODD || par == vcml::SERIAL_PARITY_EVEN) {
+    vcml::serial_payload check = tx;
+    if (!vcml::serial_test_parity(check)) {
+      ucsrna = (u8)(ucsrna | UCSRNA_UPEN);
+    } else {
+      ucsrna &= ~UCSRNA_UPEN;
+    }
+  }
+
   rx_pending_ = true;
-  rx_data_ = data;
+  rx_data_ = (u8)(tx.data & tx.mask);
   set_rx_complete(true);
 }

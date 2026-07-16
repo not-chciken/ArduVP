@@ -51,6 +51,7 @@ struct UsartTest : public test_base {
     add_test("baudrate", &UsartTest::TestBaudRate);
     add_test("transmit", &UsartTest::TestTransmit);
     add_test("receive", &UsartTest::TestReceive);
+    add_test("parity", &UsartTest::TestParity);
   }
 
   void TestInit() {
@@ -115,6 +116,41 @@ struct UsartTest : public test_base {
     socket.readw<u8>(0xc6, data);
     ASSERT_EQ(data, (0x42)) << "Received byte should match sent value";
     ASSERT_FALSE((u8)usart.ucsrna & 0x80) << "RXCN should be cleared after reading UDR";
+  }
+
+  void TestParity() {
+    vcml::serial_payload payload;
+    payload.baud = SERIAL_9600BD;
+    payload.width = SERIAL_8_BITS;
+    payload.mask = serial_mask(SERIAL_8_BITS);
+
+    socket.writew<u8>(0xc1, 0x10);
+
+    socket.writew<u8>(0xc2, 0x20);  // Check for even parity.
+    payload.parity = vcml::SERIAL_PARITY_EVEN;
+
+    payload.data = 0xff;
+    serial_buffer.tx.transport(payload);
+    sc_core::wait(1, sc_core::SC_MS);
+    ASSERT_TRUE((u8)usart.ucsrna & 0x4) << "Wrong parity bit should be set";
+
+    payload.data = 0x1ff;
+    serial_buffer.tx.transport(payload);
+    sc_core::wait(1, sc_core::SC_MS);
+    ASSERT_TRUE((u8)usart.ucsrna & 0x4) << "Wrong parity bit should not be set";
+
+    payload.parity = vcml::SERIAL_PARITY_ODD;
+    socket.writew<u8>(0xc2, 0x30);  // Check for odd parity.
+
+    payload.data = 0x1ff;
+    serial_buffer.tx.transport(payload);
+    sc_core::wait(1, sc_core::SC_MS);
+    ASSERT_TRUE((u8)usart.ucsrna & 0x4) << "Wrong parity bit should be set";
+
+    payload.data = 0xff;
+    serial_buffer.tx.transport(payload);
+    sc_core::wait(1, sc_core::SC_MS);
+    ASSERT_TRUE((u8)usart.ucsrna & 0x4) << "Wrong parity bit should not be set";
   }
 };
 
