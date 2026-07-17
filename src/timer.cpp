@@ -2,34 +2,26 @@
 
 #include <algorithm>
 
-namespace {
+static constexpr u8 GTCCR_PSRASY = mwr::bit(1);
+static constexpr u8 GTCCR_PSR10 = mwr::bit(0);
+static constexpr u8 GTCCR_TSM = mwr::bit(7);
 
-// GTCCR bits
-static constexpr u8 GTCCR_PSRASY = 1u << 1;
-static constexpr u8 GTCCR_PSR10 = 1u << 0;  // PSRSYNC on ATmega328P
-static constexpr u8 GTCCR_TSM = 1u << 7;
+static constexpr u8 TIFR0_TOV0 = mwr::bit(0);
+static constexpr u8 TIFR0_OCF0A = mwr::bit(1);
+static constexpr u8 TIFR0_OCF0B = mwr::bit(2);
 
-// TIFR0 bits
-static constexpr u8 TIFR0_TOV0 = 1u << 0;
-static constexpr u8 TIFR0_OCF0A = 1u << 1;
-static constexpr u8 TIFR0_OCF0B = 1u << 2;
+static constexpr u8 TIFR1_TOV1 = mwr::bit(0);
+static constexpr u8 TIFR1_OCF1A = mwr::bit(1);
+static constexpr u8 TIFR1_OCF1B = mwr::bit(2);
+static constexpr u8 TIFR1_ICF1 = mwr::bit(5);
 
-// TIFR1 bits
-static constexpr u8 TIFR1_TOV1 = 1u << 0;
-static constexpr u8 TIFR1_OCF1A = 1u << 1;
-static constexpr u8 TIFR1_OCF1B = 1u << 2;
-static constexpr u8 TIFR1_ICF1 = 1u << 5;
-
-// TIFR2 bits
-static constexpr u8 TIFR2_TOV2 = 1u << 0;
-static constexpr u8 TIFR2_OCF2A = 1u << 1;
-static constexpr u8 TIFR2_OCF2B = 1u << 2;
+static constexpr u8 TIFR2_TOV2 = mwr::bit(0);
+static constexpr u8 TIFR2_OCF2A = mwr::bit(1);
+static constexpr u8 TIFR2_OCF2B = mwr::bit(2);
 
 static inline u8 clamp_u8(int v) {
   return (u8)std::clamp(v, 0, 255);
 }
-
-}  // namespace
 
 Timer::Timer(const sc_core::sc_module_name& nm)
     : peripheral(nm),
@@ -95,86 +87,96 @@ Timer::Timer(const sc_core::sc_module_name& nm)
 
   gtccr.sync_always();
   gtccr.allow_read_write();
-  gtccr.on_write(&Timer::write_gtccr, this);
+  gtccr.on_write(&Timer::write_gtccr);
 
-  // Flag registers: cleared by writing 1s.
   tifr0.sync_always();
   tifr0.allow_read_write();
-  tifr0.on_write(&Timer::write_tifr0, this);
+  tifr0.on_write(&Timer::write_tifr0);
 
   tifr1.sync_always();
   tifr1.allow_read_write();
-  tifr1.on_write(&Timer::write_tifr1, this);
+  tifr1.on_write(&Timer::write_tifr1);
 
   tifr2.sync_always();
   tifr2.allow_read_write();
-  tifr2.on_write(&Timer::write_tifr2, this);
+  tifr2.on_write(&Timer::write_tifr2);
 
   tccr0a.sync_always();
   tccr0a.allow_read_write();
+  tccr0a.on_write_mask(0xf3);
+
   tccr0b.sync_always();
   tccr0b.allow_read_write();
+  tccr0b.on_write_mask(0xf); // TODO: FOC0A and FOC0B.
+
   tcnt0.sync_always();
   tcnt0.allow_read_write();
+
   ocr0a.sync_always();
   ocr0a.allow_read_write();
+
   ocr0b.sync_always();
   ocr0b.allow_read_write();
+
   timsk0.sync_always();
   timsk0.allow_read_write();
-  timsk0.on_write(&Timer::write_timsk0, this);
+  timsk0.on_write(&Timer::write_timsk0);
 
   tccr1a.sync_always();
   tccr1a.allow_read_write();
+  tccr1a.on_write_mask(0xf3);
+
   tccr1b.sync_always();
   tccr1b.allow_read_write();
+  tccr1b.on_write_mask(0xdf);
+
   tccr1c.sync_always();
   tccr1c.allow_read_write();
+  tccr1c.on_write_mask(0x00); // TODO: FOC1A and FOC1B.
 
-  // 16-bit access semantics
   tcnt1l.sync_always();
   tcnt1l.allow_read_write();
-  tcnt1l.on_read(&Timer::read_tcnt1l, this);
-  tcnt1l.on_write(&Timer::write_tcnt1l, this);
+  tcnt1l.on_read(&Timer::read_tcnt1l);
+  tcnt1l.on_write(&Timer::write_tcnt1l);
 
   tcnt1h.sync_always();
   tcnt1h.allow_read_write();
-  tcnt1h.on_read(&Timer::read_tcnt1h, this);
-  tcnt1h.on_write(&Timer::write_tcnt1h, this);
+  tcnt1h.on_read(&Timer::read_tcnt1h);
+  tcnt1h.on_write(&Timer::write_tcnt1h);
 
   icr1l.sync_always();
   icr1l.allow_read_write();
-  icr1l.on_read(&Timer::read_icr1l, this);
-  icr1l.on_write(&Timer::write_icr1l, this);
+  icr1l.on_read(&Timer::read_icr1l);
+  icr1l.on_write(&Timer::write_icr1l);
 
   icr1h.sync_always();
   icr1h.allow_read_write();
-  icr1h.on_read(&Timer::read_icr1h, this);
-  icr1h.on_write(&Timer::write_icr1h, this);
+  icr1h.on_read(&Timer::read_icr1h);
+  icr1h.on_write(&Timer::write_icr1h);
 
   ocr1al.sync_always();
   ocr1al.allow_read_write();
-  ocr1al.on_read(&Timer::read_ocr1al, this);
-  ocr1al.on_write(&Timer::write_ocr1al, this);
+  ocr1al.on_read(&Timer::read_ocr1al);
+  ocr1al.on_write(&Timer::write_ocr1al);
 
   ocr1ah.sync_always();
   ocr1ah.allow_read_write();
-  ocr1ah.on_read(&Timer::read_ocr1ah, this);
-  ocr1ah.on_write(&Timer::write_ocr1ah, this);
+  ocr1ah.on_read(&Timer::read_ocr1ah);
+  ocr1ah.on_write(&Timer::write_ocr1ah);
 
   ocr1bl.sync_always();
   ocr1bl.allow_read_write();
-  ocr1bl.on_read(&Timer::read_ocr1bl, this);
-  ocr1bl.on_write(&Timer::write_ocr1bl, this);
+  ocr1bl.on_read(&Timer::read_ocr1bl);
+  ocr1bl.on_write(&Timer::write_ocr1bl);
 
   ocr1bh.sync_always();
   ocr1bh.allow_read_write();
-  ocr1bh.on_read(&Timer::read_ocr1bh, this);
-  ocr1bh.on_write(&Timer::write_ocr1bh, this);
+  ocr1bh.on_read(&Timer::read_ocr1bh);
+  ocr1bh.on_write(&Timer::write_ocr1bh);
 
   timsk1.sync_always();
   timsk1.allow_read_write();
-  timsk1.on_write(&Timer::write_timsk1, this);
+  timsk1.on_write(&Timer::write_timsk1);
 
   tccr2a.sync_always();
   tccr2a.allow_read_write();
@@ -190,39 +192,13 @@ Timer::Timer(const sc_core::sc_module_name& nm)
   assr.allow_read_write();
   timsk2.sync_always();
   timsk2.allow_read_write();
-  timsk2.on_write(&Timer::write_timsk2, this);
+  timsk2.on_write(&Timer::write_timsk2);
 
   SC_THREAD(run);
 }
 
 void Timer::reset() {
   peripheral::reset();
-
-  // Registers reset to 0 by default in this model.
-  gtccr = 0;
-
-  tifr0 = 0;
-  tccr0a = 0;
-  tccr0b = 0;
-  tcnt0 = 0;
-  ocr0a = 0;
-  ocr0b = 0;
-  timsk0 = 0;
-
-  tifr1 = 0;
-  tccr1a = 0;
-  tccr1b = 0;
-  tccr1c = 0;
-  timsk1 = 0;
-
-  tifr2 = 0;
-  tccr2a = 0;
-  tccr2b = 0;
-  tcnt2 = 0;
-  ocr2a = 0;
-  ocr2b = 0;
-  assr = 0;
-  timsk2 = 0;
 
   tcnt1_ = 0;
   ocr1a_ = 0;
@@ -258,156 +234,123 @@ bool Timer::timers_stopped() const {
   return (gtccr & GTCCR_TSM) != 0;
 }
 
-void Timer::write_gtccr(u8 val, bool dbg) {
-  // Implement prescaler reset bits and TSM.
-  // Writing a 1 to PSRASY resets Timer2 prescaler.
-  // Writing a 1 to PSRSYNC resets Timer0/1 prescaler.
+void Timer::write_gtccr(u8 val) {
   const bool psrasy = (val & GTCCR_PSRASY) != 0;
   const bool psrsync = (val & GTCCR_PSR10) != 0;
 
-  // TSM is a stored bit.
   gtccr = (gtccr & ~GTCCR_TSM) | (val & GTCCR_TSM);
 
   if (psrasy) {
     ps2_ = 0;
-    // PSRASY is not stored.
   }
   if (psrsync) {
     ps0_ = 0;
     ps1_ = 0;
-    // PSRSYNC is not stored.
   }
-
-  (void)dbg;
 }
 
-void Timer::write_tifr0(u8 val, bool dbg) {
-  // Clear flags by writing 1.
+void Timer::write_tifr0(u8 val) {
   tifr0 = (u8)(tifr0 & ~val);
   check_interrupts();
-  (void)dbg;
 }
 
-void Timer::write_tifr1(u8 val, bool dbg) {
+void Timer::write_tifr1(u8 val) {
   tifr1 = (u8)(tifr1 & ~val);
   check_interrupts();
-  (void)dbg;
 }
 
-void Timer::write_tifr2(u8 val, bool dbg) {
+void Timer::write_tifr2(u8 val) {
   tifr2 = (u8)(tifr2 & ~val);
   check_interrupts();
-  (void)dbg;
 }
 
-void Timer::write_timsk0(u8 val, bool dbg) {
-  timsk0 = val;
+void Timer::write_timsk0(u8 val) {
+  timsk0 = val & 0b111;
   check_interrupts();
-  (void)dbg;
 }
 
-void Timer::write_timsk1(u8 val, bool dbg) {
-  timsk1 = val;
+void Timer::write_timsk1(u8 val) {
+  timsk1 = val & 0b100111;
   check_interrupts();
-  (void)dbg;
 }
 
-void Timer::write_timsk2(u8 val, bool dbg) {
+void Timer::write_timsk2(u8 val) {
   timsk2 = val;
   check_interrupts();
-  (void)dbg;
 }
 
-u8 Timer::read_tcnt1l(bool dbg) {
-  (void)dbg;
-  // Reading low latches high.
+u8 Timer::read_tcnt1l() {
   tcnt1_latch_h_ = (u8)(tcnt1_ >> 8);
   return (u8)(tcnt1_ & 0xff);
 }
 
-u8 Timer::read_tcnt1h(bool dbg) {
-  (void)dbg;
+u8 Timer::read_tcnt1h() {
   return tcnt1_latch_h_;
 }
 
-void Timer::write_tcnt1h(u8 val, bool dbg) {
-  (void)dbg;
+void Timer::write_tcnt1h(u8 val) {
   tcnt1_write_h_ = val;
-  // Do not commit until low byte is written.
   tcnt1h = val;
 }
 
-void Timer::write_tcnt1l(u8 val, bool dbg) {
-  (void)dbg;
+void Timer::write_tcnt1l(u8 val) {
   tcnt1_ = (u16)((u16)tcnt1_write_h_ << 8) | val;
   sync_16bit_regs_from_state();
 }
 
-u8 Timer::read_ocr1al(bool dbg) {
-  (void)dbg;
+u8 Timer::read_ocr1al() {
   ocr1a_latch_h_ = (u8)(ocr1a_ >> 8);
   return (u8)(ocr1a_ & 0xff);
 }
 
-u8 Timer::read_ocr1ah(bool dbg) {
-  (void)dbg;
+u8 Timer::read_ocr1ah() {
   return ocr1a_latch_h_;
 }
 
-void Timer::write_ocr1ah(u8 val, bool dbg) {
-  (void)dbg;
+void Timer::write_ocr1ah(u8 val) {
   ocr1a_write_h_ = val;
   ocr1ah = val;
 }
 
-void Timer::write_ocr1al(u8 val, bool dbg) {
-  (void)dbg;
+void Timer::write_ocr1al(u8 val) {
   ocr1a_ = (u16)((u16)ocr1a_write_h_ << 8) | val;
   sync_16bit_regs_from_state();
 }
 
-u8 Timer::read_ocr1bl(bool dbg) {
-  (void)dbg;
+u8 Timer::read_ocr1bl() {
   ocr1b_latch_h_ = (u8)(ocr1b_ >> 8);
   return (u8)(ocr1b_ & 0xff);
 }
 
-u8 Timer::read_ocr1bh(bool dbg) {
-  (void)dbg;
+u8 Timer::read_ocr1bh() {
   return ocr1b_latch_h_;
 }
 
-void Timer::write_ocr1bh(u8 val, bool dbg) {
-  (void)dbg;
+void Timer::write_ocr1bh(u8 val) {
   ocr1b_write_h_ = val;
   ocr1bh = val;
 }
 
-void Timer::write_ocr1bl(u8 val, bool dbg) {
-  (void)dbg;
+void Timer::write_ocr1bl(u8 val) {
   ocr1b_ = (u16)((u16)ocr1b_write_h_ << 8) | val;
   sync_16bit_regs_from_state();
 }
 
-u8 Timer::read_icr1l(bool dbg) {
-  (void)dbg;
+u8 Timer::read_icr1l() {
   icr1_latch_h_ = (u8)(icr1_ >> 8);
   return (u8)(icr1_ & 0xff);
 }
 
-u8 Timer::read_icr1h(bool dbg) {
-  (void)dbg;
+u8 Timer::read_icr1h() {
   return icr1_latch_h_;
 }
 
-void Timer::write_icr1h(u8 val, bool dbg) {
-  (void)dbg;
+void Timer::write_icr1h(u8 val) {
   icr1_write_h_ = val;
   icr1h = val;
 }
 
-void Timer::write_icr1l(u8 val, bool dbg) {
-  (void)dbg;
+void Timer::write_icr1l(u8 val) {
   icr1_ = (u16)((u16)icr1_write_h_ << 8) | val;
   sync_16bit_regs_from_state();
 }
@@ -428,10 +371,10 @@ void Timer::set_tifr2(u8 mask) {
 }
 
 u32 Timer::timer0_div() const {
-  const u8 cs = (u8)(tccr0b & 0x07);
+  u8 cs = tccr0b & 0b111;
   switch (cs) {
   case 0:
-    return 0;  // stopped
+    return 0;
   case 1:
     return 1;
   case 2:
@@ -445,7 +388,7 @@ u32 Timer::timer0_div() const {
   case 6:
   case 7:
   default:
-    return 0;  // external clock not modeled
+    return 0;
   }
 }
 
@@ -498,11 +441,11 @@ u32 Timer::timer2_div() const {
 void Timer::tick_timer0() {
   log_debug("timer 0 tick");
 
-  const u8 wgm = (u8)(((tccr0b >> 3) & 0x1) << 2 | (tccr0a & 0x3));
-  const u8 top = (wgm == 7 || wgm == 5) ? (u8)ocr0a : 0xff;
-  const bool phase_correct = (wgm == 1 || wgm == 5);
-  const bool ctc = (wgm == 2);
-  const bool fast_pwm = (wgm == 3 || wgm == 7);
+  u8 wgm = (u8)(((tccr0b >> 3) & 0x1) << 2 | (tccr0a & 0x3));
+  u8 top = (wgm == 7 || wgm == 5) ? (u8)ocr0a : 0xff;
+  bool phase_correct = (wgm == 1 || wgm == 5);
+  bool ctc = (wgm == 2);
+  bool fast_pwm = (wgm == 3 || wgm == 7);
 
   u8 old = (u8)tcnt0;
   u8 next = old;
@@ -518,7 +461,6 @@ void Timer::tick_timer0() {
     } else {
       if (next == 0) {
         dir0_ = true;
-        // In phase correct PWM, overflow flag set at BOTTOM.
         set_tifr0(TIFR0_TOV0);
         next = 1;
       } else {
@@ -526,10 +468,8 @@ void Timer::tick_timer0() {
       }
     }
   } else {
-    // normal / CTC / fast PWM style single-slope
     if (old == top) {
       next = 0;
-      // Overflow flag in normal/fast pwm: set on wrap.
       set_tifr0(TIFR0_TOV0);
     } else {
       next++;
@@ -538,14 +478,12 @@ void Timer::tick_timer0() {
 
   tcnt0 = next;
 
-  // Compare matches (best-effort, not modelling output-pin behavior)
   if ((u8)tcnt0 == (u8)ocr0a)
     set_tifr0(TIFR0_OCF0A);
   if ((u8)tcnt0 == (u8)ocr0b)
     set_tifr0(TIFR0_OCF0B);
 
   if (ctc && (u8)tcnt0 == (u8)ocr0a) {
-    // Clear on compare match.
     tcnt0 = 0;
   }
 
@@ -635,7 +573,7 @@ void Timer::tick_timer1() {
     next = (u16)(old + 1);
   }
 
-  tcnt1_= next;
+  tcnt1_ = next;
   sync_16bit_regs_from_state();
 
   if (tcnt1_ == ocr1a_)
@@ -644,7 +582,6 @@ void Timer::tick_timer1() {
     set_tifr1(TIFR1_OCF1B);
 
   if (ctc && tcnt1_ == top) {
-    // Clear on compare match for CTC.
     tcnt1_ = 0;
     sync_16bit_regs_from_state();
   }
@@ -653,21 +590,18 @@ void Timer::tick_timer1() {
 }
 
 void Timer::check_interrupts() {
-  // Timer0 interrupts
-  static constexpr u8 TIMSK0_TOIE0 = 1u << 0;
-  static constexpr u8 TIMSK0_OCIE0A = 1u << 1;
-  static constexpr u8 TIMSK0_OCIE0B = 1u << 2;
+  static constexpr u8 TIMSK0_TOIE0 = mwr::bit(0);
+  static constexpr u8 TIMSK0_OCIE0A = mwr::bit(1);
+  static constexpr u8 TIMSK0_OCIE0B = mwr::bit(2);
 
-  // Timer1 interrupts
-  static constexpr u8 TIMSK1_TOIE1 = 1u << 0;
-  static constexpr u8 TIMSK1_OCIE1A = 1u << 1;
-  static constexpr u8 TIMSK1_OCIE1B = 1u << 2;
-  static constexpr u8 TIMSK1_ICIE1 = 1u << 5;
+  static constexpr u8 TIMSK1_TOIE1 = mwr::bit(0);
+  static constexpr u8 TIMSK1_OCIE1A = mwr::bit(1);
+  static constexpr u8 TIMSK1_OCIE1B = mwr::bit(2);
+  static constexpr u8 TIMSK1_ICIE1 = mwr::bit(5);
 
-  // Timer2 interrupts
-  static constexpr u8 TIMSK2_TOIE2 = 1u << 0;
-  static constexpr u8 TIMSK2_OCIE2A = 1u << 1;
-  static constexpr u8 TIMSK2_OCIE2B = 1u << 2;
+  static constexpr u8 TIMSK2_TOIE2 = mwr::bit(0);
+  static constexpr u8 TIMSK2_OCIE2A = mwr::bit(1);
+  static constexpr u8 TIMSK2_OCIE2B = mwr::bit(2);
 
   const u8 t0_flags = (u8)tifr0;
   const u8 t0_mask = (u8)timsk0;
@@ -676,7 +610,6 @@ void Timer::check_interrupts() {
   const u8 t2_flags = (u8)tifr2;
   const u8 t2_mask = (u8)timsk2;
 
-  // Timer0
   if ((t0_flags & TIFR0_TOV0) && (t0_mask & TIMSK0_TOIE0)) {
     toie0_out = true;
     log_debug("Timer0 overflow interrupt");
@@ -698,7 +631,6 @@ void Timer::check_interrupts() {
     ocie0b_out = false;
   }
 
-  // Timer1
   if ((t1_flags & TIFR1_TOV1) && (t1_mask & TIMSK1_TOIE1)) {
     toie1_out = true;
     log_debug("Timer1 overflow interrupt");
@@ -727,7 +659,6 @@ void Timer::check_interrupts() {
     icie1_out = false;
   }
 
-  // Timer2
   if ((t2_flags & TIFR2_TOV2) && (t2_mask & TIMSK2_TOIE2)) {
     toie2_out = true;
     log_debug("Timer2 overflow interrupt");
@@ -751,7 +682,6 @@ void Timer::check_interrupts() {
 }
 
 void Timer::run() {
-  // Ensure regs are consistent.
   sync_16bit_regs_from_state();
 
   while (true) {
@@ -760,8 +690,7 @@ void Timer::run() {
     if (timers_stopped())
       continue;
 
-    // Timer0
-    const u32 div0 = timer0_div();
+    u32 div0 = timer0_div();
     if (div0 != 0) {
       ps0_++;
       if (ps0_ >= div0) {
@@ -770,7 +699,6 @@ void Timer::run() {
       }
     }
 
-    // Timer1
     const u32 div1 = timer1_div();
     if (div1 != 0) {
       ps1_++;
@@ -780,7 +708,6 @@ void Timer::run() {
       }
     }
 
-    // Timer2
     const u32 div2 = timer2_div();
     if (div2 != 0) {
       ps2_++;

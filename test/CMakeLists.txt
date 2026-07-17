@@ -25,3 +25,4 @@ endmacro()
 
 create_test_case(system)
 create_test_case(usart)
+create_test_case(timer)
