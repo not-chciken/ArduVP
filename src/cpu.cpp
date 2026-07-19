@@ -121,7 +121,6 @@ std::function<void()> Cpu::FetchInstruction(vcml::u64 adr, uint* cycles) {
 
   new_pc += 1;
   Insn* inst = Decode::DecodeInsn(data);
-//  std::cout << inst->GetStatementString(data) << std::endl;
   *cycles = inst->cycles;
 
   if (inst->is_32bit) {
@@ -176,6 +175,7 @@ void Cpu::simulate(size_t max_cycles) {
 void Cpu::reset() {
   processor::reset();
   pc = start_pc;
+  new_pc = start_pc;
   sp = 0x8ff;
   x = 0;
   y = 0;

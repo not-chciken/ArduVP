@@ -290,9 +290,9 @@ void Add::Execute(Cpu* cpu, uint rd, uint rr) {
   u8 rs1 = cpu->rf[rr];
   u8 result = reg + rs1;
 
-  cpu->sreg.h = ((reg & 0x0F) + (rs1 & 0x0F)) > 0x0F;
-  cpu->sreg.v = ((reg ^ result) & (rs1 ^ result)) & 0x80;
-  cpu->sreg.n = (result & 0x8000) != 0;
+  cpu->sreg.h = ((reg & 0x0f) + (rs1 & 0x0f)) > 0x0f;
+  cpu->sreg.v = (bool)(((reg ^ result) & (rs1 ^ result)) & 0x80);
+  cpu->sreg.n = (bool)(result & 0x80);
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result < reg) || (result < rs1);
 
