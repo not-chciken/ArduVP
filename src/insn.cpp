@@ -573,7 +573,7 @@ void Cpc::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.h = ((reg & 0x0F) - (rs1 & 0x0F)) < 0;
   cpu->sreg.v = ((reg ^ result) & (rs1 ^ result)) & 0x80;
   cpu->sreg.n = (result & 0x80) != 0;
-  cpu->sreg.z = (result == 0);
+  cpu->sreg.z = (result == 0) ? cpu->sreg.z : false;
   cpu->sreg.c = (result > reg) || (result > rs1);
 }
 
@@ -1410,6 +1410,7 @@ Spm::Spm() {
 }
 
 void Spm::Execute(Cpu* cpu) {
+  log_error("SPM executed");
   // TODO: Implement.
 }
 
@@ -1420,6 +1421,7 @@ Spmx::Spmx() {
 }
 
 void Spmx::Execute(Cpu* cpu) {
+  log_error("SPMX executed");
   // TODO: Implement.
 }
 
