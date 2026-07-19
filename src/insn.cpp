@@ -314,7 +314,7 @@ void Adiw::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result < reg) || (result < imm);
 
-  cpu->rf[rd * 2 + 24] = result & 0xFF;
+  cpu->rf[rd * 2 + 24] = result & 0xff;
   cpu->rf[rd * 2 + 25] = (result >> 8);
 }
 

@@ -11,7 +11,7 @@
 #include "testing.h"
 
 test_base::test_base(const sc_module_name& nm):
-    component(nm), m_reset("reset"), m_clock("clock", 100 * MHz) {
+    component(nm), m_reset("reset"), m_clock("clock", 16 * MHz) {
     m_reset.rst.bind(rst);
     m_clock.clk.bind(clk);
     SC_HAS_PROCESS(test_base);
