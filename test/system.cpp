@@ -2,11 +2,9 @@
 
 #include "testing.h"
 
-class SystemTest : public test_base {
- public:
+struct SystemTest : public test_base {
   ArduSystem system;
 
- public:
   SystemTest(const sc_module_name& nm) : test_base(nm), system("system") {
     add_test("start", &SystemTest::TestLoop);
     add_test("nop", &SystemTest::TestNop);
