@@ -82,8 +82,8 @@ std::function<void()> InsnRR::GenFunc(u16 insn, Cpu* cpu) {
 }
 
 std::tuple<uint, uint> InsnRR::InitArgs(u16 insn) {
-  uint rd = ExtractBits(insn, 0, 4) | (ExtractBits(insn, 8, 1) << 4);
-  uint rr = ExtractBits(insn, 4, 5);
+  uint rr = ExtractBits(insn, 0, 4) | (ExtractBits(insn, 8, 1) << 4);
+  uint rd = ExtractBits(insn, 4, 5);
 
   return {rd, rr};
 }
