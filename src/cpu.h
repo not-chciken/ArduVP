@@ -142,6 +142,7 @@ struct Cpu : public vcml::processor {
     UDR0 = 0xc6
   };
 
+  u8 gpior0 = 0;
   u8 gpior1 = 0;
   u8 gpior2 = 0;
 

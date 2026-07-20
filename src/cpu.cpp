@@ -227,6 +227,8 @@ u8 Cpu::MemoryRead(u32 adr) {
 
 u8 Cpu::IoRead(u32 adr) {
   switch (adr) {
+  case 0x1e:
+    return gpior0;
   case 0x2a:
     return gpior1;
   case 0x2b:
@@ -251,6 +253,9 @@ u8 Cpu::IoRead(u32 adr) {
 
 void Cpu::IoWrite(u32 adr, u8 value) {
   switch (adr) {
+  case 0x1e:
+    gpior0 = value;
+    break;
   case 0x2a:
     gpior1 = value;
     break;
