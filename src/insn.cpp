@@ -82,7 +82,7 @@ std::function<void()> InsnRR::GenFunc(u16 insn, Cpu* cpu) {
 }
 
 std::tuple<uint, uint> InsnRR::InitArgs(u16 insn) {
-  uint rr = ExtractBits(insn, 0, 4) | (ExtractBits(insn, 8, 1) << 4);
+  uint rr = ExtractBits(insn, 0, 4) | (ExtractBits(insn, 9, 1) << 4);
   uint rd = ExtractBits(insn, 4, 5);
 
   return {rd, rr};
@@ -556,7 +556,7 @@ void Cp::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.v = ((reg ^ result) & (rs1 ^ result)) & 0x80;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = (result > reg) || (result > rs1);
+  cpu->sreg.c = (rs1 > reg);
 }
 
 Cpc::Cpc() {
