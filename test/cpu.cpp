@@ -37,6 +37,11 @@ struct CpuTest : public test_base {
     add_test("brbc", &CpuTest::TestBrbc);
     add_test("brbs", &CpuTest::TestBrbs);
     add_test("brcc", &CpuTest::TestBrcc);
+    add_test("brcs", &CpuTest::TestBrcs);
+    add_test("break", &CpuTest::TestBreak);
+    add_test("breq", &CpuTest::TestBreq);
+    add_test("bset", &CpuTest::TestBset);
+    add_test("bst", &CpuTest::TestBst);
   }
 
   void reset() override {
@@ -408,6 +413,153 @@ struct CpuTest : public test_base {
     ASSERT_EQ(cpu.pc, 2);
   }
 
+  void TestBrcs() {
+    cpu.sreg = 0;
+
+    socket.writew<u16>(0, 0xf008);  // BRCS C, 1
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 1);
+
+    cpu.sreg.c = 1;
+    socket.writew<u16>(2, 0xf008);  // BRCS C, 1
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 3);
+
+    socket.writew<u16>(6, 0xf3f0);  // BRCS C, -2
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 2);
+  }
+
+  void TestBreak() {
+    socket.writew<u16>(0, 0x9598);  // BREAK
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_TRUE(cpu.break_hit);
+  }
+
+  void TestBreq() {
+    socket.writew<u16>(0, 0xf009);  // BREQ 1
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 1);
+
+    cpu.sreg.z = 1;
+    socket.writew<u16>(2, 0xf009);  // BREQ 1
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 3);
+
+    socket.writew<u16>(6, 0xf3f1);  // BREQ -2
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 2);
+  }
+
+  void TestBset() {
+    cpu.sreg = 0x00;
+    socket.writew<u16>(0, 0x9408);  // BSET C
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.sreg.i, 0);
+    ASSERT_EQ(cpu.sreg.t, 0);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 1);
+
+    cpu.sreg = 0x00;
+    socket.writew<u16>(2, 0x9418);  // BSET Z
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.sreg.i, 0);
+    ASSERT_EQ(cpu.sreg.t, 0);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 1);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0x00;
+    socket.writew<u16>(4, 0x9428);  // BSET N
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.sreg.i, 0);
+    ASSERT_EQ(cpu.sreg.t, 0);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 1);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0x00;
+    socket.writew<u16>(6, 0x9438);  // BSET V
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.sreg.i, 0);
+    ASSERT_EQ(cpu.sreg.t, 0);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 1);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0x00;
+    socket.writew<u16>(8, 0x9448);  // BSET S
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.sreg.i, 0);
+    ASSERT_EQ(cpu.sreg.t, 0);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 1);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0x00;
+    socket.writew<u16>(10, 0x9458);  // BSET H
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.sreg.i, 0);
+    ASSERT_EQ(cpu.sreg.t, 0);
+    ASSERT_EQ(cpu.sreg.h, 1);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0x00;
+    socket.writew<u16>(12, 0x9468);  // BSET T
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.sreg.i, 0);
+    ASSERT_EQ(cpu.sreg.t, 1);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0x00;
+    socket.writew<u16>(14, 0x9478);  // BSET I
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.sreg.i, 1);
+    ASSERT_EQ(cpu.sreg.t, 0);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+  }
+
+  void TestBst() {
+    cpu.rf[0] = 1;
+    socket.writew<u16>(0, 0xfa00);  // BST R0, 0
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.sreg.t, 1);
+
+    cpu.rf[0] = 0;
+    socket.writew<u16>(2, 0xfa00);  // BST R0, 0
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.sreg.t, 0);
+  }
 };
 
 TEST(ArduSystem, CpuTest) {
