@@ -42,6 +42,10 @@ struct CpuTest : public test_base {
     add_test("breq", &CpuTest::TestBreq);
     add_test("bset", &CpuTest::TestBset);
     add_test("bst", &CpuTest::TestBst);
+    add_test("call", &CpuTest::TestCall);
+    add_test("cbi", &CpuTest::TestCbi);
+    add_test("com", &CpuTest::TestCom);
+    add_test("cp", &CpuTest::TestCp);
   }
 
   void reset() override {
@@ -559,6 +563,55 @@ struct CpuTest : public test_base {
     socket.writew<u16>(2, 0xfa00);  // BST R0, 0
     sc_core::wait(kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.sreg.t, 0);
+  }
+
+  void TestCall() {
+    cpu.sp = 0x8ff;
+    socket.writew<u16>(0, 0x0000);      // NOP
+    socket.writew<u16>(2, 0x0000);      // NOP
+    socket.writew<u32>(4, 0x0010940e);  // CALL 0x10
+    sc_core::wait(6 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 0x10);
+    ASSERT_EQ(cpu.sp, 0x8fd);
+    memory.data()[0x8ff] = 2;
+  }
+
+  void TestCbi() {
+    cpu.gpior0 = 0xff;
+
+    socket.writew<u16>(0, 0x98f0);  // CBI GPIOR0, 0
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ((uint)cpu.gpior0, 0xfe);
+
+    socket.writew<u16>(2, 0x98f7);  // CBI GPIOR0, 7
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ((uint)cpu.gpior0, 0x7e);
+  }
+
+  void TestCom() {
+    cpu.rf[0] = 0xff;
+    socket.writew<u16>(0, 0x9400);  // COM R0
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[0], 0x00);
+
+    cpu.rf[1] = 0x01;
+    socket.writew<u16>(2, 0x9410);  // COM R1
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[1], 0xfe);
+  }
+
+  void TestCp() {
+    cpu.rf[0] = 0x00;
+    cpu.rf[1] = 0x00;
+    socket.writew<u16>(0, 0x1410);  // CP R1, R0
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[1], 0x00);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 1);
+    ASSERT_EQ(cpu.sreg.c, 0);
   }
 };
 
