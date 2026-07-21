@@ -47,7 +47,10 @@ struct CpuTest : public test_base {
     add_test("com", &CpuTest::TestCom);
     add_test("cp", &CpuTest::TestCp);
     add_test("ijmp", &CpuTest::TestIjmp);
+    add_test("ldi", &CpuTest::TestLdi);
     add_test("mov", &CpuTest::TestMov);
+    add_test("movw", &CpuTest::TestMovw);
+    add_test("mul", &CpuTest::TestMul);
   }
 
   void reset() override {
@@ -652,18 +655,76 @@ struct CpuTest : public test_base {
     ASSERT_EQ(cpu.pc, 0x1330);
   }
 
+  void TestLdi() {
+    socket.writew<u16>(0, 0xe00f);  // LDI R6, 15
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[16], 15);
+
+    socket.writew<u16>(2, 0xe1e7);  // LDI R30, 23
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[30], 23);
+  }
+
   void TestMov() {
     cpu.rf[0] = 23;
     socket.writew<u16>(0, 0x2c10);  // MOV R1, RO
     sc_core::wait(1 * kCycle, sc_core::SC_US);
-    ASSERT_EQ(cpu.rf[0], 23); 
+    ASSERT_EQ(cpu.rf[0], 23);
     ASSERT_EQ(cpu.rf[1], 23);
-    
+
     cpu.rf[30] = 42;
     socket.writew<u16>(2, 0x2e2e);  // MOV R2, R30
     sc_core::wait(1 * kCycle, sc_core::SC_US);
-    ASSERT_EQ(cpu.rf[2], 42); 
+    ASSERT_EQ(cpu.rf[2], 42);
     ASSERT_EQ(cpu.rf[30], 42);
+  }
+
+  void TestMovw() {
+    cpu.rf[0] = 13;
+    cpu.rf[1] = 37;
+    socket.writew<u16>(0, 0x0110);  // MOV R2, RO
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[2], 13);
+    ASSERT_EQ(cpu.rf[3], 37);
+
+    cpu.rf[2] = 0xca;
+    cpu.rf[3] = 0xfe;
+    socket.writew<u16>(2, 0x01e1);  // MOV 28, R2
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[28], 0xca);
+    ASSERT_EQ(cpu.rf[29], 0xfe);
+  }
+
+  void TestMul() {
+    cpu.sreg = 0;
+    cpu.rf[0] = 13;
+    cpu.rf[1] = 37;
+    socket.writew<u16>(0, 0x9c10);  // MUL R1, RO
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[0], 0xe1);
+    ASSERT_EQ(cpu.rf[1], 0x01);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0;
+    cpu.rf[5] = 1;
+    cpu.rf[6] = 0;
+    socket.writew<u16>(2, 0x9c56);  // MUL R5, R6
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[0], 0);
+    ASSERT_EQ(cpu.rf[1], 0);
+    ASSERT_EQ(cpu.sreg.z, 1);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0;
+    cpu.rf[5] = 0xff;
+    cpu.rf[10] = 0xff;
+    socket.writew<u16>(4, 0x9c5a);  // MUL R5, R10
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[0], 0x01);
+    ASSERT_EQ(cpu.rf[1], 0xfe);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 1);
   }
 };
 
