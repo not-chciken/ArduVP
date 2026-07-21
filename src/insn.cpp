@@ -1061,7 +1061,7 @@ void Mul::Execute(Cpu* cpu, uint rd, uint rr) {
   u16 result = (u16)reg * (u16)rs1;
 
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = result & 0x8000;
+  cpu->sreg.c = (result & 0x8000) != 0;
 
   cpu->rf[0] = result & 0xff;
   cpu->rf[1] = result >> 8;
