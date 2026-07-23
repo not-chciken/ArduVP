@@ -51,6 +51,10 @@ struct CpuTest : public test_base {
     add_test("mov", &CpuTest::TestMov);
     add_test("movw", &CpuTest::TestMovw);
     add_test("mul", &CpuTest::TestMul);
+    add_test("ori", &CpuTest::TestOri);
+    add_test("out", &CpuTest::TestOut);
+    add_test("pop", &CpuTest::TestPop);
+    add_test("push", &CpuTest::TestPush);
   }
 
   void reset() override {
@@ -725,6 +729,45 @@ struct CpuTest : public test_base {
     ASSERT_EQ(cpu.rf[1], 0xfe);
     ASSERT_EQ(cpu.sreg.z, 0);
     ASSERT_EQ(cpu.sreg.c, 1);
+  }
+
+  void TestOri() {
+    cpu.sreg = 0;
+    socket.writew<u16>(0, 0x6f0f);  // ORI R16, 0xFF
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[16], 0xff);
+    ASSERT_EQ(cpu.sreg.n, 1);
+    ASSERT_EQ(cpu.sreg.z, 0);
+
+    cpu.sreg = 0;
+    socket.writew<u16>(2, 0x6010);  // ORI R17, 0x00
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[17], 0x00);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 1);
+  }
+
+  void TestOut() {
+    cpu.rf[1] = 42;
+    socket.writew<u16>(0, 0xba1e);  // OUT GPIOR0, R1
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.gpior0, 42);
+  }
+
+  void TestPop() {
+    cpu.sp = 0x800;
+    socket.writew<u8>(0x801, 42);
+    socket.writew<u16>(0, 0x91ff);  // POP R31
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[31], 42);
+  }
+
+  void TestPush() {
+    cpu.sp = 0x801;
+    cpu.rf[31] = 99;
+    socket.writew<u16>(0, 0x93ff);  // PUSH R31
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(memory.get<u8>(0x801), 99);
   }
 };
 
