@@ -55,6 +55,9 @@ struct CpuTest : public test_base {
     add_test("out", &CpuTest::TestOut);
     add_test("pop", &CpuTest::TestPop);
     add_test("push", &CpuTest::TestPush);
+    add_test("rcall", &CpuTest::TestRcall);
+    add_test("ret", &CpuTest::TestRet);
+    add_test("reti", &CpuTest::TestReti);
   }
 
   void reset() override {
@@ -768,6 +771,48 @@ struct CpuTest : public test_base {
     socket.writew<u16>(0, 0x93ff);  // PUSH R31
     sc_core::wait(2 * kCycle, sc_core::SC_US);
     ASSERT_EQ(memory.get<u8>(0x801), 99);
+  }
+
+  void TestRcall() {
+    cpu.sp = 0x800;
+    socket.writew<u16>(0, 0x0000);  // NOP
+    socket.writew<u16>(2, 0xd080);  // RCALL 0x80
+    sc_core::wait(4 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 0x82);
+    ASSERT_EQ(cpu.sp, 0x7fe);
+    ASSERT_EQ(memory.get<u8>(0x800), 0x0);
+    ASSERT_EQ(memory.get<u8>(0x7ff), 0x1 + 1);
+
+    socket.writew<u16>(0x82 * 2, 0xdffc);  // RCALL -4
+    sc_core::wait(3 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 0x7f);
+    ASSERT_EQ(cpu.sp, 0x7fc);
+    ASSERT_EQ(memory.get<u8>(0x7fe), 0x0);
+    ASSERT_EQ(memory.get<u8>(0x7fd), 0x82 + 1);
+  }
+
+  void TestRet() {
+    cpu.sreg = 0;
+    cpu.sp = 0x800;
+    socket.writew<u16>(0, 0x9508);  // RET
+    socket.writew<u8>(0x801, 0x37);
+    socket.writew<u8>(0x802, 0x13);
+    sc_core::wait(4 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 0x1337);
+    ASSERT_EQ(cpu.sp, 0x802);
+    ASSERT_EQ(cpu.sreg.i, 0);
+  }
+
+  void TestReti() {
+    cpu.sreg = 0;
+    cpu.sp = 0x800;
+    socket.writew<u16>(0, 0x9518);  // RETI
+    socket.writew<u8>(0x801, 0x37);
+    socket.writew<u8>(0x802, 0x13);
+    sc_core::wait(4 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 0x1337);
+    ASSERT_EQ(cpu.sp, 0x802);
+    ASSERT_EQ(cpu.sreg.i, 1);
   }
 };
 
