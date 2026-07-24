@@ -270,11 +270,11 @@ void Adc::Execute(Cpu* cpu, uint rd, uint rr) {
   u8 rs1 = cpu->rf[rr];
   u8 result = reg + rs1 + cpu->sreg.c;
 
-  cpu->sreg.h = ((reg & 0x0F) + (rs1 & 0x0F) + cpu->sreg.c) > 0x0F;
-  cpu->sreg.v = ((reg ^ result) & (rs1 ^ result)) & 0x8000;
-  cpu->sreg.n = (result & 0x8000) != 0;
+  cpu->sreg.h = ((reg & 0x0f) + (rs1 & 0x0f) + cpu->sreg.c) > 0x0f;
+  cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result < reg) || (result < rs1);
+  cpu->sreg.v = cpu->sreg.c ^ cpu->sreg.n;
 
   cpu->rf[rd] = result;
 }
