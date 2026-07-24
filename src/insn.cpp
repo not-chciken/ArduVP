@@ -1205,10 +1205,9 @@ Rcall::Rcall() {
 }
 
 void Rcall::Execute(Cpu* cpu, uint addr) {
-  auto new_pc = cpu->pc + 2;
-  cpu->MemoryWrite(cpu->sp, new_pc >> 8);
+  cpu->MemoryWrite(cpu->sp, (cpu->pc + 1) >> 8);
   cpu->sp -= 1;
-  cpu->MemoryWrite(cpu->sp, new_pc & 0xff);
+  cpu->MemoryWrite(cpu->sp, (cpu->pc + 1) & 0xff);
   cpu->sp -= 1;
   cpu->new_pc = cpu->pc + addr + 1;
 }
@@ -1223,7 +1222,7 @@ void Ret::Execute(Cpu* cpu) {
   cpu->sp += 1;
   u16 new_pc = cpu->MemoryRead(cpu->sp);
   cpu->sp += 1;
-  new_pc |= cpu->MemoryRead(cpu->sp) << 8;
+  new_pc |= ((u16)cpu->MemoryRead(cpu->sp)) << 8;
   cpu->new_pc = new_pc;
 }
 
