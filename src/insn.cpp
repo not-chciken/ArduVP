@@ -1265,7 +1265,7 @@ void Ror::Execute(Cpu* cpu, uint rd) {
   cpu->sreg.c = reg & 0x01;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
-  cpu->sreg.v = cpu->sreg.v ^ cpu->sreg.c;
+  cpu->sreg.v = cpu->sreg.n ^ cpu->sreg.c;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
