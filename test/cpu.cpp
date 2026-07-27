@@ -60,6 +60,7 @@ struct CpuTest : public test_base {
     add_test("reti", &CpuTest::TestReti);
     add_test("rjmp", &CpuTest::TestRjmp);
     add_test("rol", &CpuTest::TestRol);
+    add_test("ror", &CpuTest::TestRor);
   }
 
   void reset() override {
@@ -855,6 +856,42 @@ struct CpuTest : public test_base {
     ASSERT_EQ(cpu.sreg.s, 0);
     ASSERT_EQ(cpu.sreg.v, 0);
     ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+  }
+
+  void TestRor() {
+    cpu.sreg = 0;
+    cpu.rf[30] = 0x01;
+    socket.writew<u16>(0, 0x95e7);  // ROR R31
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[30], 0x00);
+    ASSERT_EQ(cpu.sreg.s, 1);
+    ASSERT_EQ(cpu.sreg.v, 1);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 1);
+    ASSERT_EQ(cpu.sreg.c, 1);
+
+    cpu.sreg = 0;
+    cpu.rf[30] = 0x00;
+    socket.writew<u16>(2, 0x95e7);  // ROR R31
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[30], 0x00);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 1);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0;
+    cpu.sreg.c = 1;
+    cpu.rf[30] = 0x00;
+    socket.writew<u16>(4, 0x95e7);  // ROR R31
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[30], 0x80);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 1);
+    ASSERT_EQ(cpu.sreg.n, 1);
     ASSERT_EQ(cpu.sreg.z, 0);
     ASSERT_EQ(cpu.sreg.c, 0);
   }
