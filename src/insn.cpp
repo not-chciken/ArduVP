@@ -295,6 +295,7 @@ void Add::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.n = (bool)(result & 0x80);
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result < reg) || (result < rs1);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -313,6 +314,7 @@ void Adiw::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.n = (result & 0x8000) != 0;
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result < reg) || (result < imm);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd * 2 + 24] = result & 0xff;
   cpu->rf[rd * 2 + 25] = (result >> 8);
@@ -332,6 +334,7 @@ void And::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.v = false;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -349,6 +352,7 @@ void Andi::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.v = false;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -537,6 +541,7 @@ void Com::Execute(Cpu* cpu, uint rd) {
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = true;
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -557,6 +562,7 @@ void Cp::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (rs1 > reg);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 }
 
 Cpc::Cpc() {
@@ -575,6 +581,7 @@ void Cpc::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0) ? cpu->sreg.z : false;
   cpu->sreg.c = (result > reg) || (result > rs1);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 }
 
 Cpi::Cpi() {
@@ -592,6 +599,7 @@ void Cpi::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result > reg) || (result > imm);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 }
 
 Cpse::Cpse() {
@@ -617,6 +625,7 @@ void Dec::Execute(Cpu* cpu, uint rd) {
   cpu->sreg.v = (reg == 0x80);
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -645,6 +654,19 @@ Eor::Eor() {
   exec_func = Execute;
   cycles = 1;
   name = "EOR";
+}
+
+void Eor::Execute(Cpu* cpu, uint rd, uint rr) {
+  u8 reg = cpu->rf[rd];
+  u8 rs1 = cpu->rf[rr];
+  u8 result = reg ^ rs1;
+
+  cpu->sreg.v = false;
+  cpu->sreg.n = (result & 0x80) != 0;
+  cpu->sreg.z = (result == 0);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
+
+  cpu->rf[rd] = result;
 }
 
 Fmul::Fmul() {
@@ -704,18 +726,6 @@ void Fmulsu::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->rf[1] = result >> 8;
 }
 
-void Eor::Execute(Cpu* cpu, uint rd, uint rr) {
-  u8 reg = cpu->rf[rd];
-  u8 rs1 = cpu->rf[rr];
-  u8 result = reg ^ rs1;
-
-  cpu->sreg.v = false;
-  cpu->sreg.n = (result & 0x80) != 0;
-  cpu->sreg.z = (result == 0);
-
-  cpu->rf[rd] = result;
-}
-
 Icall::Icall() {
   exec_func = Execute;
   cycles = 3;
@@ -754,6 +764,7 @@ void Inc::Execute(Cpu* cpu, uint rd) {
   cpu->sreg.v = (reg == 0x7F);
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -1024,6 +1035,7 @@ void Lsr::Execute(Cpu* cpu, uint rd) {
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (reg & 0x01) != 0;
   cpu->sreg.v = cpu->sreg.n ^ cpu->sreg.c;
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -1118,6 +1130,7 @@ void Neg::Execute(Cpu* cpu, uint rd) {
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = result == 0;
   cpu->sreg.c = result != 0;
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -1145,6 +1158,7 @@ void Or::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.v = false;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -1162,6 +1176,7 @@ void Ori::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.v = false;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -1286,6 +1301,7 @@ void Sbci::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result > reg) || (result > imm);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -1306,6 +1322,7 @@ void Sbc::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result > reg) || (result > rs1);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -1591,6 +1608,7 @@ void Sub::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result > reg) || (result > rs1);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
@@ -1610,6 +1628,7 @@ void Subi::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result > reg) || (result > imm);
+  cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
 }
