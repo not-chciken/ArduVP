@@ -274,7 +274,7 @@ void Adc::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (result < reg) || (result < rs1);
-  cpu->sreg.v = cpu->sreg.c ^ cpu->sreg.n;
+  cpu->sreg.v = cpu->sreg.n ^ cpu->sreg.c;
 
   cpu->rf[rd] = result;
 }
@@ -370,7 +370,7 @@ void Asr::Execute(Cpu* cpu, uint rd) {
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = (reg & 1) != 0;
-  cpu->sreg.v = cpu->sreg.v ^ cpu->sreg.c;
+  cpu->sreg.v = cpu->sreg.n ^ cpu->sreg.c;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
