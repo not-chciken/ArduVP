@@ -64,6 +64,12 @@ struct CpuTest : public test_base {
     add_test("sbc", &CpuTest::TestSbc);
     add_test("sbci", &CpuTest::TestSbci);
     add_test("sbi", &CpuTest::TestSbi);
+    add_test("sbic", &CpuTest::TestSbic);
+    add_test("sbis", &CpuTest::TestSbis);
+    add_test("sbiw", &CpuTest::TestSbiw);
+    add_test("sbrc", &CpuTest::TestSbrc);
+    add_test("sbrs", &CpuTest::TestSbrs);
+    add_test("sleep", &CpuTest::TestSleep);
   }
 
   void reset() override {
@@ -1096,10 +1102,103 @@ struct CpuTest : public test_base {
     sc_core::wait(2 * kCycle, sc_core::SC_US);
     ASSERT_EQ((uint)cpu.gpior0, 0x01);
 
-    cpu.gpior0 = 0;
+    cpu.gpior0 = 2;
     socket.writew<u16>(2, 0x9af7);  // SBI 0x1e, 7
     sc_core::wait(2 * kCycle, sc_core::SC_US);
-    ASSERT_EQ((uint)cpu.gpior0, 0x80);
+    ASSERT_EQ((uint)cpu.gpior0, 0x82);
+  }
+
+  void TestSbic() {
+    cpu.gpior0 = 1;
+    socket.writew<u16>(0, 0x99f0);  // SBIC 0x1e, 0
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.retired_instructions, 1);
+    ASSERT_EQ(cpu.pc, 0x01);
+
+    cpu.gpior0 = 2;
+    socket.writew<u16>(2, 0x99f0);  // SBIC 0x1e, 0
+    sc_core::wait(3 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.retired_instructions, 2);
+    ASSERT_EQ(cpu.pc, 0x03);
+  }
+
+  void TestSbis() {
+    cpu.gpior0 = 2;
+    socket.writew<u16>(0, 0x9bf0);  // SBIS 0x1e, 0
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.retired_instructions, 1);
+    ASSERT_EQ(cpu.pc, 0x01);
+
+    cpu.gpior0 = 1;
+    socket.writew<u16>(2, 0x9bf0);  // SBIS 0x1e, 0
+    sc_core::wait(3 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.retired_instructions, 2);
+    ASSERT_EQ(cpu.pc, 0x03);
+  }
+
+  void TestSbiw() {
+    cpu.rf[24] = 1;
+    cpu.rf[25] = 0;
+    socket.writew<u16>(0, 0x9701);  // SBIW R24, 1
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[24], 0);
+    ASSERT_EQ(cpu.rf[25], 0);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 1);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.rf[26] = 0;
+    cpu.rf[27] = 0;
+    socket.writew<u16>(2, 0x9711);  // SBIW R26, 1
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[26], 0xff);
+    ASSERT_EQ(cpu.rf[27], 0xff);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 1);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 1);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 1);
+  }
+
+  void TestSbrc() {
+    cpu.rf[15] = 1;
+    socket.writew<u16>(0, 0xfcf0);  // SBRC R15, 0
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.retired_instructions, 1);
+    ASSERT_EQ(cpu.pc, 0x01);
+
+    cpu.rf[15] = 1;
+    socket.writew<u16>(2, 0xfcf2);  // SBRC R15, 2
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.retired_instructions, 2);
+    ASSERT_EQ(cpu.pc, 0x03);
+  }
+
+  void TestSbrs() {
+    cpu.rf[15] = 0;
+    socket.writew<u16>(0, 0xfef0);  // SBRS R15, 0
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.retired_instructions, 1);
+    ASSERT_EQ(cpu.pc, 0x01);
+
+    cpu.rf[15] = mwr::bit(2);
+    socket.writew<u16>(2, 0xfef2);  // SBRS R15, 2
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.retired_instructions, 2);
+    ASSERT_EQ(cpu.pc, 0x03);
+  }
+
+  void TestSleep() {
+    cpu.rf[15] = 0;
+    socket.writew<u16>(0, 0x9588);  // SLEEP
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.retired_instructions, 1);
+    ASSERT_EQ(cpu.pc, 0x01);
+    ASSERT_TRUE(cpu.sleeping);
   }
 };
 
