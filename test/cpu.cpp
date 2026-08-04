@@ -70,6 +70,8 @@ struct CpuTest : public test_base {
     add_test("sbrc", &CpuTest::TestSbrc);
     add_test("sbrs", &CpuTest::TestSbrs);
     add_test("sleep", &CpuTest::TestSleep);
+    add_test("subi", &CpuTest::TestSubi);
+    add_test("swap", &CpuTest::TestSwap);
   }
 
   void reset() override {
@@ -1199,6 +1201,70 @@ struct CpuTest : public test_base {
     ASSERT_EQ(cpu.retired_instructions, 1);
     ASSERT_EQ(cpu.pc, 0x01);
     ASSERT_TRUE(cpu.sleeping);
+  }
+
+  void TestSubi() {
+    cpu.rf[21] = 30;
+    socket.writew<u16>(0, 0x5058);  // SUBI R21, 8
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[21], 22);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.rf[22] = 30;
+    socket.writew<u16>(2, 0x516e);  // SUBI R22, 30
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[22], 0);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 1);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.rf[23] = 1;
+    socket.writew<u16>(4, 0x5072);  // SUBI R23, 2
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[23], 0xff);
+    ASSERT_EQ(cpu.sreg.h, 1);
+    ASSERT_EQ(cpu.sreg.s, 1);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 1);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 1);
+
+    cpu.rf[24] = 0x80;
+    socket.writew<u16>(6, 0x5081);  // SUBI R24, 1
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[24], 0x7f);
+    ASSERT_EQ(cpu.sreg.h, 1);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.rf[25] = 0xff;
+    socket.writew<u16>(8, 0x5092);  // SUBI R25, 2
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[25], 0xfd);
+    ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 1);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 1);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+  }
+
+  void TestSwap() {
+    cpu.rf[1] = 0x12;
+    socket.writew<u16>(0, 0x9412);  // SWAP R1
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[1], 0x21);
   }
 };
 
