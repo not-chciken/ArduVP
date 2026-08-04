@@ -21,6 +21,7 @@ add_definitions(-DSC_INCLUDE_DYNAMIC_PROCESSES)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
 set(ALL_CPPS
+  ${CMAKE_SOURCE_DIR}/src/adc.cpp
   ${CMAKE_SOURCE_DIR}/src/cpu.cpp
   ${CMAKE_SOURCE_DIR}/src/main.cpp
   ${CMAKE_SOURCE_DIR}/src/insn.cpp

@@ -23,6 +23,7 @@ macro(create_test_case test_name)
   set_tests_properties(${test_name} PROPERTIES TIMEOUT 300)
 endmacro()
 
+create_test_case(adc)
 create_test_case(cpu)
 create_test_case(system)
 create_test_case(usart)
