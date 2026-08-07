@@ -70,6 +70,8 @@ struct CpuTest : public test_base {
     add_test("sbrc", &CpuTest::TestSbrc);
     add_test("sbrs", &CpuTest::TestSbrs);
     add_test("sleep", &CpuTest::TestSleep);
+    add_test("stx", &CpuTest::TestStx);
+    add_test("sty", &CpuTest::TestSty);
     add_test("subi", &CpuTest::TestSubi);
     add_test("swap", &CpuTest::TestSwap);
   }
@@ -1203,6 +1205,48 @@ struct CpuTest : public test_base {
     ASSERT_TRUE(cpu.sleeping);
   }
 
+  void TestStx() {
+    cpu.x = 0x1337;
+    cpu.rf[7] = 42;
+    socket.writew<u16>(0, 0x927c);  // ST X, R7
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(memory.get<u8>(0x1337), 42);
+    ASSERT_EQ(cpu.x, 0x1337);
+
+    cpu.rf[7] = 50;
+    socket.writew<u16>(2, 0x927d);  // ST X+, R7
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(memory.get<u8>(0x1337), 50);
+    ASSERT_EQ(cpu.x, 0x1338);
+
+    cpu.rf[7] = 23;
+    socket.writew<u16>(4, 0x927e);  // ST -X, R7
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(memory.get<u8>(0x1337), 23);
+    ASSERT_EQ(cpu.x, 0x1337);
+  }
+
+  void TestSty() {
+    cpu.x = 0x1200;
+    cpu.rf[8] = 42;
+    socket.writew<u16>(0, 0x8288);  // ST Y, R8
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(memory.get<u8>(0x1200), 42);
+    ASSERT_EQ(cpu.x, 0x1200);
+
+    cpu.rf[9] = 50;
+    socket.writew<u16>(2, 0x9299);  // ST Y+, R9
+    sc_core::wait(2 * kCycle, sc_core::SC_ US);
+    ASSERT_EQ(memory.get<u8>(0x1200), 50);
+    ASSERT_EQ(cpu.x, 0x1201);
+
+    cpu.rf[10] = 23;
+    socket.writew<u16>(4, 0x92aa);  // ST -Y, R10
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(memory.get<u8>(0x1200), 23);
+    ASSERT_EQ(cpu.x, 0x1200);
+  }
+
   void TestSubi() {
     cpu.rf[21] = 30;
     socket.writew<u16>(0, 0x5058);  // SUBI R21, 8
@@ -1265,10 +1309,9 @@ struct CpuTest : public test_base {
     socket.writew<u16>(0, 0x9412);  // SWAP R1
     sc_core::wait(1 * kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.rf[1], 0x21);
-  }
-};
+  };
 
-TEST(ArduSystem, CpuTest) {
-  CpuTest test("cpu_test");
-  sc_core::sc_start();
-}
+  TEST(ArduSystem, CpuTest) {
+    CpuTest test("cpu_test");
+    sc_core::sc_start();
+  }
