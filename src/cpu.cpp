@@ -158,15 +158,18 @@ void Cpu::simulate(size_t max_cycles) {
     auto inst_func = FetchInstruction(pc * 2, &cyc);
     if (inst_func) {
       try {
-        inst_func();
-        // log_error("instruction at PC=0x%04x", pc * 2);
+        if (!skip) {
+          inst_func();
+          ++retired_instructions;
+        } else {
+          skip = false;
+        }
       } catch (...) {
         log_error("Illegal instruction at PC=0x%04x", pc * 2);
         exit(1);
       }
     }
     pc = new_pc;
-    ++retired_instructions;
     cycles += cyc;
   }
   cycle_counter += cycles;
