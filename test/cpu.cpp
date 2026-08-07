@@ -1236,7 +1236,7 @@ struct CpuTest : public test_base {
 
     cpu.rf[9] = 50;
     socket.writew<u16>(2, 0x9299);  // ST Y+, R9
-    sc_core::wait(2 * kCycle, sc_core::SC_ US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
     ASSERT_EQ(memory.get<u8>(0x1200), 50);
     ASSERT_EQ(cpu.x, 0x1201);
 
@@ -1309,7 +1309,8 @@ struct CpuTest : public test_base {
     socket.writew<u16>(0, 0x9412);  // SWAP R1
     sc_core::wait(1 * kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.rf[1], 0x21);
-  };
+  }
+};
 
   TEST(ArduSystem, CpuTest) {
     CpuTest test("cpu_test");
