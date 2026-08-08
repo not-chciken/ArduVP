@@ -120,7 +120,7 @@ std::function<void()> Cpu::FetchInstruction(vcml::u64 adr, uint* cycles) {
   }
 
   new_pc += 1;
-  Insn* inst = Decode::DecodeInsn(data);
+  Insn::InsnBase* inst = Decode::DecodeInsn(data);
   *cycles = inst->cycles;
 
   if (inst->is_32bit) {

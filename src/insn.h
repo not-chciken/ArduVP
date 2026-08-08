@@ -5,7 +5,9 @@
 
 class Cpu;
 
-struct Insn {
+namespace Insn {
+
+struct InsnBase {
   string name;
   uint cycles;
   bool is_32bit;
@@ -16,7 +18,7 @@ struct Insn {
 };
 
 // 0000 0000 0000 0000
-struct Insn0 : public Insn {
+struct Insn0 : public InsnBase {
   std::function<void(Cpu*)> exec_func;
 
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
@@ -24,7 +26,7 @@ struct Insn0 : public Insn {
 
 // 1001 010k kkkk 111k
 // kkkk kkkk kkkk kkkk
-struct InsnImm22 : public Insn {
+struct InsnImm22 : public InsnBase {
   InsnImm22();
   std::function<void(Cpu*, u32)> exec_func;
   u32 InitArgs(u16 insn, u16 imm);
@@ -36,7 +38,7 @@ struct InsnImm22 : public Insn {
 
 // 0000 000d dddd 0000
 // kkkk kkkk kkkk kkkk
-struct InsnRImm16 : public Insn {
+struct InsnRImm16 : public InsnBase {
   InsnRImm16();
   std::function<void(Cpu*, uint, uint)> exec_func;
   std::tuple<uint, uint> InitArgs(u16 insn, u16 imm);
@@ -47,7 +49,7 @@ struct InsnRImm16 : public Insn {
 };
 
 // 0000 00rd dddd rrrr
-struct InsnRR : public Insn {
+struct InsnRR : public InsnBase {
   std::function<void(Cpu*, uint, uint)> exec_func;
 
   std::tuple<uint, uint> InitArgs(u16 insn);
@@ -56,7 +58,7 @@ struct InsnRR : public Insn {
 };
 
 // 0000 000d dddd 0000
-struct InsnR : public Insn {
+struct InsnR : public InsnBase {
   std::function<void(Cpu*, uint)> exec_func;
 
   uint InitArgs(u16 insn);
@@ -65,7 +67,7 @@ struct InsnR : public Insn {
 };
 
 // 0000 000d dddd 0bbb
-struct InsnRb : public Insn {
+struct InsnRb : public InsnBase {
   std::function<void(Cpu*, uint, uint)> exec_func;
 
   std::tuple<uint, uint> InitArgs(u16 insn);
@@ -74,7 +76,7 @@ struct InsnRb : public Insn {
 };
 
 // 0000 0000 KKdd KKKK
-struct InsnRpImm6 : public Insn {
+struct InsnRpImm6 : public InsnBase {
   std::function<void(Cpu*, uint, uint)> exec_func;
 
   std::tuple<uint, uint> InitArgs(u16 insn);
@@ -83,7 +85,7 @@ struct InsnRpImm6 : public Insn {
 };
 
 // 0000 0000 dddd rrrr
-struct InsnRpRp : public Insn {
+struct InsnRpRp : public InsnBase {
   std::function<void(Cpu*, uint, uint)> exec_func;
 
   std::tuple<uint, uint> InitArgs(u16 insn);
@@ -92,7 +94,7 @@ struct InsnRpRp : public Insn {
 };
 
 // 00q0 qq0d dddd 0qqq
-struct InsnRImm6 : public Insn {
+struct InsnRImm6 : public InsnBase {
   std::function<void(Cpu*, uint, uint)> exec_func;
 
   std::tuple<uint, uint> InitArgs(u16 insn);
@@ -100,7 +102,7 @@ struct InsnRImm6 : public Insn {
 };
 
 // 1011 1AAr rrrr AAAA
-struct InsnRIo : public Insn {
+struct InsnRIo : public InsnBase {
   std::function<void(Cpu*, uint, uint)> exec_func;
 
   std::tuple<uint, uint> InitArgs(u16 insn);
@@ -108,7 +110,7 @@ struct InsnRIo : public Insn {
 };
 
 // 0111 KKKK dddd KKKK
-struct InsnRuImm8 : public Insn {
+struct InsnRuImm8 : public InsnBase {
   std::function<void(Cpu*, uint, uint)> exec_func;
 
   std::tuple<uint, uint> InitArgs(u16 insn);
@@ -117,7 +119,7 @@ struct InsnRuImm8 : public Insn {
 };
 
 // 0000 kkkk kkkk kkkk
-struct InsnImm12 : public Insn {
+struct InsnImm12 : public InsnBase {
   std::function<void(Cpu*, uint)> exec_func;
 
   uint InitArgs(u16 insn);
@@ -126,7 +128,7 @@ struct InsnImm12 : public Insn {
 };
 
 // 0000 0000 AAAA Abbb
-struct InsnIoB : public Insn {
+struct InsnIoB : public InsnBase {
   std::function<void(Cpu*, uint, uint)> exec_func;
 
   std::tuple<uint, uint> InitArgs(u16 insn);
@@ -135,7 +137,7 @@ struct InsnIoB : public Insn {
 };
 
 // 0000 00kk kkkk ksss
-struct InsnSImm6 : public Insn {
+struct InsnSImm6 : public InsnBase {
   std::function<void(Cpu*, uint, uint)> exec_func;
 
   std::tuple<uint, int> InitArgs(u16 insn);
@@ -144,7 +146,7 @@ struct InsnSImm6 : public Insn {
 };
 
 // 0000 0000 0sss 0000
-struct InsnS : public Insn {
+struct InsnS : public InsnBase {
   std::function<void(Cpu*, uint)> exec_func;
 
   uint InitArgs(u16 insn);
@@ -641,6 +643,8 @@ struct Illegal : public Insn0 {
   Illegal();
   static void Execute(Cpu* cpu);
 };
+
+} // namespace insn
 
 // TODO:
 // CPI

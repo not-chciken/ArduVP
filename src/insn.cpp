@@ -4,11 +4,13 @@
 
 #include "cpu.h"
 
-string Insn::GetStatementString(u16 inst) {
+namespace Insn {
+
+string InsnBase::GetStatementString(u16 inst) {
   return name;
 }
 
-std::function<void()> Insn::GenFunc32(u16 insn, u16 imm, Cpu* cpu) {
+std::function<void()> InsnBase::GenFunc32(u16 insn, u16 imm, Cpu* cpu) {
   assert(false);
 }
 
@@ -1674,3 +1676,5 @@ Illegal::Illegal() {
 void Illegal::Execute(Cpu* cpu) {
   throw Cpu::IllegalInsnException(); // Not part of ATmega328p.
 }
+
+} // namespace Insn

@@ -1628,9 +1628,9 @@ def main():
     for i in allpatterns:
       class_name = i.name.replace("_","").capitalize()
       obj_name = i.name.replace("_","") + "_obj"
-      output("static ", class_name, " ", obj_name, ";\n")
-    output("static Illegal illegal_obj;\n")
-    output("static Nop nop_obj;\n")
+      output("static Insn::", class_name, " ", obj_name, ";\n")
+    output("static Insn::Illegal illegal_obj;\n")
+    output("static Insn::Nop nop_obj;\n")
     output("\n")
 
     if anyextern:
@@ -1642,7 +1642,7 @@ def main():
 
     # output(decode_scope, 'bool ', decode_function,
     #        '(DisasContext *ctx, ', insntype, ' insn)\n{\n')
-    output(decode_scope, 'inline Insn* ', decode_function, # Changed
+    output(decode_scope, 'inline InsnBase* ', decode_function, # Changed
            '(', insntype, ' insn)\n{\n')
 
     i4 = str_indent(4)
