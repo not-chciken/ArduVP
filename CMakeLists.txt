@@ -18,6 +18,15 @@ set(CMAKE_CXX_STANDARD 23)
 add_definitions(-DSC_DISABLE_API_VERSION_CHECK) # "Fix" c++ version issue.
 add_definitions(-DSC_INCLUDE_DYNAMIC_PROCESSES)
 
+# Set with -DARDUVP_ASAN=ON.
+option(ARDUVP_ASAN "Build with AddressSanitizer enabled" OFF)
+if(ARDUVP_ASAN)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address")
+endif()
+
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
 set(ALL_CPPS
