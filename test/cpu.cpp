@@ -1227,24 +1227,24 @@ struct CpuTest : public test_base {
   }
 
   void TestSty() {
-    cpu.x = 0x1200;
+    cpu.y = 0x1200;
     cpu.rf[8] = 42;
     socket.writew<u16>(0, 0x8288);  // ST Y, R8
     sc_core::wait(2 * kCycle, sc_core::SC_US);
     ASSERT_EQ(memory.get<u8>(0x1200), 42);
-    ASSERT_EQ(cpu.x, 0x1200);
+    ASSERT_EQ(cpu.y, 0x1200);
 
     cpu.rf[9] = 50;
     socket.writew<u16>(2, 0x9299);  // ST Y+, R9
     sc_core::wait(2 * kCycle, sc_core::SC_US);
     ASSERT_EQ(memory.get<u8>(0x1200), 50);
-    ASSERT_EQ(cpu.x, 0x1201);
+    ASSERT_EQ(cpu.y, 0x1201);
 
     cpu.rf[10] = 23;
     socket.writew<u16>(4, 0x92aa);  // ST -Y, R10
     sc_core::wait(2 * kCycle, sc_core::SC_US);
     ASSERT_EQ(memory.get<u8>(0x1200), 23);
-    ASSERT_EQ(cpu.x, 0x1200);
+    ASSERT_EQ(cpu.y, 0x1200);
   }
 
   void TestSubi() {
