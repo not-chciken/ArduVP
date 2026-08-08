@@ -4,8 +4,8 @@
 
 #include "common.h"
 
-struct Adc : public vcml::peripheral {
-  vcml::property<float, 8> volt_adc;
+struct Adc : public vcml::peripheral, public vcml::signal_host<float> {
+  vcml::signal_target_array<float, 8> volt_adc;
 
   vcml::property<float> volt_aref;
   vcml::property<float> volt_avcc;
@@ -21,6 +21,11 @@ struct Adc : public vcml::peripheral {
   vcml::gpio_target_socket in_timer1_match_b;
   vcml::gpio_target_socket in_timer1_overflow;
   vcml::gpio_target_socket in_timer1_capture;
+  vcml::gpio_target_socket in_analog_comparator;
+
+  vcml::gpio_initiator_socket out_acme;
+  vcml::gpio_initiator_socket out_aden;
+  vcml::signal_initiator_socket<u8> out_admux;
 
   vcml::reg<u8> adcl;
   vcml::reg<u8> adch;
@@ -31,6 +36,8 @@ struct Adc : public vcml::peripheral {
   Adc(const sc_core::sc_module_name& nm);
 
   virtual void reset() override;
+
+  virtual void signal_transport(const vcml::signal_target_socket<float>& socket, const float& value) override;
 
  protected:
   void ConversionThread();
@@ -49,6 +56,8 @@ struct Adc : public vcml::peripheral {
   uint mux_channel_;
 
   void WriteAdcsra(u8 val);
+  void WriteAdcsrb(u8 val);
+  void WriteAdmux(u8 val);
 
   u8 ReadAdcl();
   u8 ReadAdch();

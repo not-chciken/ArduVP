@@ -52,6 +52,10 @@ struct AdcTest : public test_base {
     adc.in_timer1_match_b.stub();
     adc.in_timer1_overflow.stub();
     adc.in_timer1_capture.stub();
+    adc.in_analog_comparator.stub();
+    adc.out_acme.stub();
+    adc.out_aden.stub();
+    adc.out_admux.stub();
 
     add_test("simple_adc", &AdcTest::TestSimplAdc);
     add_test("interrupt", &AdcTest::TestInterrupt);

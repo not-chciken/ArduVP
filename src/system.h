@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "adc.h"
+#include "comparator.h"
 #include "cpu.h"
 #include "timer.h"
 #include "usart.h"
@@ -17,6 +18,7 @@ struct ArduSystem : public vcml::system {
         timer("timer"),
         usart("usart"),
         adc("adc"),
+        comparator("comparator"),
         serial_term("serial"),
         loader("loader"),
         mem_range_program("mem_range_program", vcml::range(0, 0x7fff)),
@@ -37,6 +39,7 @@ struct ArduSystem : public vcml::system {
     bus.bind(timer.in, vcml::range(0xb0, 0xb6), 0xb0);
     bus.bind(usart.in, vcml::range(0xc0, 0xc6));
     bus.bind(adc.in, vcml::range(0x78, 0x7c));
+    bus.bind(comparator.in, vcml::range(0x50, 0x50));
 
     prog_bus.bind(sram_bus.in[1], mem_range_sram_elf);
     prog_bus.bind(program_mem.in, mem_range_program);
@@ -58,6 +61,9 @@ struct ArduSystem : public vcml::system {
 
     clock.clk.bind(adc.clk);
     reset.rst.bind(adc.rst);
+
+    clock.clk.bind(comparator.clk);
+    reset.rst.bind(comparator.rst);
 
     serial_term.backends = "stdout";
     usart.serial_tx.bind(serial_term.serial_rx);
@@ -81,6 +87,13 @@ struct ArduSystem : public vcml::system {
     timer.toie0_out.bind(adc.in_timer0_overflow);
     timer.toie1_out.bind(adc.in_timer1_overflow);
     timer.icie1_out.bind(adc.in_timer1_capture);
+    comparator.aco.bind(adc.in_analog_comparator);
+
+    adc.out_acme.bind(comparator.in_acme);
+    adc.out_aden.bind(comparator.in_aden);
+    adc.out_admux.bind(comparator.in_admux);
+
+    comparator.acic.stub();
 
     timer.ocie2a_out.bind(cpu.irq[0]);
     timer.ocie2b_out.bind(cpu.irq[1]);
@@ -96,6 +109,7 @@ struct ArduSystem : public vcml::system {
     usart.irq_udre.bind(cpu.irq[12]);
     usart.irq_tx.bind(cpu.irq[13]);
     adc.irq.bind(cpu.irq[14]);
+    comparator.irq.bind(cpu.irq[16]);
   }
 
   virtual int run() override { return vcml::system::run(); }
@@ -104,6 +118,7 @@ struct ArduSystem : public vcml::system {
   Timer timer;
   Usart usart;
   Adc adc;
+  Comparator comparator;
   vcml::serial::terminal serial_term;
 
   vcml::meta::loader loader;

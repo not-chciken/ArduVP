@@ -29,7 +29,8 @@ constexpr float TEMP_SENSOR_LSB_PER_C = 1.0f;
 
 Adc::Adc(const sc_core::sc_module_name& nm)
     : peripheral(nm),
-      volt_adc("volt_adc", 0.0f),
+      signal_host<float>(),
+      volt_adc("volt_adc"),
       volt_aref("volt_aref", 5.0f),
       volt_avcc("volt_avcc", 5.0f),
       volt_1_1("volt_1_1", 1.1f),
@@ -42,6 +43,10 @@ Adc::Adc(const sc_core::sc_module_name& nm)
       in_timer1_match_b("in_timer1_match_b"),
       in_timer1_overflow("in_timer1_overflow"),
       in_timer1_capture("in_timer1_capture"),
+      in_analog_comparator("in_analog_comparator"),
+      out_acme("out_acme"),
+      out_aden("out_aden"),
+      out_admux("out_admux"),
       adcl("adcl", 0x0),
       adch("adch", 0x1),
       adcsra("adcsra", 0x2),
@@ -53,14 +58,12 @@ Adc::Adc(const sc_core::sc_module_name& nm)
       first_conversion_(true),
       conversion_in_progress_(false),
       mux_channel_(0) {
-  admux.on_write_mask(0xef);
-
-  adcsrb.sync_never();
+  admux.on_write(&Adc::WriteAdmux);
 
   adcsra.on_write(&Adc::WriteAdcsra);
   adcsra.sync_always();
 
-  adcsrb.on_write_mask(ADCSRB_ADTS0 | ADCSRB_ADTS1 | ADCSRB_ADTS2 | ADCSRB_ACME);
+  adcsrb.on_write(&Adc::WriteAdcsrb);
   adcsrb.sync_never();
 
   adcl.allow_read_only();
@@ -82,6 +85,12 @@ void Adc::reset() {
   conversion_in_progress_ = false;
   mux_channel_ = 0;
   irq = false;
+  out_acme = false;
+  out_aden = false;
+  out_admux = (u8)0;
+}
+
+void Adc::signal_transport(const vcml::signal_target_socket<float>& socket, const float& value) {
 }
 
 void Adc::ConversionThread() {
@@ -221,6 +230,7 @@ void Adc::WriteAdcsra(u8 val) {
   }
 
   adcsra = val;
+  out_aden = (bool)(val & ADCSRA_ADEN);
 
   if (!(val & ADCSRA_ADEN)) {
     first_conversion_ = true;
@@ -258,6 +268,18 @@ void Adc::WriteAdcsra(u8 val) {
   }
 }
 
+void Adc::WriteAdcsrb(u8 val) {
+  constexpr u8 mask = ADCSRB_ADTS0 | ADCSRB_ADTS1 | ADCSRB_ADTS2 | ADCSRB_ACME;
+  adcsrb = (adcsrb.get() & ~mask) | (val & mask);
+  out_acme = (bool)(adcsrb.get() & ADCSRB_ACME);
+}
+
+void Adc::WriteAdmux(u8 val) {
+  constexpr u8 mask = 0xef;
+  admux = (admux.get() & ~mask) | (val & mask);
+  out_admux = admux.get() & (ADMUX_MUX0 | ADMUX_MUX1 | ADMUX_MUX2);
+}
+
 u8 Adc::ReadAdcl() {
   data_blocked_ = true;
   return adcl;
@@ -275,9 +297,11 @@ void Adc::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
   if (state == false)
     return;
 
-  // TODO: Analog comparator.
-
-  if (socket == in_ext_irq0) {
+  if (socket == in_analog_comparator) {
+    if (adcsrb.get() == ADCSRB_ADTS0) {
+      LaunchConversion();
+    }
+  } else if (socket == in_ext_irq0) {
     if (adcsrb.get() == ADCSRB_ADTS1) {
       LaunchConversion();
     }
