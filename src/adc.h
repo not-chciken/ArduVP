@@ -10,6 +10,7 @@ struct Adc : public vcml::peripheral {
   vcml::property<float> volt_aref;
   vcml::property<float> volt_avcc;
   vcml::property<float> volt_1_1;
+  vcml::property<float> temp_celsius;
 
   vcml::gpio_initiator_socket irq;
   vcml::tlm_target_socket in;
@@ -31,12 +32,13 @@ struct Adc : public vcml::peripheral {
 
   virtual void reset() override;
 
-protected:
+ protected:
   void ConversionThread();
   sc_core::sc_event conversion_event_;
 
   float GetInputVoltage(uint channel);
   float GetReferenceVoltage();
+  float TempToVolt();
 
   void LaunchConversion();
 

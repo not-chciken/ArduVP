@@ -12,6 +12,7 @@ static constexpr u8 ADMUX_ADLAR = (u8)mwr::bit(5);
 static constexpr u8 ADMUX_REFS0 = (u8)mwr::bit(6);
 static constexpr u8 ADMUX_REFS1 = (u8)mwr::bit(7);
 
+static constexpr u8 ADMUX_MUX_TEMP = 0b1000;
 static constexpr u8 ADMUX_MUX_BANDGAP = 0b1110;
 static constexpr u8 ADMUX_MUX_GND = 0b1111;
 
@@ -62,7 +63,8 @@ struct AdcTest : public test_base {
     add_test("channel_lock", &AdcTest::TestChannelLock);
     add_test("auto_trigger", &AdcTest::TestAutoTrigger);
     add_test("free_running", &AdcTest::TestFreeRunning);
-    add_test("reset", &AdcTest::TestReset());
+    add_test("reset", &AdcTest::TestReset);
+    add_test("temperature_sensor", &AdcTest::TestTemperatureSensor);
   }
 
   u16 RunConversion(u8 admux_val) {
@@ -251,11 +253,69 @@ struct AdcTest : public test_base {
   }
 
   void TestFreeRunning() {
-    // TODO: Test the ADC's free running mode with auto trigger.
+    socket.writew<u8>(ADMUX, ADMUX_REFS0 | ADMUX_MUX_BANDGAP);
+    socket.writew<u8>(ADCSRB, (u8)0);
+
+    socket.writew<u8>(ADCSRA, ADCSRA_ADEN | ADCSRA_ADATE | ADCSRA_ADIE | ADCSRA_ADSC);
+    sc_core::wait(CONVERSION_TIME);
+    ASSERT_TRUE(adc.adcsra & ADCSRA_ADIF) << "first conversion should complete and set ADIF";
+    ASSERT_TRUE(adc.irq);
+
+    socket.writew<u8>(ADCSRA, ADCSRA_ADEN | ADCSRA_ADATE | ADCSRA_ADIE | ADCSRA_ADIF);
+    ASSERT_FALSE(adc.adcsra & ADCSRA_ADIF);
+
+    sc_core::wait(CONVERSION_TIME);
+    ASSERT_TRUE(adc.adcsra & ADCSRA_ADIF) << "ADC should keep converting on its own in free running mode";
+    ASSERT_TRUE(adc.irq);
+
+    socket.writew<u8>(ADCSRA, ADCSRA_ADEN | ADCSRA_ADATE | ADCSRA_ADIE | ADCSRA_ADIF);
+    sc_core::wait(CONVERSION_TIME);
+    ASSERT_TRUE(adc.adcsra & ADCSRA_ADIF) << "ADC should still be converting continuously";
+
+    u8 lo = 0, hi = 0;
+    socket.readw<u8>(ADCL, lo);
+    socket.readw<u8>(ADCH, hi);
+    u16 result = (u16)((hi << 8) | lo);
+    double expected = (double)adc.volt_1_1 * 1024.0 / (double)adc.volt_avcc;
+    ASSERT_NEAR(result, expected, 1.0);
   }
 
   void TestReset() {
-    // TODO: Test if all registers are set to their initial value when executing adc.reset();
+    socket.writew<u8>(ADMUX, ADMUX_REFS0 | ADMUX_MUX_BANDGAP);
+    socket.writew<u8>(ADCSRB, ADCSRB_ADTS1);
+    socket.writew<u8>(ADCSRA, ADCSRA_ADEN | ADCSRA_ADIE | ADCSRA_ADSC);
+    sc_core::wait(CONVERSION_TIME);
+
+    ASSERT_NE((u8)adc.admux, 0);
+    ASSERT_NE((u8)adc.adcsrb, 0);
+    ASSERT_NE((u8)adc.adcsra, 0);
+
+    adc.reset();
+
+    ASSERT_EQ((u8)adc.adcl, 0);
+    ASSERT_EQ((u8)adc.adch, 0);
+    ASSERT_EQ((u8)adc.adcsra, 0);
+    ASSERT_EQ((u8)adc.adcsrb, 0);
+    ASSERT_EQ((u8)adc.admux, 0);
+    ASSERT_FALSE(adc.irq) << "IRQ line should be deasserted after reset";
+  }
+
+  void TestTemperatureSensor() {
+    u8 admux_temp = ADMUX_REFS1 | ADMUX_REFS0 | ADMUX_MUX_TEMP;
+
+    adc.temp_celsius = 25.0f;
+    u16 result_25c = RunConversion(admux_temp);
+    ASSERT_NEAR(result_25c, 352, 1.0) << "sensor should read ~352 at 25 degC";
+
+    adc.temp_celsius = 125.0f;
+    u16 result_125c = RunConversion(admux_temp);
+    ASSERT_GT(result_125c, result_25c) << "a higher temperature should yield a higher reading";
+
+    adc.temp_celsius = -40.0f;
+    u16 result_m40c = RunConversion(admux_temp);
+    ASSERT_LT(result_m40c, result_25c) << "a lower temperature should yield a lower reading";
+
+    ASSERT_NEAR((double)(result_125c - result_25c), 100.0, 5.0) << "sensitivity should be ~1 LSB/degC";
   }
 };
 

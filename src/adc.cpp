@@ -24,12 +24,16 @@ constexpr u8 ADCSRA_ADATE = mwr::bit(5);
 constexpr u8 ADCSRA_ADSC = mwr::bit(6);
 constexpr u8 ADCSRA_ADEN = mwr::bit(7);
 
+constexpr float TEMP_SENSOR_CODE_AT_25C = 352.0f;
+constexpr float TEMP_SENSOR_LSB_PER_C = 1.0f;
+
 Adc::Adc(const sc_core::sc_module_name& nm)
     : peripheral(nm),
       volt_adc("volt_adc", 0.0f),
       volt_aref("volt_aref", 5.0f),
       volt_avcc("volt_avcc", 5.0f),
       volt_1_1("volt_1_1", 1.1f),
+      temp_celsius("temp_celsius", 25.0f),
       irq("irq"),
       in("in"),
       in_ext_irq0("in_ext_irq0"),
@@ -49,7 +53,6 @@ Adc::Adc(const sc_core::sc_module_name& nm)
       first_conversion_(true),
       conversion_in_progress_(false),
       mux_channel_(0) {
-
   admux.on_write_mask(0xef);
 
   adcsrb.sync_never();
@@ -78,6 +81,7 @@ void Adc::reset() {
   first_conversion_ = true;
   conversion_in_progress_ = false;
   mux_channel_ = 0;
+  irq = false;
 }
 
 void Adc::ConversionThread() {
@@ -121,6 +125,11 @@ void Adc::ConversionThread() {
     if (adcsra & ADCSRA_ADIE) {
       irq = true;
     }
+
+    bool free_running = !(adcsrb.get() & (ADCSRB_ADTS0 | ADCSRB_ADTS1 | ADCSRB_ADTS2));
+    if ((adcsra & ADCSRA_ADATE) && free_running) {
+      LaunchConversion();
+    }
   }
 }
 
@@ -152,6 +161,10 @@ float Adc::GetInputVoltage(uint channel) {
   case 0x7:
     volt_input = volt_adc[7];
     break;
+  case 0x8: {
+    volt_input = TempToVolt();
+    break;
+  }
   case 0xe:
     volt_input = volt_1_1;
     break;
@@ -188,9 +201,14 @@ float Adc::GetReferenceVoltage() {
   return volt_ref;
 }
 
+float Adc::TempToVolt() {
+  float code = TEMP_SENSOR_CODE_AT_25C + (temp_celsius - 25.0f) * TEMP_SENSOR_LSB_PER_C;
+  return code / 1024.0f * volt_1_1;
+}
+
 void Adc::LaunchConversion() {
   conversion_in_progress_ = true;
-  conversion_event_.notify();
+  conversion_event_.notify(sc_core::SC_ZERO_TIME);
 }
 
 void Adc::WriteAdcsra(u8 val) {
@@ -257,7 +275,7 @@ void Adc::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
   if (state == false)
     return;
 
-  // TODO: Free running mode and analog comparator.
+  // TODO: Analog comparator.
 
   if (socket == in_ext_irq0) {
     if (adcsrb.get() == ADCSRB_ADTS1) {
