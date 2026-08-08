@@ -61,6 +61,8 @@ struct AdcTest : public test_base {
     add_test("reserved_bits", &AdcTest::TestReservedBits);
     add_test("channel_lock", &AdcTest::TestChannelLock);
     add_test("auto_trigger", &AdcTest::TestAutoTrigger);
+    add_test("free_running", &AdcTest::TestFreeRunning);
+    add_test("reset", &AdcTest::TestReset());
   }
 
   u16 RunConversion(u8 admux_val) {
@@ -246,6 +248,14 @@ struct AdcTest : public test_base {
     sc_core::wait(CONVERSION_TIME);
     ASSERT_FALSE(adc.adcsra & ADCSRA_ADIF) << "falling edge should not start a conversion";
     ASSERT_FALSE(adc.irq);
+  }
+
+  void TestFreeRunning() {
+    // TODO: Test the ADC's free running mode with auto trigger.
+  }
+
+  void TestReset() {
+    // TODO: Test if all registers are set to their initial value when executing adc.reset();
   }
 };
 

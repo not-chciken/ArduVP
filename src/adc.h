@@ -5,6 +5,8 @@
 #include "common.h"
 
 struct Adc : public vcml::peripheral {
+  vcml::property<float, 8> volt_adc;
+
   vcml::property<float> volt_aref;
   vcml::property<float> volt_avcc;
   vcml::property<float> volt_1_1;
@@ -27,13 +29,27 @@ struct Adc : public vcml::peripheral {
 
   Adc(const sc_core::sc_module_name& nm);
 
+  virtual void reset() override;
+
 protected:
   void ConversionThread();
   sc_core::sc_event conversion_event_;
 
+  float GetInputVoltage(uint channel);
+  float GetReferenceVoltage();
+
+  void LaunchConversion();
+
   int clock_prescaler_;
+  bool data_blocked_;
+  bool first_conversion_;
+  bool conversion_in_progress_;
+  uint mux_channel_;
 
   void WriteAdcsra(u8 val);
+
+  u8 ReadAdcl();
+  u8 ReadAdch();
 
   virtual void gpio_notify(const vcml::gpio_target_socket& socket, bool state) override;
 };
