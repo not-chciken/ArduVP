@@ -5,6 +5,7 @@
 
 #include <iostream>
 
+#include "adc.h"
 #include "cpu.h"
 #include "timer.h"
 #include "usart.h"
@@ -15,6 +16,7 @@ struct ArduSystem : public vcml::system {
         cpu(),
         timer("timer"),
         usart("usart"),
+        adc("adc"),
         serial_term("serial"),
         loader("loader"),
         mem_range_program("mem_range_program", vcml::range(0, 0x7fff)),
@@ -34,6 +36,7 @@ struct ArduSystem : public vcml::system {
     bus.bind(timer.in, vcml::range(0x80, 0x8b), 0x80);
     bus.bind(timer.in, vcml::range(0xb0, 0xb6), 0xb0);
     bus.bind(usart.in, vcml::range(0xc0, 0xc6));
+    bus.bind(adc.in, vcml::range(0x78, 0x7c));
 
     prog_bus.bind(sram_bus.in[1], mem_range_sram_elf);
     prog_bus.bind(program_mem.in, mem_range_program);
@@ -52,6 +55,18 @@ struct ArduSystem : public vcml::system {
 
     clock.clk.bind(usart.clk);
     reset.rst.bind(usart.rst);
+
+    clock.clk.bind(adc.clk);
+    reset.rst.bind(adc.rst);
+
+    // TODO: Wire these up to INT0 and the timer match/overflow signals once those are
+    // available as dedicated event outputs; auto triggering is unusable until then.
+    adc.in_ext_irq0.stub();
+    adc.in_timer0_match_a.stub();
+    adc.in_timer0_overflow.stub();
+    adc.in_timer1_match_b.stub();
+    adc.in_timer1_overflow.stub();
+    adc.in_timer1_capture.stub();
 
     serial_term.backends = "stdout";
     usart.serial_tx.bind(serial_term.serial_rx);
@@ -82,6 +97,7 @@ struct ArduSystem : public vcml::system {
     usart.irq_rx.bind(cpu.irq[11]);
     usart.irq_udre.bind(cpu.irq[12]);
     usart.irq_tx.bind(cpu.irq[13]);
+    adc.irq.bind(cpu.irq[14]);
   }
 
   virtual int run() override { return vcml::system::run(); }
@@ -89,6 +105,7 @@ struct ArduSystem : public vcml::system {
   Cpu cpu;
   Timer timer;
   Usart usart;
+  Adc adc;
   vcml::serial::terminal serial_term;
 
   vcml::meta::loader loader;
