@@ -77,10 +77,15 @@ struct ComparatorTest : public test_base {
 
   void WriteAcsr(u8 val) { socket.writew<u8>(ACSR, val); }
 
-  // AIN0 is the positive input, AIN1 the default negative input.
   void SetAin(float ain0, float ain1) {
     volt_ain[0] = ain0;
     volt_ain[1] = ain1;
+    sc_core::wait(sc_core::SC_ZERO_TIME);
+  }
+
+  void SelectAin1AsNegativeInput() {
+    acme.write(false);
+    aden.write(false);
     sc_core::wait(sc_core::SC_ZERO_TIME);
   }
 
@@ -89,6 +94,8 @@ struct ComparatorTest : public test_base {
   }
 
   void TestDisable() {
+    SelectAin1AsNegativeInput();
+
     SetAin(2.0f, 1.0f);
     ASSERT_TRUE(ReadAcsr() & ACSR_ACO) << "ACO should be set once AIN0 > AIN1";
 
@@ -96,28 +103,33 @@ struct ComparatorTest : public test_base {
     sc_core::wait(sc_core::SC_ZERO_TIME);
     ASSERT_FALSE(ReadAcsr() & ACSR_ACO) << "ACO should read 0 while the comparator is powered down (ACD set)";
 
-    // Would flip the comparison result if the comparator were still active.
     SetAin(2.0f, 3.0f);
     ASSERT_FALSE(ReadAcsr() & ACSR_ACO) << "a disabled comparator should not track input changes";
 
     WriteAcsr((u8)0);
     sc_core::wait(sc_core::SC_ZERO_TIME);
+    ASSERT_FALSE(ReadAcsr() & ACSR_ACO)
+        << "ACO should reflect the current inputs (AIN0 < AIN1) as soon as ACD is cleared";
+
+    SetAin(2.0f, 1.0f);
     ASSERT_TRUE(ReadAcsr() & ACSR_ACO) << "ACO should resume tracking the inputs once ACD is cleared";
   }
 
   void TestInterrupt() {
-    WriteAcsr((u8)0);  // toggle mode (ACIS1:0 == 00), ACIE disabled
+    SelectAin1AsNegativeInput();
+
+    WriteAcsr((u8)0);
     SetAin(0.0f, 1.0f);
 
-    SetAin(2.0f, 1.0f);  // ACO: 0 -> 1, a toggle event
+    SetAin(2.0f, 1.0f);
     ASSERT_TRUE(ReadAcsr() & ACSR_ACI) << "ACI should be set once the comparator output toggles";
     ASSERT_FALSE(comparator.irq) << "IRQ should not be raised while ACIE is disabled";
 
-    WriteAcsr(ACSR_ACI);  // write 1 to clear
+    WriteAcsr(ACSR_ACI);
     ASSERT_FALSE(ReadAcsr() & ACSR_ACI) << "writing a 1 to ACI should clear the flag";
 
     WriteAcsr(ACSR_ACIE);
-    SetAin(0.0f, 1.0f);  // ACO: 1 -> 0, another toggle event
+    SetAin(0.0f, 1.0f);
     ASSERT_TRUE(ReadAcsr() & ACSR_ACI);
     ASSERT_TRUE(comparator.irq) << "IRQ should be raised once ACI and ACIE are both set";
 
@@ -126,6 +138,8 @@ struct ComparatorTest : public test_base {
   }
 
   void TestModes() {
+    SelectAin1AsNegativeInput();
+
     struct {
       u8 acis;
       bool trigger_on_rise;
@@ -137,24 +151,23 @@ struct ComparatorTest : public test_base {
     };
 
     for (auto& c : cases) {
-      WriteAcsr((u8)0);
-      SetAin(0.0f, 1.0f);  // ACO = 0
+      WriteAcsr(ACSR_ACI);
+      SetAin(0.0f, 1.0f);
       WriteAcsr(c.acis);
 
-      SetAin(2.0f, 1.0f);  // rising edge on ACO
+      SetAin(2.0f, 1.0f);
       ASSERT_EQ((bool)(ReadAcsr() & ACSR_ACI), c.trigger_on_rise) << "ACIS=" << (int)c.acis << ", rising edge";
       WriteAcsr(c.acis | ACSR_ACI);
 
-      SetAin(0.0f, 1.0f);  // falling edge on ACO
+      SetAin(0.0f, 1.0f);
       ASSERT_EQ((bool)(ReadAcsr() & ACSR_ACI), c.trigger_on_fall) << "ACIS=" << (int)c.acis << ", falling edge";
     }
   }
 
   void TestInputs() {
-    volt_ain[0] = 2.0f;  // AIN0 (positive input)
+    volt_ain[0] = 2.0f;
     sc_core::wait(sc_core::SC_ZERO_TIME);
 
-    // AIN1 should be the negative input whenever ACME is clear...
     acme.write(false);
     aden.write(false);
     volt_ain[1] = 3.0f;
@@ -165,36 +178,36 @@ struct ComparatorTest : public test_base {
     sc_core::wait(sc_core::SC_ZERO_TIME);
     ASSERT_TRUE(ReadAcsr() & ACSR_ACO) << "AIN0 > AIN1 via AIN1";
 
-    // ...or whenever the ADC is enabled (ADEN set), even if ACME is set.
     acme.write(true);
     aden.write(true);
-    volt_adc[0] = 3.0f;  // should be ignored while ADEN is set
+    volt_adc[0] = 3.0f;
     sc_core::wait(sc_core::SC_ZERO_TIME);
     ASSERT_TRUE(ReadAcsr() & ACSR_ACO) << "AIN1 should still apply when ADEN is set, regardless of ACME/MUX";
 
-    // With ACME set and the ADC disabled, MUX2:0 selects the negative input from ADC0..7.
     aden.write(false);
     for (u8 ch = 0; ch < 8; ch++) {
       admux.write(ch);
 
-      volt_adc[ch] = 3.0f;  // above AIN0 -> ACO clear
+      volt_adc[ch] = 3.0f;
       sc_core::wait(sc_core::SC_ZERO_TIME);
       ASSERT_FALSE(ReadAcsr() & ACSR_ACO) << "ADC" << (int)ch << " selected, above AIN0";
 
-      volt_adc[ch] = 1.0f;  // below AIN0 -> ACO set
+      volt_adc[ch] = 1.0f;
       sc_core::wait(sc_core::SC_ZERO_TIME);
       ASSERT_TRUE(ReadAcsr() & ACSR_ACO) << "ADC" << (int)ch << " selected, below AIN0";
 
-      volt_adc[ch] = 0.0f;  // restore so it doesn't leak into the next channel
+      volt_adc[ch] = 0.0f;
     }
   }
 
   void TestBandgap() {
+    SelectAin1AsNegativeInput();
+
     comparator.volt_bandgap = 1.1f;
-    volt_ain[1] = 0.5f;  // AIN1
+    volt_ain[1] = 0.5f;
 
     WriteAcsr((u8)0);
-    volt_ain[0] = 0.0f;  // AIN0, below AIN1
+    volt_ain[0] = 0.0f;
     sc_core::wait(sc_core::SC_ZERO_TIME);
     ASSERT_FALSE(ReadAcsr() & ACSR_ACO) << "AIN0 should apply to the positive input while ACBG is clear";
 
@@ -204,24 +217,28 @@ struct ComparatorTest : public test_base {
   }
 
   void TestInputCapture() {
-    SetAin(0.0f, 1.0f);  // ACO = 0
+    SelectAin1AsNegativeInput();
 
-    WriteAcsr((u8)0);  // ACIC disabled
-    SetAin(2.0f, 1.0f);  // ACO: 0 -> 1
+    SetAin(0.0f, 1.0f);
+
+    WriteAcsr((u8)0);
+    SetAin(2.0f, 1.0f);
     ASSERT_FALSE(comparator.acic) << "the input capture pin should stay low while ACIC is disabled";
 
     WriteAcsr(ACSR_ACIC);
-    SetAin(0.0f, 1.0f);  // ACO: 1 -> 0
+    SetAin(0.0f, 1.0f);
     ASSERT_FALSE(comparator.acic);
 
-    SetAin(2.0f, 1.0f);  // ACO: 0 -> 1
+    SetAin(2.0f, 1.0f);
     ASSERT_TRUE(comparator.acic) << "the comparator output should drive the input capture pin once ACIC is set";
   }
 
   void TestAcoReadOnly() {
-    SetAin(0.0f, 1.0f);  // ACO should be 0 (AIN0 < AIN1)
+    SelectAin1AsNegativeInput();
 
-    WriteAcsr(ACSR_ACO);  // attempt to force ACO high via a register write
+    SetAin(0.0f, 1.0f);
+
+    WriteAcsr(ACSR_ACO);
     sc_core::wait(sc_core::SC_ZERO_TIME);
 
     ASSERT_FALSE(ReadAcsr() & ACSR_ACO) << "ACO is read-only and always reflects the live comparator output";

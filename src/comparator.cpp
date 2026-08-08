@@ -42,6 +42,10 @@ void Comparator::signal_transport(const vcml::signal_target_socket<u8>& socket, 
   DoComparison();
 }
 
+void Comparator::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
+  DoComparison();
+}
+
 void Comparator::DoComparison() {
   if (acsr.get() & ACSR_ACD) {
     return;
@@ -59,7 +63,7 @@ void Comparator::DoComparison() {
   }
 
   if (input_positive > input_negative) {
-    switch (acsr.get() & (ACSR_ACIS1 | ACSR_ACIS1)) {
+    switch (acsr.get() & (ACSR_ACIS1 | ACSR_ACIS0)) {
     case 0:
       if (aco == false) {
         acsr |= ACSR_ACI;
@@ -86,7 +90,7 @@ void Comparator::DoComparison() {
       irq = true;
     }
   } else {
-    switch (acsr.get() & (ACSR_ACIS1 | ACSR_ACIS1)) {
+    switch (acsr.get() & (ACSR_ACIS1 | ACSR_ACIS0)) {
     case 0:
       if (aco == true) {
         acsr |= ACSR_ACI;
@@ -113,6 +117,8 @@ void Comparator::DoComparison() {
       irq = true;
     }
   }
+
+  acic = (acsr.get() & ACSR_ACIC) ? (bool)aco : false;
 }
 
 void Comparator::WriteAcsr(u8 val) {
