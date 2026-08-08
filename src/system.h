@@ -78,8 +78,8 @@ struct ArduSystem : public vcml::system {
     adc.in_ext_irq0.stub();
     timer.ocie0a_out.bind(adc.in_timer0_match_a);
     timer.ocie1b_out.bind(adc.in_timer1_match_b);
-    toie0_out.bin(adc.in_timer0_overflow);
-    toie1_out.bin(adc.in_timer1_overflow);
+    timer.toie0_out.bind(adc.in_timer0_overflow);
+    timer.toie1_out.bind(adc.in_timer1_overflow);
     timer.icie1_out.bind(adc.in_timer1_capture);
 
     timer.ocie2a_out.bind(cpu.irq[0]);
