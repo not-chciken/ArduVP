@@ -29,7 +29,6 @@ Comparator::Comparator(const sc_core::sc_module_name& nm)
       in("in"),
       acsr("acsr", 0x0) {
   acsr.allow_read_write();
-  acsr.on_write_mask(0xdf);
   acsr.on_write(&Comparator::WriteAcsr);
   acsr.sync_always();
 }
@@ -122,6 +121,8 @@ void Comparator::DoComparison() {
 }
 
 void Comparator::WriteAcsr(u8 val) {
+  val &= 0xdf;
+
   u8 aci_bit = acsr & ACSR_ACI;
   if (val & aci_bit || !aci_bit) {
     val &= ~ACSR_ACI;
