@@ -22,11 +22,12 @@ struct ArduSystem : public vcml::system {
         mem_range_sram_elf("mem_range_sram_elf_", vcml::range(0x800000, 0x8007ff)),
         bus("bus"),
         prog_bus("prog_bus"),
+        sram_bus("sram_bus"),
         clock("clock", 16 * vcml::MHz),
         program_mem("program_mem", mem_range_program.get().length()),
         sram_mem("sram_mem", mem_range_sram.get().length()),
         reset("reset") {
-    bus.bind(sram_mem.in, mem_range_sram);
+    bus.bind(sram_bus.in[0], mem_range_sram);
     bus.bind(timer.in, vcml::range(0x35, 0x37), 0x35);
     bus.bind(timer.in, vcml::range(0x43, 0x48), 0x43);
     bus.bind(timer.in, vcml::range(0x6e, 0x70), 0x6e);
@@ -34,11 +35,13 @@ struct ArduSystem : public vcml::system {
     bus.bind(timer.in, vcml::range(0xb0, 0xb6), 0xb0);
     bus.bind(usart.in, vcml::range(0xc0, 0xc6));
 
-    // prog_bus.bind(sram_mem.in, mem_range_sram_elf);
+    prog_bus.bind(sram_bus.in[1], mem_range_sram_elf);
     prog_bus.bind(program_mem.in, mem_range_program);
     prog_bus.bind(loader.insn);
     prog_bus.bind(loader.data);
     prog_bus.bind(cpu.insn);
+
+    sram_bus.bind(sram_mem.in, vcml::range(0, mem_range_sram.get().length()));
 
     bus.bind(cpu.data);
     clock.clk.bind(cpu.clk);
@@ -56,11 +59,13 @@ struct ArduSystem : public vcml::system {
 
     clock.clk.bind(bus.clk);
     clock.clk.bind(prog_bus.clk);
+    clock.clk.bind(sram_bus.clk);
     clock.clk.bind(sram_mem.clk);
     clock.clk.bind(program_mem.clk);
 
     reset.rst.bind(bus.rst);
     reset.rst.bind(prog_bus.rst);
+    reset.rst.bind(sram_bus.rst);
     reset.rst.bind(sram_mem.rst);
     reset.rst.bind(program_mem.rst);
 
@@ -94,6 +99,7 @@ struct ArduSystem : public vcml::system {
 
   vcml::generic::bus bus;
   vcml::generic::bus prog_bus;
+  vcml::generic::bus sram_bus;
   vcml::generic::clock clock;
   vcml::generic::memory program_mem;
   vcml::generic::memory sram_mem;
