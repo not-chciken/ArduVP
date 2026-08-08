@@ -583,7 +583,7 @@ void Cpc::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.v = ((reg ^ result) & (rs1 ^ result)) & 0x80;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0) ? cpu->sreg.z : false;
-  cpu->sreg.c = (result > reg) || (result > rs1);
+  cpu->sreg.c = ((uint)rs1 + cpu->sreg.c) > reg;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 }
 
@@ -601,7 +601,7 @@ void Cpi::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.v = ((reg ^ result) & (imm ^ result)) & 0x80;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = (result > reg) || (result > imm);
+  cpu->sreg.c = imm > reg;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 }
 
@@ -1303,7 +1303,7 @@ void Sbci::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.v = ((reg ^ result) & (imm ^ result)) & 0x80;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = (result > reg) || (result > imm);
+  cpu->sreg.c = ((uint)imm + cpu->sreg.c) > reg;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
@@ -1324,7 +1324,7 @@ void Sbc::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.v = ((reg ^ result) & (rs1 ^ result)) & 0x80;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = (result > reg) || (result > rs1);
+  cpu->sreg.c = ((uint)rs1 + cpu->sreg.c) > reg;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
@@ -1378,7 +1378,7 @@ void Sbiw::Execute(Cpu* cpu, uint rp, uint imm) {
 
   cpu->sreg.n = (result & 0x8000) != 0;
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = (result > reg) || (result > imm);
+  cpu->sreg.c = imm > reg;
   cpu->sreg.v = ((reg ^ result) & (imm ^ result)) & 0x8000;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
@@ -1610,7 +1610,7 @@ void Sub::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.v = ((reg ^ result) & (rs1 ^ result)) & 0x80;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = (result > reg) || (result > rs1);
+  cpu->sreg.c = rs1 > reg;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
@@ -1630,7 +1630,7 @@ void Subi::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.v = ((reg ^ result) & (imm ^ result)) & 0x80;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = (result > reg) || (result > imm);
+  cpu->sreg.c = imm > reg;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
