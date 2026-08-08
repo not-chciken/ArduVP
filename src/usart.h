@@ -16,7 +16,7 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
   vcml::reg<u8> ucsrnc;
   vcml::reg<u8> ubrrnl;
   vcml::reg<u8> ubrrnh;
-  vcml::reg<u8> udrn;  
+  vcml::reg<u8> udrn;
 
   vcml::gpio_initiator_socket irq_rx;
   vcml::gpio_initiator_socket irq_tx;
@@ -24,8 +24,7 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
 
   virtual void reset() override;
 
-  virtual void serial_receive(const vcml::serial_target_socket& socket,
-                               vcml::serial_payload& tx) override;
+  virtual void serial_receive(const vcml::serial_target_socket& socket, vcml::serial_payload& tx) override;
 
   virtual ~Usart() = default;
 
