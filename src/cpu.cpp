@@ -70,11 +70,6 @@ Cpu::Cpu()
   define_cpureg_rw(IoRegisters::TIMSK0, "timsk0", 1);
   define_cpureg_rw(IoRegisters::TIMSK1, "timsk1", 1);
   define_cpureg_rw(IoRegisters::TIMSK2, "timsk2", 1);
-  define_cpureg_rw(IoRegisters::ADCL, "adcl", 1);
-  define_cpureg_rw(IoRegisters::ADCH, "adch", 1);
-  define_cpureg_rw(IoRegisters::ADCSRA, "adcsra", 1);
-  define_cpureg_rw(IoRegisters::ADCSRB, "adcsrb", 1);
-  define_cpureg_rw(IoRegisters::ADMUX, "admux", 1);
   define_cpureg_rw(IoRegisters::DIDR0, "didr0", 1);
   define_cpureg_rw(IoRegisters::DIDR1, "didr1", 1);
   define_cpureg_rw(IoRegisters::TCCR1A, "tccr1a", 1);

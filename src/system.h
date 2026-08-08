@@ -59,15 +59,6 @@ struct ArduSystem : public vcml::system {
     clock.clk.bind(adc.clk);
     reset.rst.bind(adc.rst);
 
-    // TODO: Wire these up to INT0 and the timer match/overflow signals once those are
-    // available as dedicated event outputs; auto triggering is unusable until then.
-    adc.in_ext_irq0.stub();
-    adc.in_timer0_match_a.stub();
-    adc.in_timer0_overflow.stub();
-    adc.in_timer1_match_b.stub();
-    adc.in_timer1_overflow.stub();
-    adc.in_timer1_capture.stub();
-
     serial_term.backends = "stdout";
     usart.serial_tx.bind(serial_term.serial_rx);
     serial_term.serial_tx.bind(usart.serial_rx);
@@ -83,6 +74,13 @@ struct ArduSystem : public vcml::system {
     reset.rst.bind(sram_bus.rst);
     reset.rst.bind(sram_mem.rst);
     reset.rst.bind(program_mem.rst);
+
+    adc.in_ext_irq0.stub();
+    timer.ocie0a_out.bind(adc.in_timer0_match_a);
+    timer.ocie1b_out.bind(adc.in_timer1_match_b);
+    toie0_out.bin(adc.in_timer0_overflow);
+    toie1_out.bin(adc.in_timer1_overflow);
+    timer.icie1_out.bind(adc.in_timer1_capture);
 
     timer.ocie2a_out.bind(cpu.irq[0]);
     timer.ocie2b_out.bind(cpu.irq[1]);
