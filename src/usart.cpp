@@ -32,18 +32,19 @@ static constexpr u8 UCSRNC_UMSELN1 = mwr::bit(7);
 Usart::Usart(const sc_core::sc_module_name& nm)
     : peripheral(nm),
       serial_host(),
-      in("in"),
-      serial_tx("serial_tx"),
-      serial_rx("serial_rx"),
       ucsrna("ucsrna", 0x0, UCSRNA_UDREN),
       ucsrnb("ucsrnb", 0x1, 0x00),
       ucsrnc("ucsrnc", 0x2, UCSRNC_UCSZ0N | UCSRNC_UCSZN1),
       ubrrnl("ubrrnl", 0x4, 0x00),
       ubrrnh("ubrrnh", 0x5, 0x00),
       udrn("udrn", 0x6, 0x00),
+      in("in"),
+      serial_tx("serial_tx"),
+      serial_rx("serial_rx"),
       irq_rx("irq_rx"),
       irq_tx("irq_tx"),
       irq_udre("irq_udre"),
+      untimed("untimed", false),
       tx_ev_("tx_ev"),
       rx_pending_(false),
       rx_data_(0) {
@@ -51,34 +52,34 @@ Usart::Usart(const sc_core::sc_module_name& nm)
 
   ucsrna.sync_always();
   ucsrna.allow_read_write();
-  ucsrna.on_read(&Usart::read_ucsrna);
-  ucsrna.on_write(&Usart::write_ucsrna);
+  ucsrna.on_read(&Usart::ReadUcsrna);
+  ucsrna.on_write(&Usart::WriteUcsrna);
 
   ucsrnb.sync_always();
   ucsrnb.allow_read_write();
-  ucsrnb.on_write(&Usart::write_ucsrnb);
+  ucsrnb.on_write(&Usart::WriteUcsrnb);
 
   ucsrnc.sync_always();
   ucsrnc.allow_read_write();
-  ucsrnc.on_write(&Usart::write_ucsrnc);
+  ucsrnc.on_write(&Usart::WriteUcsrnc);
 
   ubrrnl.sync_always();
   ubrrnl.allow_read_write();
-  ubrrnl.on_write(&Usart::write_ubrrnl);
+  ubrrnl.on_write(&Usart::WriteUbrrnl);
 
   ubrrnh.sync_always();
   ubrrnh.allow_read_write();
-  ubrrnh.on_write(&Usart::write_ubrrnh);
+  ubrrnh.on_write(&Usart::WriteUbrrnh);
 
   udrn.sync_always();
   udrn.allow_read_write();
-  udrn.on_read(&Usart::read_udrn);
-  udrn.on_write(&Usart::write_udrn);
+  udrn.on_read(&Usart::ReadUdrn);
+  udrn.on_write(&Usart::WriteUdrn);
 
-  update_serial_format();
-  update_serial_baud();
+  UpdateSerialFormat();
+  UpdateSerialBaud();
 
-  SC_THREAD(tx_thread);
+  SC_THREAD(TxThread);
 }
 
 void Usart::reset() {
@@ -91,30 +92,30 @@ void Usart::reset() {
   irq_tx = false;
   irq_udre = false;
 
-  update_serial_format();
-  update_serial_baud();
+  UpdateSerialFormat();
+  UpdateSerialBaud();
 }
 
-bool Usart::rx_enabled() const {
+bool Usart::RxEnabled() const {
   return (ucsrnb & UCSRNB_RXENN) != 0;
 }
 
-bool Usart::tx_enabled() const {
+bool Usart::TxEnabled() const {
   return (ucsrnb & UCSRNB_TXENN) != 0;
 }
 
-u16 Usart::ubrr() const {
+u16 Usart::Ubrr() const {
   return (u16)((u16)(ubrrnh & 0x0f) << 8) | ubrrnl;
 }
 
-void Usart::set_rx_complete(bool set) {
+void Usart::SetRxComplete(bool set) {
   if (set)
     ucsrna = (u8)(ucsrna | UCSRNA_RXCN);
   else
     ucsrna = (u8)(ucsrna & ~UCSRNA_RXCN);
 }
 
-void Usart::set_tx_complete(bool set) {
+void Usart::SetTxComplete(bool set) {
   if (set) {
     ucsrna = (u8)(ucsrna | UCSRNA_TXCN);
     if (ucsrnb & UCSRNB_TXCIEN)
@@ -124,7 +125,7 @@ void Usart::set_tx_complete(bool set) {
   }
 }
 
-void Usart::set_udre(bool set) {
+void Usart::SetUdre(bool set) {
   if (set) {
     ucsrna = (u8)(ucsrna | UCSRNA_UDREN);
     if (ucsrnb & UCSRNB_RXCIEN)
@@ -134,16 +135,16 @@ void Usart::set_udre(bool set) {
   }
 }
 
-void Usart::update_serial_baud() {
+void Usart::UpdateSerialBaud() {
   u32 divisor = (ucsrna & UCSRNA_U2XN) ? 8u : 16u;
-  u16 n = (u16)(ubrr() + 1u);
+  u16 n = (u16)(Ubrr() + 1u);
   mwr::hz_t fosc = clock_hz();
   mwr::hz_t baud = (n == 0 || divisor == 0) ? vcml::SERIAL_9600BD : (fosc / (divisor * n));
 
   serial_tx.set_baud(std::max<mwr::hz_t>(baud, 1));
 }
 
-void Usart::update_serial_format() {
+void Usart::UpdateSerialFormat() {
   u8 umsel = (u8)((ucsrnc & (UCSRNC_UMSEL0N | UCSRNC_UMSELN1)) >> 6);
   (void)umsel;
 
@@ -193,7 +194,7 @@ void Usart::update_serial_format() {
   serial_tx.set_data_width(bits);
 }
 
-u8 Usart::read_ucsrna([[maybe_unused]] bool dbg) {
+u8 Usart::ReadUcsrna() {
   if (rx_pending_)
     ucsrna = (u8)(ucsrna | UCSRNA_RXCN);
   else
@@ -201,38 +202,42 @@ u8 Usart::read_ucsrna([[maybe_unused]] bool dbg) {
   return ucsrna;
 }
 
-void Usart::write_ucsrna(u8 val) {
+void Usart::WriteUcsrna(u8 val) {
   u8 keep_ro = (u8)(ucsrna & (UCSRNA_UPEN | UCSRNA_DORN | UCSRNA_FEN | UCSRNA_UDREN | UCSRNA_RXCN));
   u8 new_rw = (u8)(val & (UCSRNA_MPCMN | UCSRNA_U2XN));
   ucsrna = (u8)(keep_ro | new_rw | (ucsrna & UCSRNA_TXCN));
 
   if (val & UCSRNA_TXCN)
-    set_tx_complete(false);
+    SetTxComplete(false);
 
-  update_serial_baud();
+  UpdateSerialBaud();
 }
 
-void Usart::write_ucsrnb(u8 val) {
+void Usart::WriteUcsrnb(u8 val) {
   ucsrnb = val;
-  update_serial_format();
+  UpdateSerialFormat();
 }
 
-void Usart::write_ucsrnc(u8 val) {
+void Usart::WriteUcsrnc(u8 val) {
   ucsrnc = val;
-  update_serial_format();
+  UpdateSerialFormat();
 }
 
-void Usart::write_ubrrnl(u8 val) {
+void Usart::WriteUbrrnl(u8 val) {
   ubrrnl = val;
-  update_serial_baud();
+  UpdateSerialBaud();
 }
 
-void Usart::write_ubrrnh(u8 val) {
+void Usart::WriteUbrrnh(u8 val) {
   ubrrnh = (u8)(val & 0x0f);
-  update_serial_baud();
+  UpdateSerialBaud();
 }
 
-u8 Usart::read_udrn(bool dbg) {
+u8 Usart::ReadUdrn(bool dbg) {
+  if (dbg) {
+    return rx_data_;
+  }
+
   if (!rx_pending_) {
     return udrn;
   }
@@ -240,47 +245,48 @@ u8 Usart::read_udrn(bool dbg) {
   const u8 val = rx_data_;
   udrn = val;
   rx_pending_ = false;
-  set_rx_complete(false);
+  SetRxComplete(false);
   ucsrna = (u8)(ucsrna & ~(UCSRNA_FEN | UCSRNA_DORN | UCSRNA_UPEN));
   return val;
 }
 
-void Usart::write_udrn(u8 val) {
+void Usart::WriteUdrn(u8 val) {
   if (!(ucsrna & UCSRNA_UDREN))
     return;
 
   udrn = val;
 
-  if (!tx_enabled()) {
+  if (!TxEnabled()) {
     return;
   }
 
-  set_udre(false);
-  set_tx_complete(false);
+  SetUdre(false);
+  SetTxComplete(false);
   tx_ev_.notify(sc_core::SC_ZERO_TIME);
 }
 
-void Usart::tx_thread() {
+void Usart::TxThread() {
   while (true) {
     wait(tx_ev_);
 
-    if (!tx_enabled()) {
-      set_udre(true);
+    if (!TxEnabled()) {
+      SetUdre(true);
       continue;
     }
 
     const u8 data = udrn;
     serial_tx.send(data);
 
-    wait(serial_tx.cycle());
+    if (!untimed)
+      wait(serial_tx.cycle());
 
-    set_udre(true);
-    set_tx_complete(true);
+    SetUdre(true);
+    SetTxComplete(true);
   }
 }
 
 void Usart::serial_receive(const vcml::serial_target_socket& socket, vcml::serial_payload& tx) {
-  if (!rx_enabled())
+  if (!RxEnabled())
     return;
 
   if (rx_pending_) {
@@ -305,5 +311,5 @@ void Usart::serial_receive(const vcml::serial_target_socket& socket, vcml::seria
 
   rx_pending_ = true;
   rx_data_ = (u8)(tx.data & vcml::serial_mask(serial_tx.data_width()));
-  set_rx_complete(true);
+  SetRxComplete(true);
 }
