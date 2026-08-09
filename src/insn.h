@@ -137,7 +137,7 @@ struct InsnIoB : public InsnBase {
 };
 
 // 0000 00kk kkkk ksss
-struct InsnSImm6 : public InsnBase {
+struct InsnSImm7 : public InsnBase {
   std::function<void(Cpu*, uint, uint)> exec_func;
 
   std::tuple<uint, int> InitArgs(u16 insn);
@@ -194,12 +194,12 @@ struct Bld : public InsnRb {
   static void Execute(Cpu* cpu, uint rr, uint imm);
 };
 
-struct Brbc : public InsnSImm6 {
+struct Brbc : public InsnSImm7 {
   Brbc();
   static void Execute(Cpu* cpu, uint sreg, int imm);
 };
 
-struct Brbs : public InsnSImm6 {
+struct Brbs : public InsnSImm7 {
   Brbs();
   static void Execute(Cpu* cpu, uint sreg, int imm);
 };

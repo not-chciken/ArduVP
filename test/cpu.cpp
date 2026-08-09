@@ -511,6 +511,10 @@ struct CpuTest : public test_base {
     socket.writew<u16>(8, 0xf7f2);  // BRBC N, -2
     sc_core::wait(kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.pc, 3);
+
+    socket.writew<u16>(6, 0xf558);  // BRBC C, +43
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.pc, 47);
   }
 
   void TestBrbs() {

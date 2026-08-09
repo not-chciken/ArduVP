@@ -227,20 +227,20 @@ string InsnIoB::GetStatementString(u16 insn) {
   return name + " " + std::format("0x{:x}", io) + "," + std::to_string(b);
 }
 
-std::function<void()> InsnSImm6::GenFunc(u16 insn, Cpu* cpu) {
+std::function<void()> InsnSImm7::GenFunc(u16 insn, Cpu* cpu) {
   assert(exec_func != nullptr);
   auto [sreg, imm] = InitArgs(insn);
   return std::bind(exec_func, cpu, sreg, imm);
 }
 
-std::tuple<uint, int> InsnSImm6::InitArgs(u16 insn) {
+std::tuple<uint, int> InsnSImm7::InitArgs(u16 insn) {
   uint sreg = ExtractBits(insn, 0, 3);
-  int imm = SignExtend(ExtractBits(insn, 3, 6), 6);
+  int imm = SignExtend(ExtractBits(insn, 3, 7), 7);
 
   return {sreg, imm};
 }
 
-string InsnSImm6::GetStatementString(u16 insn) {
+string InsnSImm7::GetStatementString(u16 insn) {
   auto [sreg, imm] = InitArgs(insn);
   return name + " " + std::to_string(sreg) + "," + std::to_string(imm);
 }
