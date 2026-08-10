@@ -28,9 +28,6 @@ Cpu::Cpu()
   define_cpureg_rw(IoRegisters::PIND, "pind", 1);
   define_cpureg_rw(IoRegisters::DDRD, "ddrd", 1);
   define_cpureg_rw(IoRegisters::PORTD, "portd", 1);
-  define_cpureg_rw(IoRegisters::TIFRO, "tifro", 1);
-  define_cpureg_rw(IoRegisters::TIFR1, "tifr1", 1);
-  define_cpureg_rw(IoRegisters::TIFR2, "tifr2", 1);
   define_cpureg_rw(IoRegisters::PCIFR, "pcifr", 1);
   define_cpureg_rw(IoRegisters::EIFR, "eifr", 1);
   define_cpureg_rw(IoRegisters::EIMSK, "eimsk", 1);
@@ -40,11 +37,6 @@ Cpu::Cpu()
   define_cpureg_rw(IoRegisters::EEARL, "eearl", 1);
   define_cpureg_rw(IoRegisters::EEARH, "eearh", 1);
   define_cpureg_rw(IoRegisters::GTCCR, "gtccr", 1);
-  define_cpureg_rw(IoRegisters::TCCR0A, "tccr0a", 1);
-  define_cpureg_rw(IoRegisters::TCCR0B, "tccr0b", 1);
-  define_cpureg_rw(IoRegisters::TCNT0, "tcnt0", 1);
-  define_cpureg_rw(IoRegisters::OCR0A, "ocr0a", 1);
-  define_cpureg_rw(IoRegisters::OCR0B, "ocr0b", 1);
   define_cpureg_rw(IoRegisters::GPIOR1, "gpi0r1", 1);
   define_cpureg_rw(IoRegisters::GPIOR2, "gpi0r2", 1);
   define_cpureg_rw(IoRegisters::SPCR, "spcr", 1);
@@ -67,27 +59,8 @@ Cpu::Cpu()
   define_cpureg_rw(IoRegisters::PCMSK0, "pcmsk0", 1);
   define_cpureg_rw(IoRegisters::PCMSK1, "pcmsk1", 1);
   define_cpureg_rw(IoRegisters::PCMSK2, "pcmsk2", 1);
-  define_cpureg_rw(IoRegisters::TIMSK0, "timsk0", 1);
-  define_cpureg_rw(IoRegisters::TIMSK1, "timsk1", 1);
-  define_cpureg_rw(IoRegisters::TIMSK2, "timsk2", 1);
   define_cpureg_rw(IoRegisters::DIDR0, "didr0", 1);
   define_cpureg_rw(IoRegisters::DIDR1, "didr1", 1);
-  define_cpureg_rw(IoRegisters::TCCR1A, "tccr1a", 1);
-  define_cpureg_rw(IoRegisters::TCCR1B, "tccr1b", 1);
-  define_cpureg_rw(IoRegisters::TCCR1C, "tccr1c", 1);
-  define_cpureg_rw(IoRegisters::TCNT1L, "tcnt1l", 1);
-  define_cpureg_rw(IoRegisters::TCNT1H, "tcnt1h", 1);
-  define_cpureg_rw(IoRegisters::ICR1L, "icr1l", 1);
-  define_cpureg_rw(IoRegisters::ICR1H, "icr1h", 1);
-  define_cpureg_rw(IoRegisters::OCR1AL, "ocr1al", 1);
-  define_cpureg_rw(IoRegisters::OCR1AH, "ocr1ah", 1);
-  define_cpureg_rw(IoRegisters::OCR1BL, "ocr1bl", 1);
-  define_cpureg_rw(IoRegisters::OCR1BH, "ocr1bh", 1);
-  define_cpureg_rw(IoRegisters::TCCR2A, "tccr2a", 1);
-  define_cpureg_rw(IoRegisters::TCCR2B, "tccr2b", 1);
-  define_cpureg_rw(IoRegisters::TCNT2, "tcnt2", 1);
-  define_cpureg_rw(IoRegisters::OCR2A, "ocr2a", 1);
-  define_cpureg_rw(IoRegisters::OCR2B, "ocr2b", 1);
   define_cpureg_rw(IoRegisters::ASSR, "assr", 1);
   define_cpureg_rw(IoRegisters::TWBR, "twbr", 1);
   define_cpureg_rw(IoRegisters::TWSR, "twsr", 1);
@@ -95,8 +68,6 @@ Cpu::Cpu()
   define_cpureg_rw(IoRegisters::TWDR, "twdr", 1);
   define_cpureg_rw(IoRegisters::TWCR, "twcr", 1);
   define_cpureg_rw(IoRegisters::TWAMR, "twamr", 1);
-  define_cpureg_rw(IoRegisters::UCSR0A, "ucsr0a", 1);
-  define_cpureg_rw(IoRegisters::UCSR0B, "ucsr0b", 1);
 
   data.allow_dmi = false;
   insn.allow_dmi = false;
