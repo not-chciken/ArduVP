@@ -20,6 +20,8 @@ struct ArduSystem : public vcml::system {
         adc("adc"),
         comparator("comparator"),
         serial_term("serial"),
+        pin_d("pin_d"),
+        pin_a("pin_a"),
         loader("loader"),
         mem_range_program("mem_range_program", vcml::range(0, 0x7fff)),
         mem_range_sram("mem_range_sram", vcml::range(0x100, 0x8ff)),
@@ -65,7 +67,6 @@ struct ArduSystem : public vcml::system {
     clock.clk.bind(comparator.clk);
     reset.rst.bind(comparator.rst);
 
-    serial_term.backends = "stdout";
     usart.serial_tx.bind(serial_term.serial_rx);
     serial_term.serial_tx.bind(usart.serial_rx);
 
@@ -95,6 +96,9 @@ struct ArduSystem : public vcml::system {
 
     comparator.acic.stub();
 
+    pin_d[6].bind(comparator.volt_ain[0]);
+    pin_d[7].bind(comparator.volt_ain[1]);
+
     timer.ocie2a_out.bind(cpu.irq[0]);
     timer.ocie2b_out.bind(cpu.irq[1]);
     timer.toie2_out.bind(cpu.irq[2]);
@@ -120,6 +124,9 @@ struct ArduSystem : public vcml::system {
   Adc adc;
   Comparator comparator;
   vcml::serial::terminal serial_term;
+
+  vcml::signal_initiator_array<float, 8> pin_d;
+  vcml::signal_initiator_array<float, 5> pin_a;
 
   vcml::meta::loader loader;
 
