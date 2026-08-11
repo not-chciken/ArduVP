@@ -14,7 +14,7 @@ struct InsnBase {
 
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) = 0;
   virtual std::function<void()> GenFunc32(u16 insn, u16 imm, Cpu* cpu);
-  virtual string GetStatementString(u16 insn);
+  virtual string GetStatementString(u32 insn);
 };
 
 // 0000 0000 0000 0000
@@ -32,7 +32,7 @@ struct InsnImm22 : public InsnBase {
   u32 InitArgs(u16 insn, u16 imm);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override{ return {}; };
   std::function<void()> GenFunc32(u16 insn, u16 imm, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn, u16 imm);
+  virtual string GetStatementString(u32 insn) override;
   static void Execute(Cpu* cpu, u32 addr);
 };
 
@@ -44,7 +44,7 @@ struct InsnRImm16 : public InsnBase {
   std::tuple<uint, uint> InitArgs(u16 insn, u16 imm);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override { return {}; };
   std::function<void()> GenFunc32(u16 insn, u16 imm, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn, u16 imm);
+  virtual string GetStatementString(u32 insn) override;
   static void Execute(Cpu* cpu, uint rd, uint adr);
 };
 
@@ -54,7 +54,7 @@ struct InsnRR : public InsnBase {
 
   std::tuple<uint, uint> InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 // 0000 000d dddd 0000
@@ -63,7 +63,7 @@ struct InsnR : public InsnBase {
 
   uint InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 // 0000 000d dddd 0bbb
@@ -72,7 +72,7 @@ struct InsnRb : public InsnBase {
 
   std::tuple<uint, uint> InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 // 0000 0000 KKdd KKKK
@@ -81,7 +81,7 @@ struct InsnRpImm6 : public InsnBase {
 
   std::tuple<uint, uint> InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 // 0000 0000 dddd rrrr
@@ -90,7 +90,7 @@ struct InsnRpRp : public InsnBase {
 
   std::tuple<uint, uint> InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 // 00q0 qq0d dddd 0qqq
@@ -115,7 +115,7 @@ struct InsnRuImm8 : public InsnBase {
 
   std::tuple<uint, uint> InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 // 0000 kkkk kkkk kkkk
@@ -124,7 +124,7 @@ struct InsnImm12 : public InsnBase {
 
   uint InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 // 0000 0000 AAAA Abbb
@@ -133,7 +133,7 @@ struct InsnIoB : public InsnBase {
 
   std::tuple<uint, uint> InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 // 0000 00kk kkkk ksss
@@ -142,7 +142,7 @@ struct InsnSImm7 : public InsnBase {
 
   std::tuple<uint, int> InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 // 0000 0000 0sss 0000
@@ -151,7 +151,7 @@ struct InsnS : public InsnBase {
 
   uint InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Adc : public InsnRR {
@@ -332,13 +332,13 @@ struct Lat : public InsnR {
 struct Lddy : public InsnRImm6 {
   Lddy();
   static void Execute(Cpu* cpu, uint rd, uint imm);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Lddz : public InsnRImm6 {
   Lddz();
   static void Execute(Cpu* cpu, uint rd, uint imm);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Ldi : public InsnRuImm8 {
@@ -354,43 +354,43 @@ struct Lds : public InsnRImm16 {
 struct Ldx1 : public InsnR {
   Ldx1();
   static void Execute(Cpu* cpu, uint rd);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Ldx2 : public InsnR {
   Ldx2();
   static void Execute(Cpu* cpu, uint rd);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Ldx3 : public InsnR {
   Ldx3();
   static void Execute(Cpu* cpu, uint rd);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Ldy2 : public InsnR {
   Ldy2();
   static void Execute(Cpu* cpu, uint rd);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Ldy3 : public InsnR {
   Ldy3();
   static void Execute(Cpu* cpu, uint rd);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Ldz2 : public InsnR {
   Ldz2();
   static void Execute(Cpu* cpu, uint rd);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Ldz3 : public InsnR {
   Ldz3();
   static void Execute(Cpu* cpu, uint rd);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Lpm1 : public Insn0 {
@@ -401,13 +401,13 @@ struct Lpm1 : public Insn0 {
 struct Lpm2 : public InsnR {
   Lpm2();
   static void Execute(Cpu* cpu, uint rd);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Lpmx : public InsnR {
   Lpmx();
   static void Execute(Cpu* cpu, uint rd);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Lsr : public InsnR {
@@ -558,13 +558,13 @@ struct Spmx : public Insn0 {
 struct Stdy : public InsnRImm6 {
   Stdy();
   static void Execute(Cpu* cpu, uint rr, uint imm);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Stdz : public InsnRImm6 {
   Stdz();
   static void Execute(Cpu* cpu, uint rr, uint imm);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Sts : public InsnRImm16 {
@@ -575,43 +575,43 @@ struct Sts : public InsnRImm16 {
 struct Stx1 : public InsnR {
   Stx1();
   static void Execute(Cpu* cpu, uint rr);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Stx2 : public InsnR {
   Stx2();
   static void Execute(Cpu* cpu, uint rr);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Stx3 : public InsnR {
   Stx3();
   static void Execute(Cpu* cpu, uint rr);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Sty2 : public InsnR {
   Sty2();
   static void Execute(Cpu* cpu, uint rr);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Sty3 : public InsnR {
   Sty3();
   static void Execute(Cpu* cpu, uint rr);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Stz2 : public InsnR {
   Stz2();
   static void Execute(Cpu* cpu, uint rr);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Stz3 : public InsnR {
   Stz3();
   static void Execute(Cpu* cpu, uint rr);
-  virtual string GetStatementString(u16 insn) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 struct Sub : public InsnRR {
