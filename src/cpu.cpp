@@ -304,6 +304,25 @@ bool Cpu::remove_breakpoint(vcml::u64 addr) {
   return true;
 }
 
+bool Cpu::disassemble(vcml::u8* ibuf, vcml::u64& addr, string& code) {
+  u16 word = ibuf[0] | (ibuf[1] << 8);
+  Insn::InsnBase* inst = Decode::DecodeInsn(word);
+
+  if (!inst)
+    return false;
+
+  if (inst->is_32bit) {
+    u16 word2 = ibuf[2] | (ibuf[3] << 8);
+    u32 full = ((u32)word2 << 16) | word;
+    code = inst->GetStatementString(full);
+    addr += 4;
+  } else {
+    code = inst->GetStatementString(word);
+    addr += 2;
+  }
+  return true;
+}
+
 bool Cpu::read_reg_dbg(size_t regno, void* buf, size_t len) {
   if (regno < rf.size())
     *(RegType*)buf = rf[regno];

@@ -158,6 +158,7 @@ struct Cpu : public vcml::processor {
   virtual vcml::u64 stack_pointer() override;
   virtual bool insert_breakpoint(vcml::u64 addr) override;
   virtual bool remove_breakpoint(vcml::u64 addr) override;
+  virtual bool disassemble(vcml::u8* ibuf, vcml::u64& addr, string& code) override;
 
   // AVR semantics: after SEI, interrupts are enabled after the following
   // instruction. Instruction implementations may set this when they execute SEI.
