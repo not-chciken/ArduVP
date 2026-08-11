@@ -107,6 +107,7 @@ struct InsnRIo : public InsnBase {
 
   std::tuple<uint, uint> InitArgs(u16 insn);
   virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
+  virtual string GetStatementString(u32 insn) override;
 };
 
 // 0111 KKKK dddd KKKK
