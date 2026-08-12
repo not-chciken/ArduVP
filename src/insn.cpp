@@ -702,7 +702,7 @@ void Fmul::Execute(Cpu* cpu, uint rd, uint rr) {
 Fmuls::Fmuls() {
   exec_func = Execute;
   cycles = 2;
-  name = "FMUL";
+  name = "FMULS";
 }
 
 void Fmuls::Execute(Cpu* cpu, uint rd, uint rr) {
@@ -721,7 +721,7 @@ void Fmuls::Execute(Cpu* cpu, uint rd, uint rr) {
 Fmulsu::Fmulsu() {
   exec_func = Execute;
   cycles = 2;
-  name = "FMUL";
+  name = "FMULSU";
 }
 
 void Fmulsu::Execute(Cpu* cpu, uint rd, uint rr) {
@@ -1399,7 +1399,7 @@ void Sbic::Execute(Cpu* cpu, uint io, uint b) {
 Sbis::Sbis() {
   exec_func = Execute;
   cycles = 2;
-  name = "SBI";
+  name = "SBIS";
 }
 
 void Sbis::Execute(Cpu* cpu, uint io, uint b) {
