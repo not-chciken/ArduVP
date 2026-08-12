@@ -52,6 +52,7 @@ struct CpuTest : public test_base {
     add_test("movw", &CpuTest::TestMovw);
     add_test("mul", &CpuTest::TestMul);
     add_test("muls", &CpuTest::TestMuls);
+    add_test("mulsu", &CpuTest::TestMulsu);
     add_test("ori", &CpuTest::TestOri);
     add_test("out", &CpuTest::TestOut);
     add_test("pop", &CpuTest::TestPop);
@@ -872,6 +873,8 @@ struct CpuTest : public test_base {
     sc_core::wait(2 * kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.rf[0], 8);
     ASSERT_EQ(cpu.rf[1], 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
 
     cpu.sreg = 0;
     cpu.rf[18] = 0xff;
@@ -880,6 +883,50 @@ struct CpuTest : public test_base {
     sc_core::wait(2 * kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.rf[0], 0x1);
     ASSERT_EQ(cpu.rf[1], 0x0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0;
+    cpu.rf[18] = 0x80;
+    cpu.rf[19] = 0x01;
+    socket.writew<u16>(4, 0x0223);  // MULS R17, R18
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[0], 0x80);
+    ASSERT_EQ(cpu.rf[1], 0xff);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 1);
+  }
+
+  void TestMulsu() {
+    cpu.sreg = 0;
+    cpu.rf[21] = 2;
+    cpu.rf[20] = 4;
+    socket.writew<u16>(0, 0x0354);  // MULSU R21, R20
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[0], 8);
+    ASSERT_EQ(cpu.rf[1], 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0;
+    cpu.rf[21] = 0;
+    cpu.rf[20] = 4;
+    socket.writew<u16>(2, 0x0354);  // MULSU R21, R20
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[0], 0);
+    ASSERT_EQ(cpu.rf[1], 0);
+    ASSERT_EQ(cpu.sreg.z, 1);
+    ASSERT_EQ(cpu.sreg.c, 0);
+
+    cpu.sreg = 0;
+    cpu.rf[21] = 0x80;
+    cpu.rf[20] = 0x80;
+    socket.writew<u16>(4, 0x0354);  // MULSU R21, R20
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[0], 0x00);
+    ASSERT_EQ(cpu.rf[1], 0xc0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 1);
   }
 
   void TestOri() {

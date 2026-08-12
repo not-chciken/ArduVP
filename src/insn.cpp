@@ -689,7 +689,7 @@ void Fmul::Execute(Cpu* cpu, uint rd, uint rr) {
   u16 result = (u16)reg * (u16)rs1;
 
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = result & 0x8000;
+  cpu->sreg.c = (result & 0x8000) != 0;
 
   result = result << 1;
   cpu->rf[0] = result & 0xff;
@@ -708,7 +708,7 @@ void Fmuls::Execute(Cpu* cpu, uint rd, uint rr) {
   u16 result = (i16)(i8)reg * (i16)(i8)rs1;
 
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = result & 0x8000;
+  cpu->sreg.c = (result & 0x8000) != 0;
 
   result = result << 1;
   cpu->rf[0] = result & 0xff;
@@ -727,7 +727,7 @@ void Fmulsu::Execute(Cpu* cpu, uint rd, uint rr) {
   u16 result = (i16)(i8)reg * (u16)rs1;
 
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = result & 0x8000;
+  cpu->sreg.c = (result & 0x8000) != 0;
 
   result = result << 1;
   cpu->rf[0] = result & 0xff;
@@ -1099,7 +1099,7 @@ void Muls::Execute(Cpu* cpu, uint rd, uint rr) {
   u16 result = (i16)(i8)reg * (i16)(i8)rs1;
 
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = result & 0x8000;
+  cpu->sreg.c = (result & 0x8000) != 0;
 
   cpu->rf[0] = result & 0xff;
   cpu->rf[1] = result >> 8;
@@ -1135,7 +1135,7 @@ void Mulsu::Execute(Cpu* cpu, uint rd, uint rr) {
   u16 result = (i16)(i8)reg * (u16)rs1;
 
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = (bool)(result & 0x8000);
+  cpu->sreg.c = (result & 0x8000) != 0;
 
   cpu->rf[0] = result & 0xff;
   cpu->rf[1] = result >> 8;
