@@ -1327,7 +1327,7 @@ void Sbci::Execute(Cpu* cpu, uint rd, uint imm) {
   cpu->sreg.h = ((int)(reg & 0x0f) - (int)(imm & 0x0f) - (int)cpu->sreg.c) < 0;
   cpu->sreg.v = ((reg ^ result) & (imm ^ result)) & 0x80;
   cpu->sreg.n = (result & 0x80) != 0;
-  cpu->sreg.z = (result == 0);
+  cpu->sreg.z = (result == 0) ? cpu->sreg.z : false;
   cpu->sreg.c = ((uint)imm + cpu->sreg.c) > reg;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
@@ -1348,7 +1348,7 @@ void Sbc::Execute(Cpu* cpu, uint rd, uint rr) {
   cpu->sreg.h = ((int)(reg & 0x0f) - (int)(rs1 & 0x0f) - (int)cpu->sreg.c) < 0;
   cpu->sreg.v = ((reg ^ result) & (rs1 ^ result)) & 0x80;
   cpu->sreg.n = (result & 0x80) != 0;
-  cpu->sreg.z = (result == 0);
+  cpu->sreg.z = (result == 0) ? cpu->sreg.z : false;
   cpu->sreg.c = ((uint)rs1 + cpu->sreg.c) > reg;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
