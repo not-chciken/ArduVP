@@ -1120,9 +1120,7 @@ std::tuple<uint, uint> Muls::InitArgs(u16 insn) {
 
 string Muls::GetStatementString(u32 insn) {
   auto [rd, rr] = InitArgs(insn);
-  rd *= 2;
-  rr *= 2;
-  return name + " " + RegName(rd) + "+1:" + RegName(rd) + "," + RegName(rr) + "+1:" + RegName(rr);
+  return name + " " + RegName(rd) + "," + RegName(rr);
 }
 
 Mulsu::Mulsu() {
@@ -1137,10 +1135,27 @@ void Mulsu::Execute(Cpu* cpu, uint rd, uint rr) {
   u16 result = (i16)(i8)reg * (u16)rs1;
 
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = result & 0x8000;
+  cpu->sreg.c = (bool)(result & 0x8000);
 
   cpu->rf[0] = result & 0xff;
   cpu->rf[1] = result >> 8;
+}
+std::function<void()> Mulsu::GenFunc(u16 insn, Cpu* cpu) {
+  assert(exec_func != nullptr);
+  auto [rd, rr] = InitArgs(insn);
+  return std::bind(exec_func, cpu, rd, rr);
+}
+
+std::tuple<uint, uint> Mulsu::InitArgs(u16 insn) {
+  uint rr = ExtractBits(insn, 0, 3) + 16;
+  uint rd = ExtractBits(insn, 4, 3) + 16;
+
+  return {rd, rr};
+}
+
+string Mulsu::GetStatementString(u32 insn) {
+  auto [rd, rr] = InitArgs(insn);
+  return name + " " + RegName(rd) + "," + RegName(rr);
 }
 
 Neg::Neg() {
