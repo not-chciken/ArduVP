@@ -275,13 +275,15 @@ Adc::Adc() {
 void Adc::Execute(Cpu* cpu, uint rd, uint rr) {
   u8 reg = cpu->rf[rd];
   u8 rs1 = cpu->rf[rr];
-  u8 result = reg + rs1 + cpu->sreg.c;
+  u8 carry_in = cpu->sreg.c;
+  u16 sum = (u16)reg + (u16)rs1 + carry_in;
+  u8 result = sum;
 
-  cpu->sreg.h = ((reg & 0x0f) + (rs1 & 0x0f) + cpu->sreg.c) > 0x0f;
+  cpu->sreg.h = ((reg & 0x0f) + (rs1 & 0x0f) + carry_in) > 0x0f;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0);
-  cpu->sreg.c = (result < reg) || (result < rs1);
-  cpu->sreg.v = cpu->sreg.n ^ cpu->sreg.c;
+  cpu->sreg.c = sum > 0xff;
+  cpu->sreg.v = (((reg ^ result) & (rs1 ^ result)) & 0x80) != 0;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 
   cpu->rf[rd] = result;
@@ -582,13 +584,14 @@ Cpc::Cpc() {
 void Cpc::Execute(Cpu* cpu, uint rd, uint rr) {
   u8 reg = cpu->rf[rd];
   u8 rs1 = cpu->rf[rr];
-  u8 result = reg - rs1 - cpu->sreg.c;
+  u8 carry_in = cpu->sreg.c;
+  u8 result = reg - rs1 - carry_in;
 
-  cpu->sreg.h = ((int)(reg & 0x0f) - (int)(rs1 & 0x0f)) < 0;
+  cpu->sreg.h = ((int)(reg & 0x0f) - (int)(rs1 & 0x0f) - (int)carry_in) < 0;
   cpu->sreg.v = ((reg ^ rs1) & (reg ^ result)) & 0x80;
   cpu->sreg.n = (result & 0x80) != 0;
   cpu->sreg.z = (result == 0) ? cpu->sreg.z : false;
-  cpu->sreg.c = ((uint)rs1 + cpu->sreg.c) > reg;
+  cpu->sreg.c = ((uint)rs1 + carry_in) > reg;
   cpu->sreg.s = cpu->sreg.n ^ cpu->sreg.v;
 }
 

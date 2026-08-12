@@ -46,6 +46,7 @@ struct CpuTest : public test_base {
     add_test("cbi", &CpuTest::TestCbi);
     add_test("com", &CpuTest::TestCom);
     add_test("cp", &CpuTest::TestCp);
+    add_test("cpc", &CpuTest::TestCpc);
     add_test("ijmp", &CpuTest::TestIjmp);
     add_test("ldi", &CpuTest::TestLdi);
     add_test("mov", &CpuTest::TestMov);
@@ -196,6 +197,19 @@ struct CpuTest : public test_base {
     ASSERT_EQ(cpu.sreg.v, 0);
     ASSERT_EQ(cpu.sreg.s, 1);
     ASSERT_EQ(cpu.sreg.h, 1);
+
+    cpu.rf[29] = 0x00;
+    cpu.rf[31] = 0x80;
+    cpu.sreg.c = 1;
+    socket.writew<u16>(8, 0x1fdf);  // ADC R29, R31
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[29], 0x81);
+    ASSERT_EQ(cpu.sreg.c, 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.n, 1);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.s, 1);
+    ASSERT_EQ(cpu.sreg.h, 0);
   }
 
   void TestAdiw() {
@@ -774,6 +788,22 @@ struct CpuTest : public test_base {
     sc_core::wait(kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.rf[1], 0x01);
     ASSERT_EQ(cpu.sreg.h, 0);
+    ASSERT_EQ(cpu.sreg.s, 0);
+    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.n, 0);
+    ASSERT_EQ(cpu.sreg.z, 0);
+    ASSERT_EQ(cpu.sreg.c, 0);
+  }
+
+  void TestCpc() {
+    cpu.sreg = 0;
+    cpu.rf[0] = 0x00;
+    cpu.rf[1] = 0x10;
+    cpu.sreg.c = 1;
+    socket.writew<u16>(0, 0x0410);  // CPC R1, R0
+    sc_core::wait(kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[1], 0x10);
+    ASSERT_EQ(cpu.sreg.h, 1);
     ASSERT_EQ(cpu.sreg.s, 0);
     ASSERT_EQ(cpu.sreg.v, 0);
     ASSERT_EQ(cpu.sreg.n, 0);
