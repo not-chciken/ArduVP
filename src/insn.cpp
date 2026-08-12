@@ -1096,13 +1096,33 @@ Muls::Muls() {
 void Muls::Execute(Cpu* cpu, uint rd, uint rr) {
   u8 reg = cpu->rf[rd];
   u8 rs1 = cpu->rf[rr];
-  u16 result = (i16)reg * (i16)rs1;
+  u16 result = (i16)(i8)reg * (i16)(i8)rs1;
 
   cpu->sreg.z = (result == 0);
   cpu->sreg.c = result & 0x8000;
 
   cpu->rf[0] = result & 0xff;
   cpu->rf[1] = result >> 8;
+}
+
+std::function<void()> Muls::GenFunc(u16 insn, Cpu* cpu) {
+  assert(exec_func != nullptr);
+  auto [rd, rr] = InitArgs(insn);
+  return std::bind(exec_func, cpu, rd, rr);
+}
+
+std::tuple<uint, uint> Muls::InitArgs(u16 insn) {
+  uint rr = ExtractBits(insn, 0, 4) + 16;
+  uint rd = ExtractBits(insn, 4, 4) + 16;
+
+  return {rd, rr};
+}
+
+string Muls::GetStatementString(u32 insn) {
+  auto [rd, rr] = InitArgs(insn);
+  rd *= 2;
+  rr *= 2;
+  return name + " " + RegName(rd) + "+1:" + RegName(rd) + "," + RegName(rr) + "+1:" + RegName(rr);
 }
 
 Mulsu::Mulsu() {

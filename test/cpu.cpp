@@ -51,6 +51,7 @@ struct CpuTest : public test_base {
     add_test("mov", &CpuTest::TestMov);
     add_test("movw", &CpuTest::TestMovw);
     add_test("mul", &CpuTest::TestMul);
+    add_test("muls", &CpuTest::TestMuls);
     add_test("ori", &CpuTest::TestOri);
     add_test("out", &CpuTest::TestOut);
     add_test("pop", &CpuTest::TestPop);
@@ -861,6 +862,24 @@ struct CpuTest : public test_base {
     ASSERT_EQ(cpu.rf[1], 0xfe);
     ASSERT_EQ(cpu.sreg.z, 0);
     ASSERT_EQ(cpu.sreg.c, 1);
+  }
+
+  void TestMuls() {
+    cpu.sreg = 0;
+    cpu.rf[18] = 2;
+    cpu.rf[19] = 4;
+    socket.writew<u16>(0, 0x0223);  // MULS R17, R18
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[0], 8);
+    ASSERT_EQ(cpu.rf[1], 0);
+
+    cpu.sreg = 0;
+    cpu.rf[18] = 0xff;
+    cpu.rf[19] = 0xff;
+    socket.writew<u16>(2, 0x0223);  // MULS R17, R18
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(cpu.rf[0], 0x1);
+    ASSERT_EQ(cpu.rf[1], 0x0);
   }
 
   void TestOri() {

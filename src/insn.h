@@ -431,8 +431,14 @@ struct Mul : public InsnRR {
   static void Execute(Cpu* cpu, uint rd, uint rr);
 };
 
-struct Muls : public InsnRR {
+struct Muls : public InsnBase {
   Muls();
+  std::function<void(Cpu*, uint, uint)> exec_func;
+
+  std::tuple<uint, uint> InitArgs(u16 insn);
+  virtual std::function<void()> GenFunc(u16 insn, Cpu* cpu) override;
+  virtual string GetStatementString(u32 insn) override;
+
   static void Execute(Cpu* cpu, uint rd, uint rr);
 };
 
