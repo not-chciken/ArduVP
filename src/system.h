@@ -114,6 +114,20 @@ struct ArduSystem : public vcml::system {
     usart.irq_tx.bind(cpu.irq[13]);
     adc.irq.bind(cpu.irq[14]);
     comparator.irq.bind(cpu.irq[16]);
+
+    cpu.irq_ack[0].bind(timer.ocie2a_ack);
+    cpu.irq_ack[1].bind(timer.ocie2b_ack);
+    cpu.irq_ack[2].bind(timer.toie2_ack);
+    cpu.irq_ack[3].bind(timer.icie1_ack);
+    cpu.irq_ack[4].bind(timer.ocie1a_ack);
+    cpu.irq_ack[5].bind(timer.ocie1b_ack);
+    cpu.irq_ack[6].bind(timer.toie1_ack);
+    cpu.irq_ack[7].bind(timer.ocie0a_ack);
+    cpu.irq_ack[8].bind(timer.ocie0b_ack);
+    cpu.irq_ack[9].bind(timer.toie0_ack);
+    cpu.irq_ack[11].bind(usart.rxc_ack);
+    cpu.irq_ack[12].bind(usart.udre_ack);
+    cpu.irq_ack[13].bind(usart.tx_ack);
   }
 
   virtual int run() override { return vcml::system::run(); }

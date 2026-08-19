@@ -19,6 +19,19 @@ struct Timer : public vcml::peripheral {
   vcml::gpio_initiator_socket ocie2b_out;
   vcml::gpio_initiator_socket toie2_out;
 
+  vcml::gpio_target_socket ocie0a_ack;
+  vcml::gpio_target_socket ocie0b_ack;
+  vcml::gpio_target_socket toie0_ack;
+
+  vcml::gpio_target_socket ocie1a_ack;
+  vcml::gpio_target_socket ocie1b_ack;
+  vcml::gpio_target_socket toie1_ack;
+  vcml::gpio_target_socket icie1_ack;
+
+  vcml::gpio_target_socket ocie2a_ack;
+  vcml::gpio_target_socket ocie2b_ack;
+  vcml::gpio_target_socket toie2_ack;
+
   vcml::reg<u8> gtccr;
 
   vcml::reg<u8> tifr0;
@@ -129,4 +142,6 @@ struct Timer : public vcml::peripheral {
   void check_interrupts();
 
   void sync_16bit_regs_from_state();
+
+  virtual void gpio_notify(const vcml::gpio_target_socket& socket, bool state) override;
 };

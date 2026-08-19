@@ -44,6 +44,9 @@ Usart::Usart(const sc_core::sc_module_name& nm)
       irq_rx("irq_rx"),
       irq_tx("irq_tx"),
       irq_udre("irq_udre"),
+      rxc_ack("rxc_ack"),
+      udre_ack("udre_ack"),
+      tx_ack("tx_ack"),
       untimed("untimed", false),
       tx_ev_("tx_ev"),
       rx_pending_(false),
@@ -122,6 +125,7 @@ void Usart::SetTxComplete(bool set) {
       irq_tx = true;
   } else {
     ucsrna = (u8)(ucsrna & ~UCSRNA_TXCN);
+    irq_tx = false;
   }
 }
 
@@ -129,10 +133,20 @@ void Usart::SetUdre(bool set) {
   if (set) {
     ucsrna = (u8)(ucsrna | UCSRNA_UDREN);
     if (ucsrnb & UCSRNB_RXCIEN)
-      irq_tx = true;
+      irq_rx = true;
+    if (ucsrna & UCSRNB_UDRIEN)
+      irq_udre = true;
   } else {
     ucsrna = (u8)(ucsrna & ~UCSRNA_UDREN);
   }
+}
+
+void Usart::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
+  if (!state)
+    return;
+
+  if (socket == tx_ack)
+    SetTxComplete(false);
 }
 
 void Usart::UpdateSerialBaud() {

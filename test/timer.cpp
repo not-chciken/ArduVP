@@ -23,6 +23,8 @@ static constexpr mwr::u64 OCR1AL = 0x88;
 static constexpr mwr::u64 OCR1AH = 0x89;
 static constexpr mwr::u64 OCR1BL = 0x8a;
 static constexpr mwr::u64 OCR1BH = 0x8b;
+static constexpr mwr::u64 TIMSK2 = 0x70;
+static constexpr mwr::u64 TCCR2B = 0xb1;
 
 struct TimerTest : public test_base {
   Timer timer;
@@ -30,8 +32,23 @@ struct TimerTest : public test_base {
   vcml::generic::clock test_clock;
   vcml::tlm_initiator_socket socket;
 
+  vcml::gpio_initiator_socket ack_ocie0a;
+  vcml::gpio_initiator_socket ack_ocie0b;
+  vcml::gpio_initiator_socket ack_toie0;
+  vcml::gpio_initiator_socket ack_toie1;
+  vcml::gpio_initiator_socket ack_toie2;
+
   TimerTest(const sc_module_name& nm)
-      : test_base(nm), timer("timer"), bus("bus"), test_clock("test_clock", 16 * vcml::MHz), socket("socket") {
+      : test_base(nm),
+        timer("timer"),
+        bus("bus"),
+        test_clock("test_clock", 16 * vcml::MHz),
+        socket("socket"),
+        ack_ocie0a("ack_ocie0a"),
+        ack_ocie0b("ack_ocie0b"),
+        ack_toie0("ack_toie0"),
+        ack_toie1("ack_toie1"),
+        ack_toie2("ack_toie2") {
     bus.bind(timer.in, vcml::range(0xc0, 0xc6));
     bus.bind(socket);
 
@@ -60,11 +77,24 @@ struct TimerTest : public test_base {
     timer.ocie2b_out.stub();
     timer.toie2_out.stub();
 
+    ack_ocie0a.bind(timer.ocie0a_ack);
+    ack_ocie0b.bind(timer.ocie0b_ack);
+    ack_toie0.bind(timer.toie0_ack);
+    ack_toie1.bind(timer.toie1_ack);
+    ack_toie2.bind(timer.toie2_ack);
+
+    timer.icie1_ack.stub();
+    timer.ocie1a_ack.stub();
+    timer.ocie1b_ack.stub();
+    timer.ocie2a_ack.stub();
+    timer.ocie2b_ack.stub();
+
     add_test("init", &TimerTest::TestInit);
     add_test("reserved_bits", &TimerTest::TestReservedBits);
     add_test("count", &TimerTest::TestCount);
     add_test("overflow", &TimerTest::TestOverflow);
     add_test("compare", &TimerTest::TestCompare);
+    add_test("irq_ack", &TimerTest::TestIrqAck);
   }
 
   void TestInit() {
@@ -326,6 +356,76 @@ struct TimerTest : public test_base {
 
     ASSERT_FALSE(timer.tifr1 & 0b10);
     ASSERT_FALSE(timer.tifr1 & 0b100);
+  }
+
+  void TestIrqAck() {
+    socket.writew<u8>(OCR0A, (u8)23);
+    socket.writew<u8>(OCR0B, (u8)99);
+    socket.writew<u8>(TIMSK0, (u8)0b111);
+    socket.writew<u8>(TCCR0B, (u8)0x01);
+
+    sc_core::wait(20, sc_core::SC_US);
+    sc_core::wait(SC_ZERO_TIME);
+
+    ASSERT_TRUE(timer.tifr0 & 0b001);
+    ASSERT_TRUE(timer.tifr0 & 0b010);
+    ASSERT_TRUE(timer.tifr0 & 0b100);
+    ASSERT_TRUE(timer.toie0_out);
+    ASSERT_TRUE(timer.ocie0a_out);
+    ASSERT_TRUE(timer.ocie0b_out);
+
+    ack_ocie0a.pulse();
+
+    ASSERT_TRUE(timer.tifr0 & 0b001);
+    ASSERT_FALSE(timer.tifr0 & 0b010);
+    ASSERT_TRUE(timer.tifr0 & 0b100);
+    ASSERT_TRUE(timer.toie0_out);
+    ASSERT_FALSE(timer.ocie0a_out);
+    ASSERT_TRUE(timer.ocie0b_out);
+
+    ack_ocie0b.pulse();
+
+    ASSERT_TRUE(timer.tifr0 & 0b001);
+    ASSERT_FALSE(timer.tifr0 & 0b010);
+    ASSERT_FALSE(timer.tifr0 & 0b100);
+    ASSERT_TRUE(timer.toie0_out);
+    ASSERT_FALSE(timer.ocie0a_out);
+    ASSERT_FALSE(timer.ocie0b_out);
+
+    ack_toie0.pulse();
+
+    ASSERT_EQ((uint)timer.tifr0, 0);
+    ASSERT_FALSE(timer.toie0_out);
+    ASSERT_FALSE(timer.ocie0a_out);
+    ASSERT_FALSE(timer.ocie0b_out);
+
+    socket.writew<u8>(TIMSK1, (u8)0b001);
+    socket.writew<u8>(TCCR1B, (u8)0x01);
+
+    sc_core::wait(16 * 256, sc_core::SC_US);
+    sc_core::wait(SC_ZERO_TIME);
+
+    ASSERT_TRUE(timer.tifr1 & 0b1);
+    ASSERT_TRUE(timer.toie1_out);
+
+    ack_toie1.pulse();
+
+    ASSERT_FALSE(timer.tifr1 & 0b1);
+    ASSERT_FALSE(timer.toie1_out);
+
+    socket.writew<u8>(TIMSK2, (u8)0b001);
+    socket.writew<u8>(TCCR2B, (u8)0x01);
+
+    sc_core::wait(20, sc_core::SC_US);
+    sc_core::wait(SC_ZERO_TIME);
+
+    ASSERT_TRUE(timer.tifr2 & 0b1);
+    ASSERT_TRUE(timer.toie2_out);
+
+    ack_toie2.pulse();
+
+    ASSERT_FALSE(timer.tifr2 & 0b1);
+    ASSERT_FALSE(timer.toie2_out);
   }
 };
 

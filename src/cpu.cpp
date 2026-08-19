@@ -6,6 +6,7 @@
 
 Cpu::Cpu()
     : vcml::processor("cpu", "avr"),
+      irq_ack("irq_ack"),
       x(*reinterpret_cast<u16*>(&rf[26])),
       y(*reinterpret_cast<u16*>(&rf[28])),
       z(*reinterpret_cast<u16*>(&rf[30])) {
@@ -370,44 +371,12 @@ void Cpu::interrupt(size_t irq, bool set) {
   (void)service_pending_interrupt();
 }
 
-namespace {
-
-struct irq_desc {
-  u16 vector_word;      // vector address in words (pc units)
-  u16 tifr_data_addr;   // data space address of TIFR0/1/2
-  u8 tifr_write1_mask;  // bit mask to clear by writing 1
+static constexpr u16 IRQ_TABLE[] = {
+    0x000E, 0x0010, 0x0012, 0x0014, 0x0016, 0x0018, 0x001A,
+    0x001C, 0x001E, 0x0020, 0x0022, 0x0024, 0x0026, 0x0028,
 };
-
-// Timer flag masks (ATmega328P)
-static constexpr u8 TIFR0_TOV0 = 1u << 0;
-static constexpr u8 TIFR0_OCF0A = 1u << 1;
-static constexpr u8 TIFR0_OCF0B = 1u << 2;
-
-static constexpr u8 TIFR1_TOV1 = 1u << 0;
-static constexpr u8 TIFR1_OCF1A = 1u << 1;
-static constexpr u8 TIFR1_OCF1B = 1u << 2;
-static constexpr u8 TIFR1_ICF1 = 1u << 5;
-
-static constexpr u8 TIFR2_TOV2 = 1u << 0;
-static constexpr u8 TIFR2_OCF2A = 1u << 1;
-static constexpr u8 TIFR2_OCF2B = 1u << 2;
-
-// IRQ indices are defined by wiring in system.h:
-// 0..2: Timer2 COMPA/B/OVF
-// 3..6: Timer1 CAPT/COMPA/COMPB/OVF
-// 7..9: Timer0 COMPA/COMPB/OVF
-static constexpr irq_desc IRQ_TABLE[] = {
-    {0x000E, Cpu::IoRegisters::TIFR2, (u8)TIFR2_OCF2A}, {0x0010, Cpu::IoRegisters::TIFR2, (u8)TIFR2_OCF2B},
-    {0x0012, Cpu::IoRegisters::TIFR2, (u8)TIFR2_TOV2},  {0x0014, Cpu::IoRegisters::TIFR1, (u8)TIFR1_ICF1},
-    {0x0016, Cpu::IoRegisters::TIFR1, (u8)TIFR1_OCF1A}, {0x0018, Cpu::IoRegisters::TIFR1, (u8)TIFR1_OCF1B},
-    {0x001A, Cpu::IoRegisters::TIFR1, (u8)TIFR1_TOV1},  {0x001C, Cpu::IoRegisters::TIFRO, (u8)TIFR0_OCF0A},
-    {0x001E, Cpu::IoRegisters::TIFRO, (u8)TIFR0_OCF0B}, {0x0020, Cpu::IoRegisters::TIFRO, (u8)TIFR0_TOV0},
-};
-
-}  // namespace
 
 bool Cpu::service_pending_interrupt() {
-  // SEI has a one-instruction delay before interrupts can be taken.
   if (irq_sei_delay) {
     irq_sei_delay = false;
     return false;
@@ -416,7 +385,6 @@ bool Cpu::service_pending_interrupt() {
   if (!sreg.i)
     return false;
 
-  // Find the highest-priority asserted IRQ that hasn't been acked.
   for (size_t idx = 0; idx < std::size(IRQ_TABLE); ++idx) {
     const u64 bit = 1ull << idx;
     if ((irq_level_mask_ & bit) == 0)
@@ -424,30 +392,23 @@ bool Cpu::service_pending_interrupt() {
     if ((irq_acked_mask_ & bit) != 0)
       continue;
 
-    // Accept interrupt.
     irq_acked_mask_ |= bit;
 
-    // Wake from sleep.
     sleeping = false;
 
-    // Push return address (word address). For interrupts, this is the
-    // address of the next instruction to execute.
     const u16 ret_pc = pc;
     MemoryWrite(sp, (u8)(ret_pc >> 8));
     --sp;
     MemoryWrite(sp, (u8)(ret_pc & 0xff));
     --sp;
 
-    // Clear global interrupt enable.
     sreg.i = false;
 
-    // Clear the corresponding timer flag by writing a 1.
-    const irq_desc& d = IRQ_TABLE[idx];
-    MemoryWrite(d.tifr_data_addr, d.tifr_write1_mask);
+    irq_ack[idx].pulse();
 
-    // Jump to interrupt vector.
-    pc = d.vector_word;
-    new_pc = d.vector_word;
+    const u16 vector_word = IRQ_TABLE[idx];
+    pc = vector_word;
+    new_pc = vector_word;
     return true;
   }
 

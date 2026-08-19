@@ -19,6 +19,10 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
   vcml::gpio_initiator_socket irq_tx;
   vcml::gpio_initiator_socket irq_udre;
 
+  vcml::gpio_target_socket rxc_ack;
+  vcml::gpio_target_socket udre_ack;
+  vcml::gpio_target_socket tx_ack;
+
   vcml::property<bool> untimed;
 
   Usart(const sc_core::sc_module_name& nm);
@@ -58,4 +62,6 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
   void SetRxComplete(bool set);
   void SetTxComplete(bool set);
   void SetUdre(bool set);
+
+  virtual void gpio_notify(const vcml::gpio_target_socket& socket, bool state) override;
 };

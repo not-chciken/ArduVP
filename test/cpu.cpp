@@ -10,8 +10,23 @@ struct CpuTest : public test_base {
   vcml::generic::memory memory;
   vcml::generic::bus bus;
 
+  vcml::gpio_initiator_socket irq0_in;
+  vcml::gpio_initiator_socket irq11_in;
+  vcml::gpio_target_socket ack0_capture;
+  vcml::gpio_target_socket ack11_capture;
+  int ack0_count = 0;
+  int ack11_count = 0;
+
   CpuTest(const sc_module_name& nm)
-      : test_base(nm), cpu(), socket("socket"), memory("memory", vcml::MiB * 1), bus("bus") {
+      : test_base(nm),
+        cpu(),
+        socket("socket"),
+        memory("memory", vcml::MiB * 1),
+        bus("bus"),
+        irq0_in("irq0_in"),
+        irq11_in("irq11_in"),
+        ack0_capture("ack0_capture"),
+        ack11_capture("ack11_capture") {
     bus.bind(memory.in, vcml::range(0x0, vcml::MiB * 1));
     bus.bind(socket);
     bus.bind(cpu.data);
@@ -24,6 +39,11 @@ struct CpuTest : public test_base {
     rst.bind(bus.rst);
     rst.bind(cpu.rst);
     rst.bind(memory.rst);
+
+    irq0_in.bind(cpu.irq[0]);
+    irq11_in.bind(cpu.irq[11]);
+    ack0_capture.bind(cpu.irq_ack[0]);
+    ack11_capture.bind(cpu.irq_ack[11]);
 
     add_test("nop", &CpuTest::TestNop);
     add_test("add", &CpuTest::TestAdd);
@@ -77,11 +97,23 @@ struct CpuTest : public test_base {
     add_test("sty", &CpuTest::TestSty);
     add_test("subi", &CpuTest::TestSubi);
     add_test("swap", &CpuTest::TestSwap);
+    add_test("irq_ack", &CpuTest::TestIrqAck);
   }
 
   void reset() override {
     std::memset(memory.data(), 0, memory.size);
+    ack0_count = 0;
+    ack11_count = 0;
     test_base::reset();
+  }
+
+  virtual void gpio_notify(const vcml::gpio_target_socket& socket, bool state) override {
+    if (!state)
+      return;
+    if (socket == ack0_capture)
+      ++ack0_count;
+    else if (socket == ack11_capture)
+      ++ack11_count;
   }
 
   void TestNop() {
@@ -1437,6 +1469,36 @@ struct CpuTest : public test_base {
     socket.writew<u16>(0, 0x9412);  // SWAP R1
     sc_core::wait(1 * kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.rf[1], 0x21);
+  }
+
+  void TestIrqAck() {
+    cpu.sreg.i = 1;
+
+    ASSERT_EQ(ack0_count, 0);
+    ASSERT_EQ(ack11_count, 0);
+
+    irq0_in.raise();
+    sc_core::wait(SC_ZERO_TIME);
+
+    ASSERT_EQ(ack0_count, 1);
+    ASSERT_EQ(ack11_count, 0);
+
+    cpu.sreg.i = 1;
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    ASSERT_EQ(ack0_count, 1);
+
+    irq0_in.lower();
+    irq0_in.raise();
+    sc_core::wait(SC_ZERO_TIME);
+    ASSERT_EQ(ack0_count, 2);
+
+    cpu.sreg.i = 1;
+    irq0_in.lower();
+    irq11_in.raise();
+    sc_core::wait(SC_ZERO_TIME);
+
+    ASSERT_EQ(ack0_count, 2);
+    ASSERT_EQ(ack11_count, 1);
   }
 };
 

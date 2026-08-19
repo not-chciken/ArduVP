@@ -10,6 +10,8 @@ using AddrType = u16;
 struct Cpu : public vcml::processor {
   Cpu();
 
+  vcml::gpio_initiator_array<> irq_ack;
+
   std::array<RegType, 32> rf = {0};  // Register file
   u16 pc = 0;                        // Program counter
   u16 sp = 0x8ff;                    // Stack pointer

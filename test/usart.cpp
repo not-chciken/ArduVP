@@ -22,13 +22,20 @@ struct UsartTest : public test_base {
   vcml::tlm_initiator_socket socket;
   SerialBuffer serial_buffer;
 
+  vcml::gpio_initiator_socket ack_rx;
+  vcml::gpio_initiator_socket ack_tx;
+  vcml::gpio_initiator_socket ack_udre;
+
   UsartTest(const sc_module_name& nm)
       : test_base(nm),
         usart("usart"),
         bus("bus"),
         test_clock("test_clock", 16 * vcml::MHz),
         socket("socket"),
-        serial_buffer("serial_buffer") {
+        serial_buffer("serial_buffer"),
+        ack_rx("ack_rx"),
+        ack_tx("ack_tx"),
+        ack_udre("ack_udre") {
     bus.bind(usart.in, vcml::range(0xc0, 0xc6));
     bus.bind(socket);
 
@@ -47,12 +54,17 @@ struct UsartTest : public test_base {
     usart.irq_tx.stub();
     usart.irq_udre.stub();
 
+    ack_rx.bind(usart.rxc_ack);
+    ack_tx.bind(usart.tx_ack);
+    ack_udre.bind(usart.udre_ack);
+
     add_test("init", &UsartTest::TestInit);
     add_test("baudrate", &UsartTest::TestBaudRate);
     add_test("transmit", &UsartTest::TestTransmit);
     add_test("receive", &UsartTest::TestReceive);
     add_test("parity", &UsartTest::TestParity);
     add_test("character_size", &UsartTest::TestCharacterSize);
+    add_test("irq_ack", &UsartTest::TestIrqAck);
   }
 
   void TestInit() {
@@ -180,6 +192,37 @@ struct UsartTest : public test_base {
       socket.readw<u8>(0xc6, data);
       ASSERT_EQ(data, c.expected_mask) << "Received symbol should be masked to " << c.label;
     }
+  }
+
+  void TestIrqAck() {
+    socket.writew<u8>(0xc1, 0x48);
+    socket.writew<u8>(0xc6, 0xff);
+    sc_core::wait(1, sc_core::SC_MS);
+    ASSERT_TRUE((u8)usart.ucsrna & 0x40) << "TXCN should be set";
+    ASSERT_TRUE(usart.irq_tx.read());
+
+    ack_tx.pulse();
+
+    ASSERT_FALSE((u8)usart.ucsrna & 0x40) << "ack_tx should clear TXCN";
+    ASSERT_FALSE(usart.irq_tx.read()) << "ack_tx should drop irq_tx";
+
+    socket.writew<u8>(0xc6, 0x11);
+    sc_core::wait(1, sc_core::SC_MS);
+    ASSERT_TRUE((u8)usart.ucsrna & 0x40) << "TXC should be able to fire again after being acked";
+    ASSERT_TRUE(usart.irq_tx.read());
+    ack_tx.pulse();
+
+    socket.writew<u8>(0xc1, 0x10);
+    serial_buffer.tx.send(0x42);
+    sc_core::wait(1, sc_core::SC_MS);
+    ASSERT_TRUE((u8)usart.ucsrna & 0x80) << "RXCN should be set";
+
+    ack_rx.pulse();
+    ASSERT_TRUE((u8)usart.ucsrna & 0x80) << "ack_rx must not clear RXCN";
+
+    ASSERT_TRUE((u8)usart.ucsrna & 0x20) << "UDREN is set by default";
+    ack_udre.pulse();
+    ASSERT_TRUE((u8)usart.ucsrna & 0x20) << "ack_udre must not clear UDREN";
   }
 };
 

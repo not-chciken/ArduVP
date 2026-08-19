@@ -36,6 +36,16 @@ Timer::Timer(const sc_core::sc_module_name& nm)
       ocie2a_out("ocie2a_out"),
       ocie2b_out("ocie2b_out"),
       toie2_out("toie2_out"),
+      ocie0a_ack("ocie0a_ack"),
+      ocie0b_ack("ocie0b_ack"),
+      toie0_ack("toie0_ack"),
+      ocie1a_ack("ocie1a_ack"),
+      ocie1b_ack("ocie1b_ack"),
+      toie1_ack("toie1_ack"),
+      icie1_ack("icie1_ack"),
+      ocie2a_ack("ocie2a_ack"),
+      ocie2b_ack("ocie2b_ack"),
+      toie2_ack("toie2_ack"),
       gtccr("gtccr", 0x43, 0x00),
       tifr0("tifr0", 0x35, 0x00),
       tccr0a("tccr0a", 0x44, 0x00),
@@ -678,6 +688,33 @@ void Timer::check_interrupts() {
     log_debug("Timer2 compare B interrupt");
   } else {
     ocie2b_out = false;
+  }
+}
+
+void Timer::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
+  if (!state)
+    return;
+
+  if (socket == ocie0a_ack) {
+    write_tifr0(TIFR0_OCF0A);
+  } else if (socket == ocie0b_ack) {
+    write_tifr0(TIFR0_OCF0B);
+  } else if (socket == toie0_ack) {
+    write_tifr0(TIFR0_TOV0);
+  } else if (socket == ocie1a_ack) {
+    write_tifr1(TIFR1_OCF1A);
+  } else if (socket == ocie1b_ack) {
+    write_tifr1(TIFR1_OCF1B);
+  } else if (socket == toie1_ack) {
+    write_tifr1(TIFR1_TOV1);
+  } else if (socket == icie1_ack) {
+    write_tifr1(TIFR1_ICF1);
+  } else if (socket == ocie2a_ack) {
+    write_tifr2(TIFR2_OCF2A);
+  } else if (socket == ocie2b_ack) {
+    write_tifr2(TIFR2_OCF2B);
+  } else if (socket == toie2_ack) {
+    write_tifr2(TIFR2_TOV2);
   }
 }
 
