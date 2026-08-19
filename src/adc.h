@@ -13,6 +13,7 @@ struct Adc : public vcml::peripheral, public vcml::signal_host<float> {
   vcml::property<float> temp_celsius;
 
   vcml::gpio_initiator_socket irq;
+  vcml::gpio_target_socket ack;
   vcml::tlm_target_socket in;
 
   vcml::gpio_target_socket in_ext_irq0;

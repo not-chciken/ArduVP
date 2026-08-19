@@ -36,6 +36,7 @@ Adc::Adc(const sc_core::sc_module_name& nm)
       volt_1_1("volt_1_1", 1.1f),
       temp_celsius("temp_celsius", 25.0f),
       irq("irq"),
+      ack("ack"),
       in("in"),
       in_ext_irq0("in_ext_irq0"),
       in_timer0_match_a("in_timer0_match_a"),
@@ -291,6 +292,12 @@ u8 Adc::ReadAdch() {
 }
 
 void Adc::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
+  if (socket == ack) {
+    irq = false;
+    adcsra &= ~ADCSRA_ADIF;
+    return;
+  }
+
   if (!(adcsra & ADCSRA_ADATE))
     return;
 

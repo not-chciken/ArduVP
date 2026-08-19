@@ -23,6 +23,7 @@ struct ComparatorTest : public test_base {
   vcml::gpio_initiator_socket acme;
   vcml::gpio_initiator_socket aden;
   vcml::signal_initiator_socket<u8> admux;
+  vcml::gpio_initiator_socket ack;
 
   vcml::signal_initiator_array<float, NUM_ADC_PINS> volt_adc;
   vcml::signal_initiator_array<float, NUM_AIN_PINS> volt_ain;
@@ -35,6 +36,7 @@ struct ComparatorTest : public test_base {
         acme("acme"),
         aden("aden"),
         admux("admux"),
+        ack("ack"),
         volt_adc("volt_adc"),
         volt_ain("volt_ain") {
     bus.bind(comparator.in, vcml::range(ACSR, ACSR));
@@ -58,6 +60,7 @@ struct ComparatorTest : public test_base {
     comparator.aco.stub();
     comparator.acic.stub();
     comparator.irq.stub();
+    ack.bind(comparator.ack);
 
     add_test("reset", &ComparatorTest::TestReset);
     add_test("disable", &ComparatorTest::TestDisable);
@@ -67,6 +70,7 @@ struct ComparatorTest : public test_base {
     add_test("bandgap", &ComparatorTest::TestBandgap);
     add_test("input_capture", &ComparatorTest::TestInputCapture);
     add_test("aco_read_only", &ComparatorTest::TestAcoReadOnly);
+    add_test("irq_ack", &ComparatorTest::TestIrqAck);
   }
 
   u8 ReadAcsr() {
@@ -242,6 +246,29 @@ struct ComparatorTest : public test_base {
     sc_core::wait(sc_core::SC_ZERO_TIME);
 
     ASSERT_FALSE(ReadAcsr() & ACSR_ACO) << "ACO is read-only and always reflects the live comparator output";
+  }
+
+  void TestIrqAck() {
+    SelectAin1AsNegativeInput();
+
+    WriteAcsr(ACSR_ACIE);
+    SetAin(0.0f, 1.0f);
+    SetAin(2.0f, 1.0f);
+
+    ASSERT_TRUE(ReadAcsr() & ACSR_ACI) << "ACI should be set once the comparator output toggles";
+    ASSERT_TRUE(comparator.irq) << "IRQ should be raised since ACIE is set";
+
+    ack.pulse();
+
+    ASSERT_FALSE(ReadAcsr() & ACSR_ACI) << "ack should clear ACI";
+    ASSERT_FALSE(comparator.irq) << "ack should drop irq";
+
+    SetAin(0.0f, 1.0f);
+    SetAin(2.0f, 1.0f);
+
+    ASSERT_TRUE(ReadAcsr() & ACSR_ACI);
+    ASSERT_TRUE(comparator.irq);
+    ack.pulse();
   }
 };
 

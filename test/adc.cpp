@@ -34,8 +34,10 @@ struct AdcTest : public test_base {
   vcml::tlm_initiator_socket socket;
   vcml::generic::bus bus;
   vcml::gpio_initiator_socket ext_irq0;
+  vcml::gpio_initiator_socket ack;
 
-  AdcTest(const sc_module_name& nm) : test_base(nm), adc("adc"), bus("bus"), socket("socket"), ext_irq0("ext_irq0") {
+  AdcTest(const sc_module_name& nm)
+      : test_base(nm), adc("adc"), bus("bus"), socket("socket"), ext_irq0("ext_irq0"), ack("ack") {
     bus.bind(adc.in, vcml::range(0x78, 0x7c));
     bus.bind(socket);
 
@@ -47,6 +49,7 @@ struct AdcTest : public test_base {
 
     adc.irq.stub();
     ext_irq0.bind(adc.in_ext_irq0);
+    ack.bind(adc.ack);
     adc.in_timer0_match_a.stub();
     adc.in_timer0_overflow.stub();
     adc.in_timer1_match_b.stub();
@@ -69,6 +72,7 @@ struct AdcTest : public test_base {
     add_test("free_running", &AdcTest::TestFreeRunning);
     add_test("reset", &AdcTest::TestReset);
     add_test("temperature_sensor", &AdcTest::TestTemperatureSensor);
+    add_test("irq_ack", &AdcTest::TestIrqAck);
   }
 
   u16 RunConversion(u8 admux_val) {
@@ -320,6 +324,27 @@ struct AdcTest : public test_base {
     ASSERT_LT(result_m40c, result_25c) << "a lower temperature should yield a lower reading";
 
     ASSERT_NEAR((double)(result_125c - result_25c), 100.0, 5.0) << "sensitivity should be ~1 LSB/degC";
+  }
+
+  void TestIrqAck() {
+    socket.writew<u8>(ADMUX, ADMUX_REFS0 | ADMUX_MUX_BANDGAP);
+    socket.writew<u8>(ADCSRA, ADCSRA_ADEN | ADCSRA_ADIE | ADCSRA_ADSC);
+    sc_core::wait(CONVERSION_TIME);
+
+    ASSERT_TRUE(adc.adcsra & ADCSRA_ADIF) << "ADIF should be set once the conversion completes";
+    ASSERT_TRUE(adc.irq) << "IRQ should be raised since ADIE is set";
+
+    ack.pulse();
+
+    ASSERT_FALSE(adc.adcsra & ADCSRA_ADIF) << "ack should clear ADIF";
+    ASSERT_FALSE(adc.irq) << "ack should drop irq";
+
+    socket.writew<u8>(ADCSRA, ADCSRA_ADEN | ADCSRA_ADIE | ADCSRA_ADSC);
+    sc_core::wait(CONVERSION_TIME);
+
+    ASSERT_TRUE(adc.adcsra & ADCSRA_ADIF);
+    ASSERT_TRUE(adc.irq);
+    ack.pulse();
   }
 };
 

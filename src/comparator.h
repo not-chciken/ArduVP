@@ -12,6 +12,7 @@ struct Comparator : public vcml::peripheral, public vcml::signal_host<float>, pu
   vcml::gpio_initiator_socket aco;
   vcml::gpio_initiator_socket acic;
   vcml::gpio_initiator_socket irq;
+  vcml::gpio_target_socket ack;
 
   vcml::gpio_target_socket in_acme;
   vcml::gpio_target_socket in_aden;

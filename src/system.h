@@ -128,6 +128,8 @@ struct ArduSystem : public vcml::system {
     cpu.irq_ack[11].bind(usart.rxc_ack);
     cpu.irq_ack[12].bind(usart.udre_ack);
     cpu.irq_ack[13].bind(usart.tx_ack);
+    cpu.irq_ack[14].bind(adc.ack);
+    cpu.irq_ack[16].bind(comparator.ack);
   }
 
   virtual int run() override { return vcml::system::run(); }

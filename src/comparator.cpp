@@ -23,6 +23,7 @@ Comparator::Comparator(const sc_core::sc_module_name& nm)
       aco("aco"),
       acic("acic"),
       irq("irq"),
+      ack("ack"),
       in_acme("in_acme"),
       in_aden("in_aden"),
       in_admux("in_admux"),
@@ -42,6 +43,12 @@ void Comparator::signal_transport(const vcml::signal_target_socket<u8>& socket, 
 }
 
 void Comparator::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
+  if (socket == ack) {
+    irq = false;
+    acsr &= ~ACSR_ACI;
+    return;
+  }
+
   DoComparison();
 }
 
