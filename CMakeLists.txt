@@ -44,13 +44,13 @@ add_subdirectory(vcml)
 # The main executable.
 add_executable(arduvp ${ALL_CPPS})
 target_include_directories(arduvp SYSTEM PUBLIC  ${CMAKE_SOURCE_DIR}/vcml/include ${CMAKE_BINARY_DIR}/vcml/gen/)
-target_link_libraries(arduvp vcml systemc)
-target_compile_options(arduvp PUBLIC -O3)
+target_link_libraries(arduvp vcml)
+target_compile_options(arduvp PUBLIC -g -O3)
 add_dependencies(arduvp vcml)
 
 # Debug.
 add_executable(arduvp_debug ${ALL_CPPS})
-target_include_directories(arduvp_debug SYSTEM PUBLIC   ${CMAKE_SOURCE_DIR}/vcml/include ${CMAKE_BINARY_DIR}/vcml/gen/)
+target_include_directories(arduvp_debug SYSTEM PUBLIC  ${CMAKE_SOURCE_DIR}/vcml/include ${CMAKE_BINARY_DIR}/vcml/gen/)
 target_link_libraries(arduvp_debug vcml)
 target_compile_options(arduvp_debug PUBLIC -O0 -g)
 add_dependencies(arduvp_debug vcml)
