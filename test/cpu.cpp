@@ -1275,13 +1275,13 @@ struct CpuTest : public test_base {
   void TestSbic() {
     cpu.gpior0 = 1;
     socket.writew<u16>(0, 0x99f0);  // SBIC 0x1e, 0
-    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    sc_core::wait(1 * kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.retired_instructions, 1);
     ASSERT_EQ(cpu.pc, 0x01);
 
     cpu.gpior0 = 2;
     socket.writew<u16>(2, 0x99f0);  // SBIC 0x1e, 0
-    sc_core::wait(3 * kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.retired_instructions, 2);
     ASSERT_EQ(cpu.pc, 0x03);
   }

@@ -1385,7 +1385,7 @@ void Sbi::Execute(Cpu* cpu, uint io, uint b) {
 
 Sbic::Sbic() {
   exec_func = Execute;
-  cycles = 2;
+  cycles = 1;
   name = "SBIC";
 }
 

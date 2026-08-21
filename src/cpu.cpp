@@ -125,17 +125,23 @@ void Cpu::simulate(size_t max_cycles) {
     auto inst_func = FetchInstruction(pc * 2, &cyc);
     if (inst_func) {
       try {
-        if (!skip) {
-          inst_func();
-          ++retired_instructions;
-        } else {
-          skip = false;
-        }
+        inst_func();
+        ++retired_instructions;
       } catch (...) {
         log_error("Illegal instruction at PC=0x%04x", pc * 2);
         exit(1);
       }
     }
+
+    if (skip) {
+      u16 data;
+      tlm::tlm_response_status rs = insn.read(new_pc, &data, 2, vcml::SBI_DEBUG);
+      Insn::InsnBase* insn = Decode::DecodeInsn(data);
+      cycles += insn->is_32bit ? 2 : 1;
+      new_pc += insn->is_32bit ? 2 : 1;
+      skip = false;
+    }
+
     pc = new_pc;
     cycles += cyc;
   }
