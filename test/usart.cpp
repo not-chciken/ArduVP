@@ -65,6 +65,7 @@ struct UsartTest : public test_base {
     add_test("parity", &UsartTest::TestParity);
     add_test("character_size", &UsartTest::TestCharacterSize);
     add_test("irq_ack", &UsartTest::TestIrqAck);
+    add_test("udre_does_not_raise_rx_irq", &UsartTest::TestUdreDoesNotRaiseRxIrq);
   }
 
   void TestInit() {
@@ -223,6 +224,19 @@ struct UsartTest : public test_base {
     ASSERT_TRUE((u8)usart.ucsrna & 0x20) << "UDREN is set by default";
     ack_udre.pulse();
     ASSERT_TRUE((u8)usart.ucsrna & 0x20) << "ack_udre must not clear UDREN";
+  }
+
+  void TestUdreDoesNotRaiseRxIrq() {
+    socket.writew<u8>(0xc1, 0x88);
+    ASSERT_FALSE(usart.irq_rx.read());
+
+    socket.writew<u8>(0xc6, 0x55);
+    ASSERT_FALSE(usart.irq_rx.read()) << "irq_rx must not be set by writing UDR";
+
+    sc_core::wait(1, sc_core::SC_MS);
+
+    ASSERT_FALSE((u8)usart.ucsrna & 0x80) << "RXCN must not be set - nothing was received";
+    ASSERT_FALSE(usart.irq_rx.read()) << "SetUdre must not raise irq_rx";
   }
 };
 
