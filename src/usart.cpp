@@ -112,10 +112,13 @@ u16 Usart::Ubrr() const {
 }
 
 void Usart::SetRxComplete(bool set) {
-  if (set)
+  if (set) {
     ucsrna = (u8)(ucsrna | UCSRNA_RXCN);
-  else
+    if (ucsrnb & UCSRNB_RXCIEN)
+      irq_rx = true;
+  } else {
     ucsrna = (u8)(ucsrna & ~UCSRNA_RXCN);
+  }
 }
 
 void Usart::SetTxComplete(bool set) {
@@ -132,18 +135,23 @@ void Usart::SetTxComplete(bool set) {
 void Usart::SetUdre(bool set) {
   if (set) {
     ucsrna = (u8)(ucsrna | UCSRNA_UDREN);
-    if (ucsrnb & UCSRNB_RXCIEN)
-      irq_rx = true;
-    if (ucsrna & UCSRNB_UDRIEN)
+    if (ucsrnb & UCSRNB_UDRIEN)
       irq_udre = true;
   } else {
     ucsrna = (u8)(ucsrna & ~UCSRNA_UDREN);
+    irq_udre = false;
   }
 }
 
 void Usart::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
   if (!state)
     return;
+
+  if (socket == rxc_ack)
+    irq_rx = false;
+
+  if (socket == udre_ack)
+    irq_udre = false;
 
   if (socket == tx_ack)
     SetTxComplete(false);
