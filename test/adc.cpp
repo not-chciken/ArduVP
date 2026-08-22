@@ -29,15 +29,24 @@ static constexpr u8 ADCSRB_ACME = (u8)mwr::bit(6);
 
 static const sc_core::sc_time CONVERSION_TIME(10, sc_core::SC_US);
 
+static constexpr uint NUM_ADC_PINS = 8;
+
 struct AdcTest : public test_base {
   Adc adc;
   vcml::tlm_initiator_socket socket;
   vcml::generic::bus bus;
   vcml::gpio_initiator_socket ext_irq0;
   vcml::gpio_initiator_socket ack;
+  vcml::signal_initiator_array<float, NUM_ADC_PINS> volt_adc;
 
   AdcTest(const sc_module_name& nm)
-      : test_base(nm), adc("adc"), bus("bus"), socket("socket"), ext_irq0("ext_irq0"), ack("ack") {
+      : test_base(nm),
+        adc("adc"),
+        bus("bus"),
+        socket("socket"),
+        ext_irq0("ext_irq0"),
+        ack("ack"),
+        volt_adc("volt_adc") {
     bus.bind(adc.in, vcml::range(0x78, 0x7c));
     bus.bind(socket);
 
@@ -60,6 +69,9 @@ struct AdcTest : public test_base {
     adc.out_aden.stub();
     adc.out_admux.stub();
 
+    for (size_t i = 0; i < NUM_ADC_PINS; ++i)
+      volt_adc[i].bind(adc.volt_adc[i]);
+
     add_test("simple_adc", &AdcTest::TestSimplAdc);
     add_test("interrupt", &AdcTest::TestInterrupt);
     add_test("reference_voltages", &AdcTest::TestReferenceVoltages);
@@ -73,6 +85,7 @@ struct AdcTest : public test_base {
     add_test("reset", &AdcTest::TestReset);
     add_test("temperature_sensor", &AdcTest::TestTemperatureSensor);
     add_test("irq_ack", &AdcTest::TestIrqAck);
+    add_test("external_inputs", &AdcTest::TestExternalInputs);
   }
 
   u16 RunConversion(u8 admux_val) {
@@ -345,6 +358,22 @@ struct AdcTest : public test_base {
     ASSERT_TRUE(adc.adcsra & ADCSRA_ADIF);
     ASSERT_TRUE(adc.irq);
     ack.pulse();
+  }
+
+  void TestExternalInputs() {
+    static constexpr float voltages[NUM_ADC_PINS] = {
+        0.0f, 0.7f, 1.3f, 2.1f, 2.8f, 3.3f, 4.2f, 4.9f,
+    };
+
+    for (size_t ch = 0; ch < NUM_ADC_PINS; ++ch)
+      volt_adc[ch] = voltages[ch];
+    sc_core::wait(sc_core::SC_ZERO_TIME);
+
+    for (size_t ch = 0; ch < NUM_ADC_PINS; ++ch) {
+      u16 result = RunConversion(ADMUX_REFS0 | (u8)ch);
+      double expected = (double)voltages[ch] * 1024.0 / (double)adc.volt_avcc;
+      ASSERT_NEAR(result, expected, 1.0) << "ADC" << ch << " should convert its own external input voltage";
+    }
   }
 };
 
