@@ -8,6 +8,7 @@
 #include "adc.h"
 #include "comparator.h"
 #include "cpu.h"
+#include "io_ports.h"
 #include "timer.h"
 #include "usart.h"
 
@@ -21,6 +22,8 @@ struct ArduSystem : public vcml::system {
         usart("usart"),
         adc("adc"),
         comparator("comparator"),
+        io_ports("io_ports"),
+        builtin_led("builtin_led"),
         serial_term("serial"),
         pin_d("pin_d"),
         pin_a("pin_a"),
@@ -37,6 +40,7 @@ struct ArduSystem : public vcml::system {
         sram_mem("sram_mem", mem_range_sram.get().length()),
         reset("reset") {
     bus.bind(sram_bus.in[0], mem_range_sram);
+    bus.bind(io_ports.in, vcml::range(0x23, 0x2b));
     bus.bind(timer.in, vcml::range(0x35, 0x37), 0x35);
     bus.bind(timer.in, vcml::range(0x43, 0x48), 0x43);
     bus.bind(timer.in, vcml::range(0x6e, 0x70), 0x6e);
@@ -69,6 +73,9 @@ struct ArduSystem : public vcml::system {
 
     clock.clk.bind(comparator.clk);
     reset.rst.bind(comparator.rst);
+
+    clock.clk.bind(io_ports.clk);
+    reset.rst.bind(io_ports.rst);
 
     usart.serial_tx.bind(serial_term.serial_rx);
     serial_term.serial_tx.bind(usart.serial_rx);
@@ -106,6 +113,23 @@ struct ArduSystem : public vcml::system {
       pin_a[i].bind(adc.volt_adc[i]);
       pin_a[i] = volt_pin_a[i];
     }
+
+    io_ports.out_pinb[5].bind(builtin_led.gpio_in[0]);
+
+    for (size_t i = 0; i < 8; ++i) {
+      io_ports.in_pinb[i].stub();
+      io_ports.in_pinc[i].stub();
+      io_ports.in_pind[i].stub();
+      io_ports.out_pinc[i].stub();
+      io_ports.out_pind[i].stub();
+
+      if (i == 5) {
+        continue;
+      }
+
+      io_ports.out_pinb[i].stub();
+    }
+
 
     timer.ocie2a_out.bind(cpu.irq[0]);
     timer.ocie2b_out.bind(cpu.irq[1]);
@@ -147,6 +171,10 @@ struct ArduSystem : public vcml::system {
   Usart usart;
   Adc adc;
   Comparator comparator;
+  IoPorts io_ports;
+
+  vcml::gpio::leds builtin_led;
+
   vcml::serial::terminal serial_term;
 
   vcml::signal_initiator_array<float, 8> pin_d;
