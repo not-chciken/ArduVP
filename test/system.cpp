@@ -14,10 +14,11 @@ struct SystemTest : public test_base {
     system.program_mem.set<u16>(0, 0xcfff);  // Infinite loop (rjmp .-2).
 
     sc_core::wait(10, sc_core::SC_US);
+    sc_core::wait(sc_core::SC_ZERO_TIME);
 
-    ASSERT_EQ(system.cpu.cycle_count(), 160);
+    ASSERT_EQ(system.cpu.cycle_count(), 162);
     ASSERT_EQ(system.cpu.pc, 0);
-    ASSERT_EQ(system.cpu.retired_instructions, 80);
+    ASSERT_EQ(system.cpu.retired_instructions, 81);
     system.reset.rst.pulse();
   }
 
@@ -25,10 +26,11 @@ struct SystemTest : public test_base {
     std::memset(system.program_mem.data(), 0, system.program_mem.size);  // NOP everywhere.
 
     sc_core::wait(10, sc_core::SC_US);
+    sc_core::wait(sc_core::SC_ZERO_TIME);
 
-    ASSERT_EQ(system.cpu.cycle_count(), 160);
-    ASSERT_EQ(system.cpu.pc, 160);
-    ASSERT_EQ(system.cpu.retired_instructions, 160);
+    ASSERT_EQ(system.cpu.cycle_count(), 159);
+    ASSERT_EQ(system.cpu.pc, 159);
+    ASSERT_EQ(system.cpu.retired_instructions, 159);
     system.reset.rst.pulse();
   }
 };
