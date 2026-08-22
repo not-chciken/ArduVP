@@ -12,6 +12,8 @@
 #include "usart.h"
 
 struct ArduSystem : public vcml::system {
+  static constexpr size_t NUM_ANALOG_PINS = 6;
+
   ArduSystem(const sc_core::sc_module_name& nm)
       : vcml::system(nm),
         cpu(),
@@ -22,6 +24,7 @@ struct ArduSystem : public vcml::system {
         serial_term("serial"),
         pin_d("pin_d"),
         pin_a("pin_a"),
+        volt_pin_a("volt_pin_a", 0.0f),
         loader("loader"),
         mem_range_program("mem_range_program", vcml::range(0, 0x7fff)),
         mem_range_sram("mem_range_sram", vcml::range(0x100, 0x8ff)),
@@ -99,6 +102,11 @@ struct ArduSystem : public vcml::system {
     pin_d[6].bind(comparator.volt_ain[0]);
     pin_d[7].bind(comparator.volt_ain[1]);
 
+    for (size_t i = 0; i < NUM_ANALOG_PINS; ++i) {
+      pin_a[i].bind(adc.volt_adc[i]);
+      pin_a[i] = volt_pin_a[i];
+    }
+
     timer.ocie2a_out.bind(cpu.irq[0]);
     timer.ocie2b_out.bind(cpu.irq[1]);
     timer.toie2_out.bind(cpu.irq[2]);
@@ -142,7 +150,8 @@ struct ArduSystem : public vcml::system {
   vcml::serial::terminal serial_term;
 
   vcml::signal_initiator_array<float, 8> pin_d;
-  vcml::signal_initiator_array<float, 5> pin_a;
+  vcml::signal_initiator_array<float, NUM_ANALOG_PINS> pin_a;
+  vcml::property<float, NUM_ANALOG_PINS> volt_pin_a;
 
   vcml::meta::loader loader;
 
