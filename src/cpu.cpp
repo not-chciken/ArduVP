@@ -69,9 +69,6 @@ Cpu::Cpu()
   define_cpureg_rw(IoRegisters::TWDR, "twdr", 1);
   define_cpureg_rw(IoRegisters::TWCR, "twcr", 1);
   define_cpureg_rw(IoRegisters::TWAMR, "twamr", 1);
-
-  data.allow_dmi = false;
-  insn.allow_dmi = false;
 }
 
 std::function<void()> Cpu::FetchInstruction(vcml::u64 adr, uint* cycles) {
@@ -375,6 +372,20 @@ void Cpu::interrupt(size_t irq, bool set) {
   // If the CPU is currently waiting, try to service immediately.
   // If interrupts are disabled, service_pending_interrupt() will defer.
   (void)service_pending_interrupt();
+}
+
+void Cpu::start_of_simulation() {
+  sim_start_time_ = std::chrono::steady_clock::now();
+}
+
+void Cpu::end_of_simulation() {
+  auto elapsed = std::chrono::steady_clock::now() - sim_start_time_;
+  double elapsed_secs = std::chrono::duration<double>(elapsed).count();
+  double mips = elapsed_secs > 0.0 ? retired_instructions / elapsed_secs / 1e6 : 0.0;
+
+  log_info("Retired instructions: %lu", retired_instructions);
+  log_info("Cycle count: %llu", cycle_count());
+  log_info("MIPS: %.3f", mips);
 }
 
 static constexpr u16 IRQ_TABLE[] = {

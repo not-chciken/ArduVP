@@ -1,6 +1,7 @@
 #include <vcml.h>
 
 #include <array>
+#include <chrono>
 #include <functional>
 
 #include "common.h"
@@ -9,6 +10,7 @@ using RegType = u8;
 using AddrType = u16;
 struct Cpu : public vcml::processor {
   Cpu();
+  virtual ~Cpu() = default;
 
   vcml::gpio_initiator_array<> irq_ack;
 
@@ -172,6 +174,8 @@ struct Cpu : public vcml::processor {
   virtual bool read_reg_dbg(size_t idx, void* buf, size_t len) override;
   virtual bool write_reg_dbg(size_t idx, const void*, size_t l) override;
   virtual void interrupt(size_t irq, bool set) override;
+  void start_of_simulation() override;
+  void end_of_simulation() override;
 
   bool service_pending_interrupt();
 
@@ -181,4 +185,6 @@ struct Cpu : public vcml::processor {
 
   std::vector<u16> breakpoints_;
   std::vector<u16> watchpoints_;
+
+  std::chrono::steady_clock::time_point sim_start_time_;
 };
