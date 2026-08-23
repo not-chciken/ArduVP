@@ -95,7 +95,28 @@ struct Timer : public vcml::peripheral {
   bool dir1_;
   bool dir2_;
 
-  void run();
+  // Woken whenever gtccr is written (timer stop/start, prescaler reset).
+  sc_core::sc_event resume_ev_;
+  // Woken whenever the respective clock-select bits are written, used only
+  // while a timer is idle because its divisor is 0.
+  sc_core::sc_event div0_ev_;
+  sc_core::sc_event div1_ev_;
+  sc_core::sc_event div2_ev_;
+
+  // Timestamp of the start of the currently pending tick wait, so the
+  // elapsed prescaler progress can be recovered if the wait gets cancelled.
+  sc_core::sc_time wait_start0_;
+  sc_core::sc_time wait_start1_;
+  sc_core::sc_time wait_start2_;
+
+  void run_timer0();
+  void run_timer1();
+  void run_timer2();
+  void run_timer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(),
+                 u32& ps, sc_core::sc_time& wait_start,
+                 sc_core::sc_event& div_ev);
+
+  u32 elapsed_cycles(const sc_core::sc_time& start) const;
 
   void write_gtccr(u8 val);
   void write_tifr0(u8 val);
@@ -104,6 +125,10 @@ struct Timer : public vcml::peripheral {
   void write_timsk0(u8 val);
   void write_timsk1(u8 val);
   void write_timsk2(u8 val);
+
+  void write_tccr0b(u8 val);
+  void write_tccr1b(u8 val);
+  void write_tccr2b(u8 val);
 
   u8 read_tcnt1l();
   u8 read_tcnt1h();

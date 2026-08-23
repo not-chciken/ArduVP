@@ -117,7 +117,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
 
   tccr0b.sync_always();
   tccr0b.allow_read_write();
-  tccr0b.on_write_mask(0xf); // TODO: FOC0A and FOC0B.
+  tccr0b.on_write(&Timer::write_tccr0b); // TODO: FOC0A and FOC0B.
 
   tcnt0.sync_always();
   tcnt0.allow_read_write();
@@ -138,7 +138,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
 
   tccr1b.sync_always();
   tccr1b.allow_read_write();
-  tccr1b.on_write_mask(0xdf);
+  tccr1b.on_write(&Timer::write_tccr1b);
 
   tccr1c.sync_always();
   tccr1c.allow_read_write();
@@ -192,6 +192,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
   tccr2a.allow_read_write();
   tccr2b.sync_always();
   tccr2b.allow_read_write();
+  tccr2b.on_write(&Timer::write_tccr2b);
   tcnt2.sync_always();
   tcnt2.allow_read_write();
   ocr2a.sync_always();
@@ -204,7 +205,9 @@ Timer::Timer(const sc_core::sc_module_name& nm)
   timsk2.allow_read_write();
   timsk2.on_write(&Timer::write_timsk2);
 
-  SC_THREAD(run);
+  SC_THREAD(run_timer0);
+  SC_THREAD(run_timer1);
+  SC_THREAD(run_timer2);
 }
 
 void Timer::reset() {
@@ -226,7 +229,15 @@ void Timer::reset() {
   ps0_ = ps1_ = ps2_ = 0;
   dir0_ = dir1_ = dir2_ = true;
 
+  const sc_core::sc_time now = sc_core::sc_time_stamp();
+  wait_start0_ = wait_start1_ = wait_start2_ = now;
+
   sync_16bit_regs_from_state();
+
+  resume_ev_.notify(sc_core::SC_ZERO_TIME);
+  div0_ev_.notify(sc_core::SC_ZERO_TIME);
+  div1_ev_.notify(sc_core::SC_ZERO_TIME);
+  div2_ev_.notify(sc_core::SC_ZERO_TIME);
 }
 
 void Timer::sync_16bit_regs_from_state() {
@@ -250,13 +261,35 @@ void Timer::write_gtccr(u8 val) {
 
   gtccr = (gtccr & ~GTCCR_TSM) | (val & GTCCR_TSM);
 
+  const sc_core::sc_time now = sc_core::sc_time_stamp();
+
   if (psrasy) {
     ps2_ = 0;
+    wait_start2_ = now;
   }
   if (psrsync) {
     ps0_ = 0;
     ps1_ = 0;
+    wait_start0_ = now;
+    wait_start1_ = now;
   }
+
+  resume_ev_.notify(sc_core::SC_ZERO_TIME);
+}
+
+void Timer::write_tccr0b(u8 val) {
+  tccr0b = val & 0xf; // TODO: FOC0A and FOC0B.
+  div0_ev_.notify(sc_core::SC_ZERO_TIME);
+}
+
+void Timer::write_tccr1b(u8 val) {
+  tccr1b = val & 0xdf;
+  div1_ev_.notify(sc_core::SC_ZERO_TIME);
+}
+
+void Timer::write_tccr2b(u8 val) {
+  tccr2b = val;
+  div2_ev_.notify(sc_core::SC_ZERO_TIME);
 }
 
 void Timer::write_tifr0(u8 val) {
@@ -718,40 +751,56 @@ void Timer::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
   }
 }
 
-void Timer::run() {
-  sync_16bit_regs_from_state();
+u32 Timer::elapsed_cycles(const sc_core::sc_time& start) const {
+  const double ratio = (sc_core::sc_time_stamp() - start) / clock_cycle();
+  return (u32)(ratio + 0.5);
+}
 
+void Timer::run_timer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(),
+                       u32& ps, sc_core::sc_time& wait_start,
+                       sc_core::sc_event& div_ev) {
   while (true) {
-    wait_clock_cycle();
-
-    if (timers_stopped())
+    if (timers_stopped()) {
+      wait(resume_ev_);
       continue;
-
-    u32 div0 = timer0_div();
-    if (div0 != 0) {
-      ps0_++;
-      if (ps0_ >= div0) {
-        ps0_ = 0;
-        tick_timer0();
-      }
     }
 
-    const u32 div1 = timer1_div();
-    if (div1 != 0) {
-      ps1_++;
-      if (ps1_ >= div1) {
-        ps1_ = 0;
-        tick_timer1();
-      }
+    const u32 div = (this->*div_fn)();
+    if (div == 0) {
+      wait(div_ev);
+      continue;
     }
 
-    const u32 div2 = timer2_div();
-    if (div2 != 0) {
-      ps2_++;
-      if (ps2_ >= div2) {
-        ps2_ = 0;
-        tick_timer2();
-      }
+    if (ps >= div) {
+      ps = 0;
+      (this->*tick_fn)();
+      continue;
+    }
+
+    wait_start = sc_core::sc_time_stamp();
+    wait(clock_cycles(div - ps), resume_ev_);
+
+    if (resume_ev_.triggered()) {
+      ps += elapsed_cycles(wait_start);
+    } else {
+      ps = 0;
+      (this->*tick_fn)();
     }
   }
+}
+
+void Timer::run_timer0() {
+  run_timer(&Timer::timer0_div, &Timer::tick_timer0, ps0_, wait_start0_,
+            div0_ev_);
+}
+
+void Timer::run_timer1() {
+  sync_16bit_regs_from_state();
+  run_timer(&Timer::timer1_div, &Timer::tick_timer1, ps1_, wait_start1_,
+            div1_ev_);
+}
+
+void Timer::run_timer2() {
+  run_timer(&Timer::timer2_div, &Timer::tick_timer2, ps2_, wait_start2_,
+            div2_ev_);
 }
