@@ -4,6 +4,8 @@
 
 #include "decode/decode.h"
 
+constexpr u64 PROGRAM_MEM_SIZE = 0x8000;
+
 Cpu::Cpu()
     : vcml::processor("cpu", "avr"),
       irq_ack("irq_ack"),
@@ -20,15 +22,6 @@ Cpu::Cpu()
   define_cpureg_rw(33, "sp", sizeof(AddrType));
   define_cpureg_rw(34, "pc", sizeof(u32));
 
-  define_cpureg_rw(IoRegisters::PINB, "pinb", 1);
-  define_cpureg_rw(IoRegisters::DDRB, "ddrb", 1);
-  define_cpureg_rw(IoRegisters::PORTB, "portb", 1);
-  define_cpureg_rw(IoRegisters::PINC, "pinc", 1);
-  define_cpureg_rw(IoRegisters::DDRC, "ddrc", 1);
-  define_cpureg_rw(IoRegisters::PORTC, "portc", 1);
-  define_cpureg_rw(IoRegisters::PIND, "pind", 1);
-  define_cpureg_rw(IoRegisters::DDRD, "ddrd", 1);
-  define_cpureg_rw(IoRegisters::PORTD, "portd", 1);
   define_cpureg_rw(IoRegisters::PCIFR, "pcifr", 1);
   define_cpureg_rw(IoRegisters::EIFR, "eifr", 1);
   define_cpureg_rw(IoRegisters::EIMSK, "eimsk", 1);
@@ -71,17 +64,32 @@ Cpu::Cpu()
   define_cpureg_rw(IoRegisters::TWAMR, "twamr", 1);
 }
 
+u16 Cpu::InsnDmiRead(vcml::u64 adr) {
+  u16 insn_data;
+
+  if (adr >= PROGRAM_MEM_SIZE) {
+    tlm::tlm_response_status rs = insn.read(adr, &insn_data, 2, vcml::SBI_NONE);
+    if (rs != tlm::TLM_OK_RESPONSE) {
+      log_bus_error(insn, vcml::VCML_ACCESS_READ, rs, adr, 2);
+      exit(1);
+    }
+    return insn_data;
+  }
+
+  if (insn_dmi_ptr_ == nullptr) {
+    insn_dmi_ptr_ = insn.lookup_dmi_ptr(0x0000, PROGRAM_MEM_SIZE, vcml::VCML_ACCESS_READ);
+    if (insn_dmi_ptr_ == nullptr) {
+      log_error("could not fetch dmi pointer");
+      exit(1);
+    }
+  }
+  memcpy(&insn_data, insn_dmi_ptr_ + adr, sizeof(insn_data));
+  return insn_data;
+}
+
 std::function<void()> Cpu::FetchInstruction(vcml::u64 adr, uint* cycles) {
   u16 data;
-  tlm::tlm_response_status rs = insn.read(adr, &data, 2, vcml::SBI_NONE);
-
-  if (rs == tlm::TLM_ADDRESS_ERROR_RESPONSE) {
-    log_bus_error(insn, vcml::VCML_ACCESS_READ, rs, adr, 2);
-    exit(1);
-  } else if (rs != tlm::TLM_OK_RESPONSE) {
-    log_bus_error(insn, vcml::VCML_ACCESS_READ, rs, adr, 2);
-    exit(1);
-  }
+  data = InsnDmiRead(adr);
 
   new_pc += 1;
   Insn::InsnBase* inst = Decode::DecodeInsn(data);
@@ -90,14 +98,7 @@ std::function<void()> Cpu::FetchInstruction(vcml::u64 adr, uint* cycles) {
   if (inst->is_32bit) {
     new_pc += 1;
     u16 data2;
-    rs = insn.read(adr + 2, &data2, 2, vcml::SBI_NONE);
-    if (rs == tlm::TLM_ADDRESS_ERROR_RESPONSE) {
-      // TODO: Implement.
-      return std::function<void()>();
-    } else if (rs != tlm::TLM_OK_RESPONSE) {
-      log_bus_error(insn, vcml::VCML_ACCESS_READ, rs, adr, 2);
-      exit(1);
-    }
+    data2 = InsnDmiRead(adr + 2);
     return inst->GenFunc32(data, data2, this);
   }
 
@@ -105,9 +106,10 @@ std::function<void()> Cpu::FetchInstruction(vcml::u64 adr, uint* cycles) {
 }
 
 void Cpu::simulate(size_t max_cycles) {
+  sc_core::wait(sc_core::SC_ZERO_TIME); // Avoids immediate start after reset.
+
   uint cycles = 0;
   while (cycles < max_cycles) {
-    // Accept pending interrupts between instructions.
     if (service_pending_interrupt()) {
       ++cycle_counter;
       continue;
@@ -133,9 +135,9 @@ void Cpu::simulate(size_t max_cycles) {
     if (skip) {
       u16 data;
       tlm::tlm_response_status rs = insn.read(new_pc, &data, 2, vcml::SBI_DEBUG);
-      Insn::InsnBase* insn = Decode::DecodeInsn(data);
-      cycles += insn->is_32bit ? 2 : 1;
-      new_pc += insn->is_32bit ? 2 : 1;
+      Insn::InsnBase* inst = Decode::DecodeInsn(data);
+      cycles += inst->is_32bit ? 2 : 1;
+      new_pc += inst->is_32bit ? 2 : 1;
       skip = false;
     }
 
@@ -369,9 +371,12 @@ void Cpu::interrupt(size_t irq, bool set) {
     irq_acked_mask_ &= ~bit;
   }
 
-  // If the CPU is currently waiting, try to service immediately.
-  // If interrupts are disabled, service_pending_interrupt() will defer.
-  (void)service_pending_interrupt();
+  service_pending_interrupt();
+}
+
+void Cpu::invalidate_direct_mem_ptr(vcml::tlm_initiator_socket& origin, vcml::u64 start, vcml::u64 end) {
+  processor::invalidate_direct_mem_ptr(origin, start, end);
+  insn_dmi_ptr_ == nullptr;
 }
 
 void Cpu::start_of_simulation() {

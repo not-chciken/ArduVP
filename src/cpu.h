@@ -56,16 +56,9 @@ struct Cpu : public vcml::processor {
 
   std::function<void()> FetchInstruction(vcml::u64 adr, uint* cyc);
 
+  u16 InsnDmiRead(vcml::u64 adr);
+
   enum IoRegisters {
-    PINB = 0x23,
-    DDRB = 0x24,
-    PORTB = 0x25,
-    PINC = 0x26,
-    DDRC = 0x27,
-    PORTC = 0x28,
-    PIND = 0x29,
-    DDRD = 0x2a,
-    PORTD = 0x2b,
     TIFRO = 0x35,
     TIFR1 = 0x36,
     TIFR2 = 0x37,
@@ -105,27 +98,8 @@ struct Cpu : public vcml::processor {
     PCMSK0 = 0x6b,
     PCMSK1 = 0x6c,
     PCMSK2 = 0x6d,
-    TIMSK0 = 0x6e,
-    TIMSK1 = 0x6f,
-    TIMSK2 = 0x70,
     DIDR0 = 0x7e,
     DIDR1 = 0x7f,
-    TCCR1A = 0x80,
-    TCCR1B = 0x81,
-    TCCR1C = 0x82,
-    TCNT1L = 0x84,
-    TCNT1H = 0x85,
-    ICR1L = 0x86,
-    ICR1H = 0x87,
-    OCR1AL = 0x88,
-    OCR1AH = 0x89,
-    OCR1BL = 0x8a,
-    OCR1BH = 0x8b,
-    TCCR2A = 0xb0,
-    TCCR2B = 0xb1,
-    TCNT2 = 0xb2,
-    OCR2A = 0xb3,
-    OCR2B = 0xb4,
     ASSR = 0xb6,
     TWBR = 0xb8,
     TWSR = 0xb9,
@@ -174,10 +148,14 @@ struct Cpu : public vcml::processor {
   virtual bool read_reg_dbg(size_t idx, void* buf, size_t len) override;
   virtual bool write_reg_dbg(size_t idx, const void*, size_t l) override;
   virtual void interrupt(size_t irq, bool set) override;
+  virtual void invalidate_direct_mem_ptr(vcml::tlm_initiator_socket& origin, vcml::u64 start,
+                                          vcml::u64 end) override;
   void start_of_simulation() override;
   void end_of_simulation() override;
 
   bool service_pending_interrupt();
+
+  u8* insn_dmi_ptr_ = nullptr;
 
   // IRQ handling state (simple level-triggered model).
   u64 irq_level_mask_ = 0; // bit i: irq[i] currently asserted
