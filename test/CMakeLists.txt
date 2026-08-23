@@ -36,6 +36,7 @@ set(SW_WORKLOADS
   adc
   builtin_led
   hello_world
+  mat_mul
   timer
 )
 
