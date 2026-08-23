@@ -439,6 +439,7 @@ void Brbc::Execute(Cpu* cpu, uint sreg, int imm) {
   }
   if (condition) {
     cpu->new_pc = cpu->pc + imm + 1;
+    cpu->branch_taken = true;
   }
 }
 
@@ -463,6 +464,7 @@ void Brbs::Execute(Cpu* cpu, uint sreg, int imm) {
   }
   if (condition) {
     cpu->new_pc = cpu->pc + imm + 1;
+    cpu->branch_taken = true;
   }
 }
 
@@ -1398,7 +1400,7 @@ void Sbic::Execute(Cpu* cpu, uint io, uint b) {
 
 Sbis::Sbis() {
   exec_func = Execute;
-  cycles = 2;
+  cycles = 1;
   name = "SBIS";
 }
 

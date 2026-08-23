@@ -134,11 +134,16 @@ void Cpu::simulate(size_t max_cycles) {
 
     if (skip) {
       u16 data;
-      tlm::tlm_response_status rs = insn.read(new_pc, &data, 2, vcml::SBI_DEBUG);
+      tlm::tlm_response_status rs = insn.read(new_pc * 2, &data, 2, vcml::SBI_DEBUG);
       Insn::InsnBase* inst = Decode::DecodeInsn(data);
       cycles += inst->is_32bit ? 2 : 1;
       new_pc += inst->is_32bit ? 2 : 1;
       skip = false;
+    }
+
+    if (branch_taken) {
+      ++cycles;
+      branch_taken = false;
     }
 
     pc = new_pc;
@@ -164,6 +169,7 @@ void Cpu::reset() {
   sreg.t = 0;
   sreg.i = 1;  // Global interrupt enabled
   skip = false;
+  branch_taken = false;
   break_hit = false;
   sleeping = false;
   cycle_counter = 0;

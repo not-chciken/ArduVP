@@ -544,24 +544,24 @@ struct CpuTest : public test_base {
     cpu.sreg = 0;
 
     socket.writew<u16>(0, 0xf400);  // BRBC C, 0
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: C is clear
     ASSERT_EQ(cpu.pc, 1);
 
     socket.writew<u16>(2, 0xf409);  // BRBC Z, 1
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: Z is clear
     ASSERT_EQ(cpu.pc, 3);
 
     cpu.sreg.z = 1;
     socket.writew<u16>(6, 0xf409);  // BRBC Z, 1
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(kCycle, sc_core::SC_US);  // branch not taken: Z is set
     ASSERT_EQ(cpu.pc, 4);
 
     socket.writew<u16>(8, 0xf7f2);  // BRBC N, -2
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: N is clear
     ASSERT_EQ(cpu.pc, 3);
 
     socket.writew<u16>(6, 0xf558);  // BRBC C, +43
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: C is clear
     ASSERT_EQ(cpu.pc, 47);
   }
 
@@ -569,22 +569,22 @@ struct CpuTest : public test_base {
     cpu.sreg = 0;
 
     socket.writew<u16>(0, 0xf000);  // BRBS C, 0
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(kCycle, sc_core::SC_US);  // branch not taken: C is clear
     ASSERT_EQ(cpu.pc, 1);
 
     cpu.sreg.z = 1;
     socket.writew<u16>(2, 0xf009);  // BRBS Z, 1
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: Z is set
     ASSERT_EQ(cpu.pc, 3);
 
     cpu.sreg.z = 0;
-    socket.writew<u16>(2, 0xf009);  // BRBS Z, 1
+    socket.writew<u16>(2, 0xf009);  // BRBS Z, 1 (stale write at pc=1, not fetched; NOP at pc=3 runs instead)
     sc_core::wait(kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.pc, 4);
 
     cpu.sreg.n = 1;
     socket.writew<u16>(8, 0xf3f2);  // BRBS N, -2
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: N is set
     ASSERT_EQ(cpu.pc, 3);
   }
 
@@ -592,17 +592,17 @@ struct CpuTest : public test_base {
     cpu.sreg = 0;
 
     socket.writew<u16>(0, 0xf408);  // BRCC C, 1
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: C is clear
     ASSERT_EQ(cpu.pc, 2);
 
     cpu.sreg.c = 1;
     socket.writew<u16>(4, 0xf408);  // BRCC C, 1
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(kCycle, sc_core::SC_US);  // branch not taken: C is set
     ASSERT_EQ(cpu.pc, 3);
 
     cpu.sreg.c = 0;
     socket.writew<u16>(6, 0xf7f0);  // BRCC C, -2
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: C is clear
     ASSERT_EQ(cpu.pc, 2);
   }
 
@@ -610,16 +610,16 @@ struct CpuTest : public test_base {
     cpu.sreg = 0;
 
     socket.writew<u16>(0, 0xf008);  // BRCS C, 1
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(kCycle, sc_core::SC_US);  // branch not taken: C is clear
     ASSERT_EQ(cpu.pc, 1);
 
     cpu.sreg.c = 1;
     socket.writew<u16>(2, 0xf008);  // BRCS C, 1
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: C is set
     ASSERT_EQ(cpu.pc, 3);
 
     socket.writew<u16>(6, 0xf3f0);  // BRCS C, -2
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: C is set
     ASSERT_EQ(cpu.pc, 2);
   }
 
@@ -631,16 +631,16 @@ struct CpuTest : public test_base {
 
   void TestBreq() {
     socket.writew<u16>(0, 0xf009);  // BREQ 1
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(kCycle, sc_core::SC_US);  // branch not taken: Z is clear
     ASSERT_EQ(cpu.pc, 1);
 
     cpu.sreg.z = 1;
     socket.writew<u16>(2, 0xf009);  // BREQ 1
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: Z is set
     ASSERT_EQ(cpu.pc, 3);
 
     socket.writew<u16>(6, 0xf3f1);  // BREQ -2
-    sc_core::wait(kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // branch taken: Z is set
     ASSERT_EQ(cpu.pc, 2);
   }
 
@@ -1289,13 +1289,13 @@ struct CpuTest : public test_base {
   void TestSbis() {
     cpu.gpior0 = 2;
     socket.writew<u16>(0, 0x9bf0);  // SBIS 0x1e, 0
-    sc_core::wait(2 * kCycle, sc_core::SC_US);
+    sc_core::wait(1 * kCycle, sc_core::SC_US);  // bit clear: no skip
     ASSERT_EQ(cpu.retired_instructions, 1);
     ASSERT_EQ(cpu.pc, 0x01);
 
     cpu.gpior0 = 1;
     socket.writew<u16>(2, 0x9bf0);  // SBIS 0x1e, 0
-    sc_core::wait(3 * kCycle, sc_core::SC_US);
+    sc_core::wait(2 * kCycle, sc_core::SC_US);  // bit set: skip one-word instruction
     ASSERT_EQ(cpu.retired_instructions, 2);
     ASSERT_EQ(cpu.pc, 0x03);
   }

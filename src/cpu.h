@@ -46,6 +46,7 @@ struct Cpu : public vcml::processor {
   } sreg;
 
   bool skip;
+  bool branch_taken;
   bool break_hit;
   bool sleeping;
 
