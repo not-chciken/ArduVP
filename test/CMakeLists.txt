@@ -30,3 +30,20 @@ create_test_case(io_ports)
 create_test_case(system)
 create_test_case(timer)
 create_test_case(usart)
+
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+set(SW_WORKLOADS
+  adc
+  builtin_led
+  hello_world
+  timer
+)
+
+foreach(workload ${SW_WORKLOADS})
+  add_test(NAME sw_${workload}
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/test/sw_test.py
+                   --binary $<TARGET_FILE:arduvp> ${workload})
+  set_tests_properties(sw_${workload} PROPERTIES TIMEOUT 90)
+endforeach()
+
+add_dependencies(tests arduvp)
