@@ -3,6 +3,7 @@
 #include <systemc.h>
 #include <vcml.h>
 
+#include <chrono>
 #include <iostream>
 
 #include "adc.h"
@@ -130,7 +131,6 @@ struct ArduSystem : public vcml::system {
       io_ports.out_pinb[i].stub();
     }
 
-
     timer.ocie2a_out.bind(cpu.irq[0]);
     timer.ocie2b_out.bind(cpu.irq[1]);
     timer.toie2_out.bind(cpu.irq[2]);
@@ -165,6 +165,16 @@ struct ArduSystem : public vcml::system {
   }
 
   virtual int run() override { return vcml::system::run(); }
+  virtual void start_of_simulation() override { sim_start_time = std::chrono::steady_clock::now(); }
+  virtual void end_of_simulation() override {
+    auto elapsed = std::chrono::steady_clock::now() - sim_start_time;
+    double elapsed_wall_clock_time = std::chrono::duration<double>(elapsed).count();
+    double elapsed_virtual_time = vcml::time_stamp_ms() / 1000.0;
+
+    log_info("Elapsed wall-clock time: %.3f seconds", elapsed_wall_clock_time);
+    log_info("Elapsed virtual time:    %.3f seconds", elapsed_virtual_time);
+    log_info("Real-time factor:        %.3f", elapsed_virtual_time / elapsed_wall_clock_time);
+  }
 
   Cpu cpu;
   Timer timer;
@@ -194,4 +204,6 @@ struct ArduSystem : public vcml::system {
   vcml::generic::memory program_mem;
   vcml::generic::memory sram_mem;
   vcml::generic::reset reset;
+
+  std::chrono::steady_clock::time_point sim_start_time;
 };
