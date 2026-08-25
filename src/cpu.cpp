@@ -20,7 +20,7 @@ Cpu::Cpu()
 
   define_cpureg_rw(32, "sreg", sizeof(RegType));
   define_cpureg_rw(33, "sp", sizeof(AddrType));
-  define_cpureg_rw(34, "pc", sizeof(u32));
+  define_cpureg_rw(34, "pc2", sizeof(u32));
 
   define_cpureg_rw(IoRegisters::PCIFR, "pcifr", 1);
   define_cpureg_rw(IoRegisters::EIFR, "eifr", 1);
