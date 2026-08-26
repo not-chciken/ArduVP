@@ -13,6 +13,8 @@
 #include "timer.h"
 #include "usart.h"
 
+#include "ssd1306.h"
+
 struct ArduSystem : public vcml::system {
   static constexpr size_t NUM_ANALOG_PINS = 6;
 
@@ -24,6 +26,7 @@ struct ArduSystem : public vcml::system {
         adc("adc"),
         comparator("comparator"),
         io_ports("io_ports"),
+        oled_screen("oled_screen"),
         builtin_led("builtin_led"),
         serial_term("serial"),
         pin_d("pin_d"),
@@ -162,6 +165,8 @@ struct ArduSystem : public vcml::system {
     cpu.irq_ack[13].bind(usart.tx_ack);
     cpu.irq_ack[14].bind(adc.ack);
     cpu.irq_ack[16].bind(comparator.ack);
+
+    oled_screen.in.stub();
   }
 
   virtual int run() override { return vcml::system::run(); }
@@ -182,6 +187,8 @@ struct ArduSystem : public vcml::system {
   Adc adc;
   Comparator comparator;
   IoPorts io_ports;
+
+  vcml::i2c::ssd1306 oled_screen;
 
   vcml::gpio::leds builtin_led;
 

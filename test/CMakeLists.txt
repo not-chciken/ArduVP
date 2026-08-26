@@ -30,6 +30,7 @@ create_test_case(io_ports)
 create_test_case(system)
 create_test_case(timer)
 create_test_case(usart)
+create_test_case(ssd1306)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 set(SW_WORKLOADS
