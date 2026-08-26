@@ -21,6 +21,7 @@ Cpu::Cpu()
   define_cpureg_rw(32, "sreg", sizeof(RegType));
   define_cpureg_rw(33, "sp", sizeof(AddrType));
   define_cpureg_rw(34, "pc2", sizeof(u32));
+  define_cpureg_rw(35, "pc", sizeof(AddrType));
 
   define_cpureg_rw(IoRegisters::PCIFR, "pcifr", 1);
   define_cpureg_rw(IoRegisters::EIFR, "eifr", 1);
@@ -344,6 +345,8 @@ bool Cpu::read_reg_dbg(size_t regno, void* buf, size_t len) {
     *(AddrType*)buf = sp;
   else if (regno == 34)
     *(u32*)buf = pc * 2;
+  else if (regno == 35)
+    *(AddrType*)buf = pc;
   else
     *(RegType*)buf = 0;
 
@@ -359,6 +362,8 @@ bool Cpu::write_reg_dbg(size_t regno, const void* buf, size_t len) {
     sp = *(AddrType*)buf;
   else if (regno == 34)
     pc = (*(u32*)buf) / 2;
+  else if (regno == 35)
+    pc = (*(u16*)buf);
 
   return true;
 }
