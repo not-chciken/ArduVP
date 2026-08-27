@@ -11,6 +11,7 @@
 #include "cpu.h"
 #include "io_ports.h"
 #include "timer.h"
+#include "twi.h"
 #include "usart.h"
 
 #include "ssd1306.h"
@@ -23,6 +24,7 @@ struct ArduSystem : public vcml::system {
         cpu(),
         timer("timer"),
         usart("usart"),
+        twi("twi"),
         adc("adc"),
         comparator("comparator"),
         io_ports("io_ports"),
@@ -51,6 +53,7 @@ struct ArduSystem : public vcml::system {
     bus.bind(timer.in, vcml::range(0x80, 0x8b), 0x80);
     bus.bind(timer.in, vcml::range(0xb0, 0xb6), 0xb0);
     bus.bind(usart.in, vcml::range(0xc0, 0xc6));
+    bus.bind(twi.in, vcml::range(0xb8, 0xbd), 0xb8);
     bus.bind(adc.in, vcml::range(0x78, 0x7c));
     bus.bind(comparator.in, vcml::range(0x50, 0x50));
 
@@ -71,6 +74,12 @@ struct ArduSystem : public vcml::system {
 
     clock.clk.bind(usart.clk);
     reset.rst.bind(usart.rst);
+
+    clock.clk.bind(twi.clk);
+    reset.rst.bind(twi.rst);
+
+    twi.out_i2c.stub();
+    twi.in_i2c.stub();
 
     clock.clk.bind(adc.clk);
     reset.rst.bind(adc.rst);
@@ -149,6 +158,7 @@ struct ArduSystem : public vcml::system {
     usart.irq_tx.bind(cpu.irq[13]);
     adc.irq.bind(cpu.irq[14]);
     comparator.irq.bind(cpu.irq[16]);
+    twi.irq.bind(cpu.irq[17]);
 
     cpu.irq_ack[0].bind(timer.ocie2a_ack);
     cpu.irq_ack[1].bind(timer.ocie2b_ack);
@@ -165,6 +175,7 @@ struct ArduSystem : public vcml::system {
     cpu.irq_ack[13].bind(usart.tx_ack);
     cpu.irq_ack[14].bind(adc.ack);
     cpu.irq_ack[16].bind(comparator.ack);
+    cpu.irq_ack[17].bind(twi.ack);
 
     oled_screen.in.stub();
   }
@@ -184,6 +195,7 @@ struct ArduSystem : public vcml::system {
   Cpu cpu;
   Timer timer;
   Usart usart;
+  Twi twi;
   Adc adc;
   Comparator comparator;
   IoPorts io_ports;

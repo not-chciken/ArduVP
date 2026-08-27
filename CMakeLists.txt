@@ -38,6 +38,7 @@ set(ALL_CPPS
   ${CMAKE_SOURCE_DIR}/src/main.cpp
   ${CMAKE_SOURCE_DIR}/src/ssd1306.cpp
   ${CMAKE_SOURCE_DIR}/src/timer.cpp
+  ${CMAKE_SOURCE_DIR}/src/twi.cpp
   ${CMAKE_SOURCE_DIR}/src/usart.cpp
 )
 
