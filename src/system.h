@@ -90,6 +90,8 @@ struct ArduSystem : public vcml::system {
     clock.clk.bind(io_ports.clk);
     reset.rst.bind(io_ports.rst);
 
+    reset.rst.bind(oled_screen.rst);
+
     usart.serial_tx.bind(serial_term.serial_rx);
     serial_term.serial_tx.bind(usart.serial_rx);
 
