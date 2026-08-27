@@ -29,6 +29,7 @@ create_test_case(cpu)
 create_test_case(io_ports)
 create_test_case(system)
 create_test_case(timer)
+create_test_case(twi)
 create_test_case(usart)
 create_test_case(ssd1306)
 

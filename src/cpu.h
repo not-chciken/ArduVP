@@ -102,18 +102,6 @@ struct Cpu : public vcml::processor {
     DIDR0 = 0x7e,
     DIDR1 = 0x7f,
     ASSR = 0xb6,
-    TWBR = 0xb8,
-    TWSR = 0xb9,
-    TWAR = 0xba,
-    TWDR = 0xbb,
-    TWCR = 0xbc,
-    TWAMR = 0xbd,
-    UCSR0A = 0xc0,
-    UCSR0B = 0xc1,
-    UCSR0C = 0xc2,
-    UBRR0L = 0xc4,
-    UBRR0H = 0xc5,
-    UDR0 = 0xc6
   };
 
   u8 gpior0 = 0;

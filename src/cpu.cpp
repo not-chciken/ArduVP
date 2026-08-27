@@ -56,13 +56,7 @@ Cpu::Cpu()
   define_cpureg_rw(IoRegisters::PCMSK2, "pcmsk2", 1);
   define_cpureg_rw(IoRegisters::DIDR0, "didr0", 1);
   define_cpureg_rw(IoRegisters::DIDR1, "didr1", 1);
-  define_cpureg_rw(IoRegisters::ASSR, "assr", 1);
-  define_cpureg_rw(IoRegisters::TWBR, "twbr", 1);
-  define_cpureg_rw(IoRegisters::TWSR, "twsr", 1);
-  define_cpureg_rw(IoRegisters::TWAR, "twar", 1);
-  define_cpureg_rw(IoRegisters::TWDR, "twdr", 1);
-  define_cpureg_rw(IoRegisters::TWCR, "twcr", 1);
-  define_cpureg_rw(IoRegisters::TWAMR, "twamr", 1);
+  define_cpureg_rw(IoRegisters::ASSR, "assr", 1);;
 }
 
 u16 Cpu::InsnDmiRead(vcml::u64 adr) {
@@ -407,6 +401,7 @@ void Cpu::end_of_simulation() {
 static constexpr u16 IRQ_TABLE[] = {
     0x000E, 0x0010, 0x0012, 0x0014, 0x0016, 0x0018, 0x001A,
     0x001C, 0x001E, 0x0020, 0x0022, 0x0024, 0x0026, 0x0028,
+    0x002A, 0x002C, 0x002E, 0x0030, 0x0032,
 };
 
 bool Cpu::service_pending_interrupt() {
