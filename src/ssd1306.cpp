@@ -180,7 +180,7 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
     return;
   }
 
-  if (opcode >= 0x10 && opcode <= 0x1f) {
+  if (0x10 <= opcode && opcode <= 0x1f) {
     m_col = (m_col & 0x0f) | ((opcode & 0x0f) << 4);
     m_page_mode_col_start = m_col;
     return;

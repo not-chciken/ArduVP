@@ -22,6 +22,7 @@ struct ssd1306_test : public test_base, i2c_host {
     add_test("inverse", &ssd1306_test::test_inverse);
     add_test("read_status", &ssd1306_test::test_read_status);
     add_test("write_gddram", &ssd1306_test::test_write_gddram);
+    add_test("test_nop", &ssd1306_test::test_nop);
 
     rst.bind(screen.rst);
   }
@@ -161,6 +162,22 @@ struct ssd1306_test : public test_base, i2c_host {
     resp = socket.stop();
     ASSERT_EQ(resp, I2C_ACK);
   }
+
+  void test_nop() {
+    resp = socket.start(SSD1306_ADDR, tlm::TLM_WRITE_COMMAND);
+    ASSERT_EQ(resp, I2C_ACK);
+    data = CONTROL_MULTI_CMD;
+    resp = socket.transport(data);
+    ASSERT_EQ(resp, I2C_ACK);
+
+    data = 0xe3;
+    resp = socket.transport(data);
+    ASSERT_EQ(resp, I2C_ACK);
+
+    resp = socket.stop();
+    ASSERT_EQ(resp, I2C_ACK);
+  }
+
 
 };
 
