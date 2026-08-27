@@ -78,7 +78,7 @@ struct ArduSystem : public vcml::system {
     clock.clk.bind(twi.clk);
     reset.rst.bind(twi.rst);
 
-    twi.out_i2c.stub();
+    twi.out_i2c.bind(oled_screen.in);
     twi.in_i2c.stub();
 
     clock.clk.bind(adc.clk);
@@ -176,8 +176,6 @@ struct ArduSystem : public vcml::system {
     cpu.irq_ack[14].bind(adc.ack);
     cpu.irq_ack[16].bind(comparator.ack);
     cpu.irq_ack[17].bind(twi.ack);
-
-    oled_screen.in.stub();
   }
 
   virtual int run() override { return vcml::system::run(); }
