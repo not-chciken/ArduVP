@@ -36,9 +36,10 @@ struct ssd1306 : public vcml::component, i2c_host {
   property<u32> on_color;
   property<u32> off_color;
 
-  const bool is_display_on();
-  const bool is_inverse();
-  const u8 get_contrast();
+  bool is_display_on() const;
+  bool is_inverse() const;
+  u8 get_contrast() const;
+  bool read_pixel(u32 x, u32 y) const;
 
   virtual void reset() override;
 

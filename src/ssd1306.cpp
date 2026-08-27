@@ -23,6 +23,30 @@ ssd1306::ssd1306(const sc_core::sc_module_name& nm)
   reset();
 }
 
+void ssd1306::end_of_elaboration() {
+  m_console.setup(ui::videomode(PIXEL_FORMAT, kWidth, kHeight), m_video);
+}
+
+void ssd1306::end_of_simulation() {
+  m_console.shutdown();
+}
+
+bool ssd1306::is_display_on() const {
+  return m_display_on;
+}
+
+bool ssd1306::is_inverse() const {
+  return m_inverse;
+}
+
+u8 ssd1306::get_contrast() const {
+  return m_contrast;
+}
+
+bool ssd1306::read_pixel(u32 x, u32 y) const {
+  return (m_console.read_pixel(x, y) != kDefaultOffColor);
+}
+
 void ssd1306::reset() {
   memset(m_gddram, 0, sizeof(m_gddram));
   fill_all_pixels(off_color.get());
@@ -52,26 +76,6 @@ void ssd1306::reset() {
   m_com_scan_remap = false;
 
   m_console.render();
-}
-
-void ssd1306::end_of_elaboration() {
-  m_console.setup(ui::videomode(PIXEL_FORMAT, kWidth, kHeight), m_video);
-}
-
-void ssd1306::end_of_simulation() {
-  m_console.shutdown();
-}
-
-const bool ssd1306::is_display_on() {
-  return m_display_on;
-}
-
-const bool ssd1306::is_inverse() {
-  return m_inverse;
-}
-
-const u8 ssd1306::get_contrast() {
-  return m_contrast;
 }
 
 i2c_response ssd1306::i2c_start(const i2c_target_socket&, tlm::tlm_command) {
