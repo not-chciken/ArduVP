@@ -28,6 +28,7 @@ struct ssd1306 : public module, i2c_host {
   static constexpr ui::pixelformat PIXEL_FORMAT = ui::FORMAT_R8G8B8;
 
   ssd1306(const sc_core::sc_module_name& nm);
+  VCML_KIND(i2c::ssd1306);
 
   i2c_target_socket in;
 

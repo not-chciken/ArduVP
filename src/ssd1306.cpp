@@ -327,5 +327,9 @@ void ssd1306::redraw() {
   m_console.render();
 }
 
+VCML_EXPORT_MODEL(vcml::i2c::ssd1306, name, args) {
+  return new ssd1306(name);
+}
+
 }  // namespace i2c
 }  // namespace vcml
