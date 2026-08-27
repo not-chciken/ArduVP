@@ -20,11 +20,9 @@ struct ssd1306_test : public test_base, i2c_host {
     add_test("on_off", &ssd1306_test::test_on_off);
     add_test("contrast", &ssd1306_test::test_contrast);
     add_test("inverse", &ssd1306_test::test_inverse);
-  }
+    add_test("read_status", &ssd1306_test::test_read_status);
 
-  void reset() override {
-    screen.reset_state();
-    test_base::reset();
+    rst.bind(screen.rst);
   }
 
   void test_address() {
@@ -107,27 +105,17 @@ struct ssd1306_test : public test_base, i2c_host {
     ASSERT_EQ(resp, I2C_ACK);
   }
 
-  void test_read() {
-    resp = socket.start(SSD1306_ADDR, tlm::TLM_WRITE_COMMAND);
+  void test_read_status() {
+    resp = socket.start(SSD1306_ADDR, tlm::TLM_READ_COMMAND);
     ASSERT_EQ(resp, I2C_ACK);
     data = CONTROL_MULTI_CMD;
     resp = socket.transport(data);
     ASSERT_EQ(resp, I2C_ACK);
 
-    data = 0xaf;
+    data = 0;
     resp = socket.transport(data);
     ASSERT_EQ(resp, I2C_ACK);
-    ASSERT_TRUE(screen.is_display_on());
-
-    data = 0xaf;
-    resp = socket.transport(data);
-    ASSERT_EQ(resp, I2C_ACK);
-    ASSERT_TRUE(screen.is_display_on());
-
-    data = 0xae;
-    resp = socket.transport(data);
-    ASSERT_EQ(resp, I2C_ACK);
-    ASSERT_FALSE(screen.is_display_on());
+    ASSERT_EQ(data, 0x40);
 
     resp = socket.stop();
     ASSERT_EQ(resp, I2C_ACK);
