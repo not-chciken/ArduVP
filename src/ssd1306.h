@@ -12,7 +12,7 @@
 #define VCML_MODELS_SSD1306_H
 
 #include "vcml/core/model.h"
-#include "vcml/core/module.h"
+#include "vcml/core/component.h"
 #include "vcml/core/systemc.h"
 #include "vcml/core/types.h"
 #include "vcml/protocols/i2c.h"
@@ -21,7 +21,7 @@
 namespace vcml {
 namespace i2c {
 
-struct ssd1306 : public module, i2c_host {
+struct ssd1306 : public vcml::component, i2c_host {
   static constexpr u32 kWidth = 128;
   static constexpr u32 kHeight = 64;
   static constexpr u32 kPages = kHeight / 8;
@@ -40,7 +40,7 @@ struct ssd1306 : public module, i2c_host {
   const bool is_inverse();
   const u8 get_contrast();
 
-  void reset_state();
+  virtual void reset() override;
 
  protected:
   enum class addressing_mode { PAGE, HORIZONTAL, VERTICAL };

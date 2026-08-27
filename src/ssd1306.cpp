@@ -12,17 +12,18 @@ constexpr u32 kDefaultOnColor = 0x66ccffu;
 constexpr u32 kDefaultOffColor = 0x000000u;
 
 ssd1306::ssd1306(const sc_core::sc_module_name& nm)
-    : module(nm),
+    : component(nm),
       in("in"),
       alternate_address("alternate_address", false),
       on_color("on_color", kDefaultOnColor),
       off_color("off_color", kDefaultOffColor),
       m_console() {
   in.set_address(alternate_address ? kSlaveAddressAlt : kSlaveAddress);
-  reset_state();
+  clk.stub();
+  reset();
 }
 
-void ssd1306::reset_state() {
+void ssd1306::reset() {
   memset(m_gddram, 0, sizeof(m_gddram));
   fill_all_pixels(off_color.get());
 
