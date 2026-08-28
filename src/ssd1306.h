@@ -35,6 +35,7 @@ struct ssd1306 : public vcml::component, i2c_host {
   property<bool> alternate_address;
   property<u32> on_color;
   property<u32> off_color;
+  property<bool> rotated;
 
   bool is_display_on() const;
   bool is_inverse() const;

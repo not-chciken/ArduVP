@@ -17,6 +17,7 @@ ssd1306::ssd1306(const sc_core::sc_module_name& nm)
       alternate_address("alternate_address", false),
       on_color("on_color", kDefaultOnColor),
       off_color("off_color", kDefaultOffColor),
+      rotated("rotated", true),
       m_console() {
   in.set_address(alternate_address ? kSlaveAddressAlt : kSlaveAddress);
   clk.stub();
@@ -337,7 +338,7 @@ void ssd1306::fill_all_pixels(u32 color) {
 
 void ssd1306::redraw_column(uint page, uint col) {
   u8 byte = m_gddram[page][col];
-  u32 out_col = m_segment_remap ? (kWidth - 1 - col) : col;
+  u32 out_col = (m_segment_remap ^ rotated) ? (kWidth - 1 - col) : col;
 
   for (uint bit = 0; bit < 8; bit++) {
     bool set = (byte >> bit) & 1;
@@ -345,7 +346,7 @@ void ssd1306::redraw_column(uint page, uint col) {
     bool on = m_display_on && on_logical;
 
     u32 row = page * 8 + bit;
-    u32 out_row = m_com_scan_remap ? (SCREEN_HEIGHT - 1 - row) : row;
+    u32 out_row = (m_com_scan_remap ^ rotated) ? (SCREEN_HEIGHT - 1 - row) : row;
     out_row = (out_row + m_vertical_shift) % SCREEN_HEIGHT;
     set_pixel(out_row, out_col, on);
   }
