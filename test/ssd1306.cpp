@@ -8,6 +8,8 @@ struct ssd1306_test : public test_base, i2c_host {
   static constexpr u8 CONTROL_MULTI_DATA = 0x40u;
   static constexpr u8 CONTROL_SINGLE_CMD = 0x80u;
   static constexpr u8 CONTROL_SINGLE_DATA = 0xc0u;
+  static constexpr size_t SCREEN_WIDTH = 128;
+  static constexpr size_t SCREEN_HEIGHT = 64;
 
   i2c::ssd1306 screen;
   i2c_initiator_socket socket;
@@ -16,15 +18,27 @@ struct ssd1306_test : public test_base, i2c_host {
 
   ssd1306_test(const sc_module_name& nm) : test_base(nm), screen("screen"), socket("socket") {
     socket.bind(screen.in);
+    add_test("init_state", &ssd1306_test::test_init_state);
     add_test("address", &ssd1306_test::test_address);
     add_test("on_off", &ssd1306_test::test_on_off);
     add_test("contrast", &ssd1306_test::test_contrast);
     add_test("inverse", &ssd1306_test::test_inverse);
     add_test("read_status", &ssd1306_test::test_read_status);
     add_test("write_gddram", &ssd1306_test::test_write_gddram);
-    add_test("test_nop", &ssd1306_test::test_nop);
+    add_test("nop", &ssd1306_test::test_nop);
+    add_test("entire_display_on", &ssd1306_test::test_entire_display_on);
 
     rst.bind(screen.rst);
+  }
+
+  void test_init_state() {
+    for (size_t y = 0; y < SCREEN_HEIGHT; y++)
+      for (size_t x = 0; x < SCREEN_WIDTH; x++)
+        ASSERT_FALSE(screen.read_pixel(x,y));
+
+    ASSERT_FALSE(screen.is_display_on());
+    ASSERT_FALSE(screen.is_inverse());
+    ASSERT_EQ(screen.get_contrast(), 0x7fu);
   }
 
   void test_address() {
@@ -97,11 +111,19 @@ struct ssd1306_test : public test_base, i2c_host {
     resp = socket.transport(data);
     ASSERT_EQ(resp, I2C_ACK);
     ASSERT_TRUE(screen.is_inverse());
+    ASSERT_FALSE(screen.read_pixel(0,0));
+
+    data = 0xaf;
+    resp = socket.transport(data);
+    ASSERT_EQ(resp, I2C_ACK);
+    ASSERT_TRUE(screen.is_inverse());
+    ASSERT_TRUE(screen.read_pixel(0,0));
 
     data = 0xa6;
     resp = socket.transport(data);
     ASSERT_EQ(resp, I2C_ACK);
     ASSERT_FALSE(screen.is_inverse());
+    ASSERT_FALSE(screen.read_pixel(0,0));
 
     resp = socket.stop();
     ASSERT_EQ(resp, I2C_ACK);
@@ -173,6 +195,29 @@ struct ssd1306_test : public test_base, i2c_host {
     data = 0xe3;
     resp = socket.transport(data);
     ASSERT_EQ(resp, I2C_ACK);
+
+    resp = socket.stop();
+    ASSERT_EQ(resp, I2C_ACK);
+  }
+
+  void test_entire_display_on() {
+    resp = socket.start(SSD1306_ADDR, tlm::TLM_WRITE_COMMAND);
+    ASSERT_EQ(resp, I2C_ACK);
+    data = CONTROL_MULTI_CMD;
+    resp = socket.transport(data);
+    ASSERT_EQ(resp, I2C_ACK);
+
+    data = 0xaf;
+    resp = socket.transport(data);
+    ASSERT_EQ(resp, I2C_ACK);
+
+    data = 0xa5;
+    resp = socket.transport(data);
+    ASSERT_EQ(resp, I2C_ACK);
+
+    for (size_t y = 0; y < SCREEN_HEIGHT; y++)
+      for (size_t x = 0; x < SCREEN_WIDTH; x++)
+        ASSERT_TRUE(screen.read_pixel(x,y));
 
     resp = socket.stop();
     ASSERT_EQ(resp, I2C_ACK);
