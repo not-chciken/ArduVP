@@ -189,7 +189,7 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
     return;
 
   if (0xb0 <= opcode && opcode <= 0xb7) {
-    m_page = opcode & 0x07;
+    m_page = mwr::extract(opcode, 0, 3);
     return;
   }
 
@@ -211,13 +211,13 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
     }
     break;
   case 0x21:
-    m_col_start = args[0] & 0x7f;
-    m_col_end = args[1] & 0x7f;
+    m_col_start = mwr::extract(args[0], 0, 7);
+    m_col_end = mwr::extract(args[1], 0, 7);
     m_col = m_col_start;
     break;
   case 0x22:
-    m_page_start = args[0] & 0x7;
-    m_page_end = args[1] & 0x7;
+    m_page_start = mwr::extract(args[0], 0, 7);
+    m_page_end = mwr::extract(args[1], 0, 7);
     m_page = m_page_start;
     break;
   case 0x81:
