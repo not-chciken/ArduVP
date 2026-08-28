@@ -23,8 +23,8 @@ namespace i2c {
 
 struct ssd1306 : public vcml::component, i2c_host {
   static constexpr u32 kWidth = 128;
-  static constexpr u32 kHeight = 64;
-  static constexpr u32 kPages = kHeight / 8;
+  static constexpr u32 SCREEN_HEIGHT = 64;
+  static constexpr u32 kPages = SCREEN_HEIGHT / 8;
   static constexpr ui::pixelformat PIXEL_FORMAT = ui::FORMAT_R8G8B8;
 
   ssd1306(const sc_core::sc_module_name& nm);
@@ -68,7 +68,7 @@ struct ssd1306 : public vcml::component, i2c_host {
 
   ui::console m_console;
 
-  u8 m_video[kWidth * kHeight * ui::pixelformat_bpp(PIXEL_FORMAT)];
+  u8 m_video[kWidth * SCREEN_HEIGHT * 3];
   u8 m_gddram[kPages][kWidth];
 
   bool m_await_control;
@@ -86,6 +86,12 @@ struct ssd1306 : public vcml::component, i2c_host {
   u8 m_page_start, m_page_end;
   u8 m_page_mode_col_start;
   u8 m_contrast;
+  u8 m_divide_ratio;
+  u8 m_osc_freq;
+  u8 m_phase1_period;
+  u8 m_phase2_period;
+  u8 m_deselect_level;
+  u8 m_vertical_shift;
 
   bool m_display_on;
   bool m_inverse;

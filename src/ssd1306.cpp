@@ -24,7 +24,7 @@ ssd1306::ssd1306(const sc_core::sc_module_name& nm)
 }
 
 void ssd1306::end_of_elaboration() {
-  m_console.setup(ui::videomode(PIXEL_FORMAT, kWidth, kHeight), m_video);
+  m_console.setup(ui::videomode(PIXEL_FORMAT, kWidth, SCREEN_HEIGHT), m_video);
 }
 
 void ssd1306::end_of_simulation() {
@@ -68,6 +68,12 @@ void ssd1306::reset() {
   m_page_end = kPages - 1;
   m_page_mode_col_start = 0;
   m_contrast = 0x7f;
+  m_divide_ratio = 0;
+  m_osc_freq = 8;
+  m_phase1_period = 2;
+  m_phase2_period = 2;
+  m_deselect_level = 2;
+  m_vertical_shift = 0;
 
   m_display_on = false;
   m_inverse = false;
@@ -179,10 +185,10 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
     return;
   }
 
-  if (opcode >= 0x40 && opcode <= 0x7f)
+  if (0x40 <= opcode && opcode <= 0x7f)
     return;
 
-  if (opcode >= 0xb0 && opcode <= 0xb7) {
+  if (0xb0 <= opcode && opcode <= 0xb7) {
     m_page = opcode & 0x07;
     return;
   }
@@ -240,10 +246,12 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
     redraw();
     break;
   case 0xae:
+    log_debug("turned display off");
     m_display_on = false;
     redraw();
     break;
   case 0xaf:
+    log_debug("turned display on");
     m_display_on = true;
     redraw();
     break;
@@ -253,8 +261,25 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
   case 0xc8:
     m_com_scan_remap = true;
     break;
+  case 0xd3:
+    m_vertical_shift = mwr::extract(args[0], 0, 6);
+    redraw();
+    break;
+  case 0xd5:
+    m_divide_ratio = mwr::extract(args[0], 0, 4);
+    m_osc_freq = mwr::extract(args[0], 4, 4);
+    break;
+  case 0xd9:
+    m_phase1_period = mwr::extract(args[0], 0, 4);
+    m_phase2_period = mwr::extract(args[0], 4, 4);
+    break;
+  case 0xdb:
+    m_deselect_level = mwr::extract(args[0], 4, 3);
+    break;
+  case 0xe3:
+    break;
   default:
-    log_warn("executing unknown command with opcode %hhu", opcode);
+    log_warn("executing unknown command with opcode 0x%02x", opcode);
     break;
   }
 }
@@ -303,7 +328,7 @@ void ssd1306::fill_all_pixels(u32 color) {
   u8 g = mwr::extract(color, 8, 8);
   u8 b = mwr::extract(color, 0, 8);
 
-  for (size_t i = 0; i < kWidth * kHeight; i++) {
+  for (size_t i = 0; i < kWidth * SCREEN_HEIGHT; i++) {
     m_video[i * 3 + 0] = r;
     m_video[i * 3 + 1] = g;
     m_video[i * 3 + 2] = b;
@@ -320,7 +345,8 @@ void ssd1306::redraw_column(uint page, uint col) {
     bool on = m_display_on && on_logical;
 
     u32 row = page * 8 + bit;
-    u32 out_row = m_com_scan_remap ? (kHeight - 1 - row) : row;
+    u32 out_row = m_com_scan_remap ? (SCREEN_HEIGHT - 1 - row) : row;
+    out_row = (out_row + m_vertical_shift) % SCREEN_HEIGHT;
     set_pixel(out_row, out_col, on);
   }
 }
