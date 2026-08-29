@@ -424,7 +424,7 @@ bool Cpu::service_pending_interrupt() {
 
     sleeping = false;
 
-    const u16 ret_pc = pc;
+    const u16 ret_pc = new_pc;
     MemoryWrite(sp, (u8)(ret_pc >> 8));
     --sp;
     MemoryWrite(sp, (u8)(ret_pc & 0xff));
