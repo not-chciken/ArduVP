@@ -2,12 +2,56 @@
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
-#define SCREEN_WIDTH 128  // OLED display width, in pixels
-#define SCREEN_HEIGHT 64  // OLED display height, in pixels
-#define OLED_RESET -1     // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
 #define SCREEN_ADDRESS 0x3C
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+const int16_t LOGO_WIDTH = 32;
+const int16_t LOGO_HEIGHT = 32;
+const unsigned char LOGO_BITMAP[] PROGMEM = {
+  0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff,
+  0xc0, 0x00, 0x00, 0x03,
+  0xc0, 0x00, 0x00, 0x03,
+  0xce, 0x73, 0xc0, 0x73,
+  0xce, 0x73, 0xc0, 0x73,
+  0xce, 0x73, 0xc0, 0x73,
+  0xce, 0x73, 0xc0, 0x73,
+  0xce, 0x73, 0xc0, 0x73,
+  0xce, 0x73, 0xc0, 0x73,
+  0xce, 0x73, 0xc0, 0x73,
+  0xce, 0x73, 0xc0, 0x73,
+  0xce, 0x73, 0xc0, 0x73,
+  0xce, 0x73, 0xc0, 0x73,
+  0xce, 0x73, 0xc2, 0x73,
+  0xce, 0x73, 0xc6, 0x73,
+  0xce, 0x63, 0xce, 0x73,
+  0xce, 0x43, 0xce, 0x73,
+  0xce, 0x03, 0xce, 0x73,
+  0xce, 0x03, 0xce, 0x73,
+  0xce, 0x03, 0xce, 0x73,
+  0xce, 0x03, 0xce, 0x73,
+  0xce, 0x03, 0xce, 0x73,
+  0xce, 0x03, 0xce, 0x73,
+  0xce, 0x03, 0xce, 0x73,
+  0xce, 0x03, 0xce, 0x73,
+  0xce, 0x03, 0xce, 0x73,
+  0xce, 0x03, 0xce, 0x73,
+  0xc0, 0x00, 0x00, 0x03,
+  0xc0, 0x00, 0x00, 0x03,
+  0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff
+};
+
+const int16_t MOVE_STEP = 2;
+
+int16_t logoX = 0;
+int16_t logoY = 0;
+int16_t velX = MOVE_STEP;
+int16_t velY = MOVE_STEP;
 
 void setup() {
   Serial.begin(9600);
@@ -16,25 +60,26 @@ void setup() {
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed"));
     for (;;)
-      ;  // Don't proceed, loop forever
+      ;  // Don't proceed, loop forever.
   }
 }
 
 void loop() {
   display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(0, 28);
-  display.println("Hello world!");
+  display.drawBitmap(logoX, logoY, LOGO_BITMAP, LOGO_WIDTH, LOGO_HEIGHT, WHITE);
   display.display();
-  delay(2000);
-  display.clearDisplay();
 
-  display.setTextColor(BLACK, WHITE);
-  display.setCursor(0, 28);
-  display.println("Hello world!");
-  display.display();
-  delay(2000);
+  logoX += velX;
+  logoY += velY;
 
-  display.clearDisplay();
+  if (logoX <= 0 || logoX + LOGO_WIDTH >= SCREEN_WIDTH) {
+    velX = -velX;
+    logoX = constrain(logoX, 0, SCREEN_WIDTH - LOGO_WIDTH);
+  }
+  if (logoY <= 0 || logoY + LOGO_HEIGHT >= SCREEN_HEIGHT) {
+    velY = -velY;
+    logoY = constrain(logoY, 0, SCREEN_HEIGHT - LOGO_HEIGHT);
+  }
+
+  delay(30);
 }
