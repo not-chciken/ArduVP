@@ -60,7 +60,7 @@ def filter_output(raw: str) -> list[str]:
 
 
 def run_workload(binary: Path, cfg: Path, timeout: int) -> tuple[list[str], int]:
-    child = pexpect.spawn(str(binary), ["-f", str(cfg)], cwd=str(REPO_ROOT),
+    child = pexpect.spawn(str(binary), ["-f", str(cfg), "-c", "ardu_system.loglvl=error"], cwd=str(REPO_ROOT),
                            timeout=timeout, encoding="utf-8", echo=False)
     try:
         child.expect(pexpect.EOF)
