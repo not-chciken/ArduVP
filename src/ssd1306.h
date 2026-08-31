@@ -53,7 +53,6 @@ struct ssd1306 : public vcml::component, i2c_host {
   virtual i2c_response i2c_write(const i2c_target_socket&, u8 data) override;
 
   virtual void end_of_elaboration() override;
-  virtual void end_of_simulation() override;
 
   void handle_control_byte(u8 byte);
   void handle_command_byte(u8 byte);
@@ -67,7 +66,7 @@ struct ssd1306 : public vcml::component, i2c_host {
   void set_pixel(u32 row, u32 col, bool on);
   void fill_all_pixels(u32 color);
 
-  ui::console m_console;
+  ui::display m_display;
 
   u8 m_video[kWidth * SCREEN_HEIGHT * 3];
   u8 m_gddram[kPages][kWidth];

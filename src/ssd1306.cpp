@@ -18,18 +18,14 @@ ssd1306::ssd1306(const sc_core::sc_module_name& nm)
       on_color("on_color", kDefaultOnColor),
       off_color("off_color", kDefaultOffColor),
       rotated("rotated", true),
-      m_console() {
+      m_display("display") {
   in.set_address(alternate_address ? kSlaveAddressAlt : kSlaveAddress);
   clk.stub();
   reset();
 }
 
 void ssd1306::end_of_elaboration() {
-  m_console.setup(ui::videomode(PIXEL_FORMAT, kWidth, SCREEN_HEIGHT), m_video);
-}
-
-void ssd1306::end_of_simulation() {
-  m_console.shutdown();
+  m_display.setup(ui::videomode(PIXEL_FORMAT, kWidth, SCREEN_HEIGHT), m_video);
 }
 
 bool ssd1306::is_display_on() const {
@@ -45,7 +41,7 @@ u8 ssd1306::get_contrast() const {
 }
 
 bool ssd1306::read_pixel(u32 x, u32 y) const {
-  return (m_console.read_pixel(x, y) != kDefaultOffColor);
+  return (m_display.read_pixel(x, y) != kDefaultOffColor);
 }
 
 void ssd1306::reset() {
@@ -82,7 +78,7 @@ void ssd1306::reset() {
   m_segment_remap = false;
   m_com_scan_remap = false;
 
-  m_console.render();
+  m_display.render();
 }
 
 i2c_response ssd1306::i2c_start(const i2c_target_socket&, tlm::tlm_command) {
@@ -94,7 +90,7 @@ i2c_response ssd1306::i2c_start(const i2c_target_socket&, tlm::tlm_command) {
 }
 
 i2c_response ssd1306::i2c_stop(const i2c_target_socket&) {
-  m_console.render();
+  m_display.render();
   return I2C_ACK;
 }
 
@@ -356,7 +352,8 @@ void ssd1306::redraw() {
   for (uint page = 0; page < kPages; page++)
     for (uint col = 0; col < kWidth; col++)
       redraw_column(page, col);
-  m_console.render();
+
+  m_display.render();
 }
 
 VCML_EXPORT_MODEL(vcml::i2c::ssd1306, name, args) {

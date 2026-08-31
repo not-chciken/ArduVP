@@ -44,7 +44,8 @@ struct ArduSystem : public vcml::system {
         clock("clock", 16 * vcml::MHz),
         program_mem("program_mem", mem_range_program.get().length()),
         sram_mem("sram_mem", mem_range_sram.get().length()),
-        reset("reset") {
+        reset("reset"),
+        console("console") {
     bus.bind(sram_bus.in[0], mem_range_sram);
     bus.bind(io_ports.in, vcml::range(0x23, 0x2b));
     bus.bind(timer.in, vcml::range(0x35, 0x37), 0x35);
@@ -223,6 +224,8 @@ struct ArduSystem : public vcml::system {
   vcml::generic::memory program_mem;
   vcml::generic::memory sram_mem;
   vcml::generic::reset reset;
+
+  vcml::ui::console console;
 
   std::chrono::steady_clock::time_point sim_start_time;
 };
