@@ -1,5 +1,6 @@
 #include "ssd1306.h"
 
+#include <algorithm>
 #include <cstring>
 
 namespace vcml {
@@ -8,8 +9,23 @@ namespace i2c {
 constexpr uint kSlaveAddress = 0x3cu;
 constexpr uint kSlaveAddressAlt = 0x3du;
 
-constexpr u32 kDefaultOnColor = 0x66ccffu;
+constexpr u32 kDefaultOnColor = 0xffffffu;
 constexpr u32 kDefaultOffColor = 0x000000u;
+
+// Number of display clocks per row contributed by the (fixed, undocumented
+// as configurable) BANK0 pulse width. K = phase1 + phase2 + kBank0PulseWidth,
+// see datasheet section 8.3 ("K = 2 + 2 + 50 = 54 at power on reset").
+constexpr double kBank0PulseWidth = 50.0;
+
+// The datasheet only specifies the typical internal oscillator frequency at
+// its power-on-reset setting (Table 13-1: 370 kHz typ.); it gives no table of
+// absolute frequencies for the other 15 possible D5h[7:4] settings, so this
+// model keeps Fosc fixed at the typical value regardless of that field.
+constexpr double kOscFreqHz = 370000.0;
+
+// Scroll step interval in frames, indexed by the 3-bit C[2:0] field of the
+// 26h/27h/29h/2Ah scroll setup commands.
+constexpr u16 kScrollFrameSteps[8] = { 5, 64, 128, 256, 3, 4, 25, 2 };
 
 ssd1306::ssd1306(const sc_core::sc_module_name& nm)
     : component(nm),
@@ -21,6 +37,7 @@ ssd1306::ssd1306(const sc_core::sc_module_name& nm)
       m_display("display") {
   in.set_address(alternate_address ? kSlaveAddressAlt : kSlaveAddress);
   clk.stub();
+  SC_THREAD(scroll_thread);
   reset();
 }
 
@@ -42,6 +59,21 @@ u8 ssd1306::get_contrast() const {
 
 bool ssd1306::read_pixel(u32 x, u32 y) const {
   return (m_display.read_pixel(x, y) != kDefaultOffColor);
+}
+
+bool ssd1306::is_scrolling() const {
+  return m_scroll_on;
+}
+
+sc_core::sc_time ssd1306::frame_period() const {
+  double divide_ratio = m_divide_ratio + 1;                        // A[3:0]+1, 1..16
+  double clocks_per_row = m_phase1_period + m_phase2_period + kBank0PulseWidth;
+  double freq = kOscFreqHz / (divide_ratio * clocks_per_row * m_mux_ratio);
+  return sc_core::sc_time(1.0 / freq, sc_core::SC_SEC);
+}
+
+sc_core::sc_time ssd1306::scroll_step_period() const {
+  return frame_period() * m_scroll_frames;
 }
 
 void ssd1306::reset() {
@@ -71,6 +103,7 @@ void ssd1306::reset() {
   m_phase2_period = 2;
   m_deselect_level = 2;
   m_vertical_shift = 0;
+  m_mux_ratio = 64;
 
   m_display_on = false;
   m_inverse = false;
@@ -78,14 +111,27 @@ void ssd1306::reset() {
   m_segment_remap = false;
   m_com_scan_remap = false;
 
+  m_scroll_on = false;
+  m_scroll_left = false;
+  m_scroll_vertical = false;
+  m_scroll_page_start = 0;
+  m_scroll_page_end = kPages - 1;
+  m_scroll_frames = kScrollFrameSteps[0];
+  m_scroll_row_step = 1;
+  m_scroll_offset = 0;
+  m_scroll_vshift = 0;
+
+  m_vscroll_top = 0;
+  m_vscroll_rows = SCREEN_HEIGHT;
+
+  m_scroll_ev.notify(sc_core::SC_ZERO_TIME);
+
   m_display.render();
 }
 
 i2c_response ssd1306::i2c_start(const i2c_target_socket&, tlm::tlm_command) {
   m_await_control = true;
   m_stream_data = false;
-  m_cmd_args_needed = 0;
-  m_cmd_args_have = 0;
   return I2C_ACK;
 }
 
@@ -217,6 +263,34 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
     m_page_end = mwr::extract(args[1], 0, 7);
     m_page = m_page_start;
     break;
+  case 0x26:
+  case 0x27:
+    m_scroll_left = (opcode == 0x27);
+    m_scroll_vertical = false;
+    m_scroll_page_start = mwr::extract(args[1], 0, 3);
+    m_scroll_frames = kScrollFrameSteps[mwr::extract(args[2], 0, 3)];
+    m_scroll_page_end = mwr::extract(args[3], 0, 3);
+    break;
+  case 0x29:
+  case 0x2a:
+    m_scroll_left = (opcode == 0x2a);
+    m_scroll_vertical = true;
+    m_scroll_page_start = mwr::extract(args[1], 0, 3);
+    m_scroll_frames = kScrollFrameSteps[mwr::extract(args[2], 0, 3)];
+    m_scroll_page_end = mwr::extract(args[3], 0, 3);
+    m_scroll_row_step = mwr::extract(args[4], 0, 6);
+    break;
+  case 0x2e:
+    m_scroll_on = false;
+    m_scroll_ev.notify(sc_core::SC_ZERO_TIME);
+    redraw();
+    break;
+  case 0x2f:
+    m_scroll_on = true;
+    m_scroll_offset = 0;
+    m_scroll_vshift = 0;
+    m_scroll_ev.notify(sc_core::SC_ZERO_TIME);
+    break;
   case 0x81:
     m_contrast = args[0];
     break;
@@ -225,6 +299,10 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
     break;
   case 0xa1:
     m_segment_remap = true;
+    break;
+  case 0xa3:
+    m_vscroll_top = mwr::extract(args[0], 0, 6);
+    m_vscroll_rows = mwr::extract(args[1], 0, 7);
     break;
   case 0xa4:
     m_entire_display_on = false;
@@ -241,6 +319,9 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
   case 0xa7:
     m_inverse = true;
     redraw();
+    break;
+  case 0xa8:
+    m_mux_ratio = mwr::extract(args[0], 0, 6) + 1;
     break;
   case 0xae:
     log_debug("turned display off");
@@ -283,7 +364,15 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
 
 void ssd1306::write_gddram(u8 byte) {
   m_gddram[m_page][m_col] = byte;
-  redraw_column(m_page, m_col);
+
+  // While scrolling is active a single GDDRAM write can affect pixels well
+  // outside its own page/column (vertical scroll shifts rows across page
+  // boundaries), so fall back to a full recompute instead of the fast path.
+  if (m_scroll_on)
+    redraw_all_columns();
+  else
+    redraw_column(m_page, m_col);
+
   advance_pointer();
 }
 
@@ -332,28 +421,92 @@ void ssd1306::fill_all_pixels(u32 color) {
   }
 }
 
+bool ssd1306::gddram_bit(u32 row, u32 col) const {
+  return (m_gddram[row / 8][col] >> (row % 8)) & 1;
+}
+
+void ssd1306::scroll_source(u32 row, u32 col, u32& src_row, u32& src_col) const {
+  src_row = row;
+  src_col = col;
+
+  if (!m_scroll_on)
+    return;
+
+  uint page = row / 8;
+  if (page >= m_scroll_page_start && page <= m_scroll_page_end) {
+    u32 shift = m_scroll_offset % kWidth;
+    src_col = m_scroll_left ? (col + shift) % kWidth : (col + kWidth - shift) % kWidth;
+  }
+
+  if (m_scroll_vertical && m_vscroll_rows > 0) {
+    u32 area_start = m_vscroll_top;
+    u32 area_end = std::min<u32>(area_start + m_vscroll_rows, SCREEN_HEIGHT);
+    if (row >= area_start && row < area_end) {
+      u32 area_rows = area_end - area_start;
+      u32 rel = row - area_start;
+      u32 src_rel = (rel + m_scroll_vshift) % area_rows;
+      src_row = area_start + src_rel;
+    }
+  }
+}
+
 void ssd1306::redraw_column(uint page, uint col) {
-  u8 byte = m_gddram[page][col];
   u32 out_col = (m_segment_remap ^ rotated) ? (kWidth - 1 - col) : col;
 
   for (uint bit = 0; bit < 8; bit++) {
-    bool set = (byte >> bit) & 1;
+    u32 row = page * 8 + bit;
+
+    u32 src_row, src_col;
+    scroll_source(row, col, src_row, src_col);
+    bool set = gddram_bit(src_row, src_col);
+
     bool on_logical = m_entire_display_on || (set != m_inverse);
     bool on = m_display_on && on_logical;
 
-    u32 row = page * 8 + bit;
     u32 out_row = (m_com_scan_remap ^ rotated) ? (SCREEN_HEIGHT - 1 - row) : row;
     out_row = (out_row + m_vertical_shift) % SCREEN_HEIGHT;
     set_pixel(out_row, out_col, on);
   }
 }
 
-void ssd1306::redraw() {
+void ssd1306::redraw_all_columns() {
   for (uint page = 0; page < kPages; page++)
     for (uint col = 0; col < kWidth; col++)
       redraw_column(page, col);
 
   m_display.render();
+}
+
+void ssd1306::redraw() {
+  redraw_all_columns();
+  m_display.render();
+}
+
+void ssd1306::advance_scroll() {
+  m_scroll_offset = (m_scroll_offset + 1) % kWidth;
+
+  if (m_scroll_vertical && m_vscroll_rows > 0) {
+    u32 area_rows = std::min<u32>(m_vscroll_rows, SCREEN_HEIGHT - m_vscroll_top);
+    if (area_rows > 0)
+      m_scroll_vshift = (m_scroll_vshift + m_scroll_row_step) % area_rows;
+  }
+}
+
+void ssd1306::scroll_thread() {
+  while (true) {
+    if (!m_scroll_on) {
+      wait(m_scroll_ev);
+      continue;
+    }
+
+    wait(scroll_step_period(), m_scroll_ev);
+
+    if (m_scroll_ev.triggered())
+      continue;  // scroll setup changed, or scrolling got (de)activated
+
+    advance_scroll();
+    redraw();
+  }
 }
 
 VCML_EXPORT_MODEL(vcml::i2c::ssd1306, name, args) {

@@ -42,10 +42,15 @@ struct ssd1306 : public vcml::component, i2c_host {
   u8 get_contrast() const;
   bool read_pixel(u32 x, u32 y) const;
 
+  bool is_scrolling() const;
+  sc_core::sc_time frame_period() const;
+
   virtual void reset() override;
 
  protected:
   enum class addressing_mode { PAGE, HORIZONTAL, VERTICAL };
+
+  SC_HAS_PROCESS(ssd1306);
 
   virtual i2c_response i2c_start(const i2c_target_socket&, tlm::tlm_command) override;
   virtual i2c_response i2c_stop(const i2c_target_socket&) override;
@@ -61,10 +66,18 @@ struct ssd1306 : public vcml::component, i2c_host {
   void advance_pointer();
 
   void redraw_column(uint page, uint col);
+  void redraw_all_columns();
   void redraw();
 
   void set_pixel(u32 row, u32 col, bool on);
   void fill_all_pixels(u32 color);
+
+  
+  bool gddram_bit(u32 row, u32 col) const;
+  void scroll_source(u32 row, u32 col, u32& src_row, u32& src_col) const;
+  sc_core::sc_time scroll_step_period() const;
+  void advance_scroll();
+  void scroll_thread();
 
   ui::display m_display;
 
@@ -92,12 +105,27 @@ struct ssd1306 : public vcml::component, i2c_host {
   u8 m_phase2_period;
   u8 m_deselect_level;
   u8 m_vertical_shift;
+  u8 m_mux_ratio;
 
   bool m_display_on;
   bool m_inverse;
   bool m_entire_display_on;
   bool m_segment_remap;
   bool m_com_scan_remap;
+
+  bool m_scroll_on;
+  bool m_scroll_left;
+  bool m_scroll_vertical;
+  u8 m_scroll_page_start, m_scroll_page_end;
+  u16 m_scroll_frames;
+  u8 m_scroll_row_step;
+  u32 m_scroll_offset;
+  u32 m_scroll_vshift;
+
+  u8 m_vscroll_top;
+  u8 m_vscroll_rows;
+
+  sc_core::sc_event m_scroll_ev;
 };
 
 }  // namespace i2c
