@@ -28,6 +28,7 @@ struct ArduSystem : public vcml::system {
         adc("adc"),
         comparator("comparator"),
         io_ports("io_ports"),
+        ads1015("ads1015", 0x48),
         oled_screen("oled_screen"),
         builtin_led("builtin_led"),
         serial_term("serial"),
@@ -41,6 +42,7 @@ struct ArduSystem : public vcml::system {
         bus("bus"),
         prog_bus("prog_bus"),
         sram_bus("sram_bus"),
+        i2c_bus("i2c_bus"),
         clock("clock", 16 * vcml::MHz),
         program_mem("program_mem", mem_range_program.get().length()),
         sram_mem("sram_mem", mem_range_sram.get().length()),
@@ -79,7 +81,9 @@ struct ArduSystem : public vcml::system {
     clock.clk.bind(twi.clk);
     reset.rst.bind(twi.rst);
 
-    twi.out_i2c.bind(oled_screen.in);
+    i2c_bus.bind(twi.out_i2c);
+    i2c_bus.bind(oled_screen.in);
+    i2c_bus.bind(ads1015.i2c_in);
     twi.in_i2c.stub();
 
     clock.clk.bind(adc.clk);
@@ -92,10 +96,12 @@ struct ArduSystem : public vcml::system {
     reset.rst.bind(io_ports.rst);
 
     reset.rst.bind(oled_screen.rst);
+    reset.rst.bind(i2c_bus.rst);
 
     usart.serial_tx.bind(serial_term.serial_rx);
     serial_term.serial_tx.bind(usart.serial_rx);
 
+    clock.clk.bind(i2c_bus.clk);
     clock.clk.bind(bus.clk);
     clock.clk.bind(prog_bus.clk);
     clock.clk.bind(sram_bus.clk);
@@ -201,6 +207,7 @@ struct ArduSystem : public vcml::system {
   Comparator comparator;
   IoPorts io_ports;
 
+  vcml::i2c::ads1015 ads1015;
   vcml::i2c::ssd1306 oled_screen;
 
   vcml::gpio::leds builtin_led;
@@ -220,6 +227,7 @@ struct ArduSystem : public vcml::system {
   vcml::generic::bus bus;
   vcml::generic::bus prog_bus;
   vcml::generic::bus sram_bus;
+  vcml::i2c::bus i2c_bus;
   vcml::generic::clock clock;
   vcml::generic::memory program_mem;
   vcml::generic::memory sram_mem;
