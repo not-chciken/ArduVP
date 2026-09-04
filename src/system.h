@@ -7,7 +7,8 @@
 #include <iostream>
 
 #include "atm328p.h"
-#include "ssd1306.h"
+#include "models/ssd1306.h"
+#include "models/eeprom_24xx.h"
 
 struct ArduSystem : public vcml::system {
   static constexpr size_t NUM_ANALOG_PINS = 6;
@@ -20,6 +21,7 @@ struct ArduSystem : public vcml::system {
         atm328p("atm328p"),
         console("console"),
         ads1015("ads1015", 0x48),
+        eeprom_24xx256("eeprom_24xx256"),
         i2c_bus("i2c_bus"),
         ssd1306("ssd1306"),
         builtin_led("builtin_led"),
@@ -29,12 +31,14 @@ struct ArduSystem : public vcml::system {
     i2c_bus.bind(atm328p.twi.out_i2c);
     i2c_bus.bind(ssd1306.in);
     i2c_bus.bind(ads1015.i2c_in);
+    i2c_bus.bind(eeprom_24xx256.i2c_in);
     atm328p.twi.in_i2c.stub();
 
     clock.clk.bind(atm328p.clk);
     reset.rst.bind(atm328p.rst);
 
     reset.rst.bind(ssd1306.rst);
+    reset.rst.bind(eeprom_24xx256.rst);
     reset.rst.bind(i2c_bus.rst);
 
     atm328p.usart.serial_tx.bind(serial_term.serial_rx);
@@ -90,6 +94,7 @@ struct ArduSystem : public vcml::system {
 
   vcml::i2c::ads1015 ads1015;
   vcml::i2c::bus i2c_bus;
+  vcml::i2c::eeprom_24xx eeprom_24xx256;
   vcml::i2c::ssd1306 ssd1306;
 
   vcml::gpio::leds builtin_led;

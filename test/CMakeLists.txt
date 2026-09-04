@@ -7,7 +7,8 @@ add_custom_target(tests)
 
 set(TEST_INCLUDE_PATHS ${CMAKE_SOURCE_DIR}/vcml/include
                        ${CMAKE_BINARY_DIR}/vcml/gen/
-                       src/)
+                       src/
+                       src/models/)
 set(TEST_LIB_PATHS -L${SYSTEMC_PATH}/lib-linux64)
 set(TEST_LIBS arduvp_test vcml -lgcov -lgtest)
 set(TEST_COMPILE_OPTS --coverage -g -O0)
@@ -26,7 +27,7 @@ endmacro()
 create_test_case(adc)
 create_test_case(comparator)
 create_test_case(cpu)
-create_test_case(eeprom_24xx256)
+create_test_case(eeprom_24xx)
 create_test_case(io_ports)
 create_test_case(system)
 create_test_case(timer)
