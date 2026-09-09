@@ -77,3 +77,12 @@ Similarly, debug logging can enabled as follows:
 ```bash
 ./arduvp -f ../sw/ssd1306/text_scroll/text_scroll.cfg -c system.ssd1306.loglvl=debug --log-debug
 ```
+
+By default, the simulation runs as fast as it can, but it cannot be faster than wall-clock time.
+If you need more a nuanced setting, use the system's throttle.
+For example, an RTF of 2 allows the system to be twice as fast as wall-clock:
+```
+system.throttle.rtf = 1.0
+```
+Note that this is just a maximum.
+At one point your host computer's will likely become the determining factor.

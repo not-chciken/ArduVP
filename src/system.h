@@ -27,7 +27,8 @@ struct ArduSystem : public vcml::system {
         builtin_led("builtin_led"),
         serial_term("serial"),
         clock("clock", 16 * vcml::MHz),
-        reset("reset") {
+        reset("reset"),
+        throttle("throttle") {
     i2c_bus.bind(atm328p.twi.out_i2c);
     i2c_bus.bind(ssd1306.in);
     i2c_bus.bind(ads1015.i2c_in);
@@ -103,6 +104,8 @@ struct ArduSystem : public vcml::system {
 
   vcml::generic::clock clock;
   vcml::generic::reset reset;
+
+  vcml::meta::throttle throttle;
 
   std::chrono::steady_clock::time_point sim_start_time;
 };
