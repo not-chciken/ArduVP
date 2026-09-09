@@ -46,6 +46,12 @@ By default, ArduVP includes an SSD1306 screen and an ADS1015 analog-digital conv
 
 ![alt text](system.svg "Modeled System")
 
+| Device      | I2C Address |
+|-------------|-------------|
+| SSD1306     | 0x3c        |
+| ADS1015     | 0x48        |
+| EEPROM 24xx | 0x50        |
+
 However, with ArduVP being based on [VCML](https://github.com/machineware-gmbh/vcml),
 any kind of system can be set up.
 Simply adapt `src/system.h` with the models you need.
