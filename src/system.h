@@ -25,6 +25,7 @@ struct ArduSystem : public vcml::system {
         i2c_bus("i2c_bus"),
         ssd1306("ssd1306"),
         builtin_led("builtin_led"),
+        buttons("buttons"),
         serial_term("serial"),
         clock("clock", 16 * vcml::MHz),
         reset("reset"),
@@ -56,19 +57,22 @@ struct ArduSystem : public vcml::system {
     }
 
     atm328p.io_ports.out_pinb[5].bind(builtin_led.gpio_in[0]);
+    buttons.gpio_in[0].bind(atm328p.io_ports.in_pind[2]);
 
     for (size_t i = 0; i < 8; ++i) {
-      atm328p.io_ports.in_pinb[i].stub();
-      atm328p.io_ports.in_pinc[i].stub();
-      atm328p.io_ports.in_pind[i].stub();
-      atm328p.io_ports.out_pinc[i].stub();
-      atm328p.io_ports.out_pind[i].stub();
+      if (!atm328p.io_ports.in_pinb[i].is_stubbed())
+        atm328p.io_ports.in_pinb[i].stub();
+      if (!atm328p.io_ports.in_pinc[i].is_stubbed())
+        atm328p.io_ports.in_pinc[i].stub();
+      if (!atm328p.io_ports.in_pind[i].is_stubbed())
+        atm328p.io_ports.in_pind[i].stub();
 
-      if (i == 5) {
-        continue;
-      }
-
-      atm328p.io_ports.out_pinb[i].stub();
+      if (!atm328p.io_ports.out_pinb[i].is_stubbed())
+        atm328p.io_ports.out_pinb[i].stub();
+      if (!atm328p.io_ports.out_pinc[i].is_stubbed())
+        atm328p.io_ports.out_pinc[i].stub();
+      if (!atm328p.io_ports.out_pind[i].is_stubbed())
+        atm328p.io_ports.out_pind[i].stub();
     }
   }
 
@@ -99,6 +103,7 @@ struct ArduSystem : public vcml::system {
   vcml::i2c::ssd1306 ssd1306;
 
   vcml::gpio::leds builtin_led;
+  vcml::gpio::buttons buttons;
 
   vcml::serial::terminal serial_term;
 
