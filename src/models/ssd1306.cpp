@@ -6,25 +6,17 @@
 namespace vcml {
 namespace i2c {
 
-constexpr uint kSlaveAddress = 0x3cu;
-constexpr uint kSlaveAddressAlt = 0x3du;
-
-constexpr u32 kDefaultOnColor = 0xffffffu;
-constexpr u32 kDefaultOffColor = 0x000000u;
-
-constexpr double kBank0PulseWidth = 50.0;
-constexpr double kOscFreqHz = 370000.0;
-constexpr u16 kScrollFrameSteps[8] = { 5, 64, 128, 256, 3, 4, 25, 2 };
+constexpr u16 SCROLL_FRAME_STEPS[8] = { 5, 64, 128, 256, 3, 4, 25, 2 };
 
 ssd1306::ssd1306(const sc_core::sc_module_name& nm):
     component(nm),
     in("in"),
     alternate_address("alternate_address", false),
-    on_color("on_color", kDefaultOnColor),
-    off_color("off_color", kDefaultOffColor),
+    on_color("on_color", 0xffffffu),
+    off_color("off_color", 0x000000u),
     rotated("rotated", true),
     m_display("display") {
-    in.set_address(alternate_address ? kSlaveAddressAlt : kSlaveAddress);
+    in.set_address(alternate_address ? 0x3du : 0x3cu);
     clk.stub();
     SC_THREAD(scroll_thread);
     reset();
@@ -48,7 +40,7 @@ u8 ssd1306::get_contrast() const {
 }
 
 bool ssd1306::read_pixel(u32 x, u32 y) const {
-    return (m_display.read_pixel(x, y) != kDefaultOffColor);
+    return (m_display.read_pixel(x, y) != off_color.get());
 }
 
 bool ssd1306::is_scrolling() const {
@@ -56,10 +48,13 @@ bool ssd1306::is_scrolling() const {
 }
 
 sc_core::sc_time ssd1306::frame_period() const {
+    constexpr double bank0_pulse_width = 50.0;
+    constexpr double osc_freq = 370000.0;
+
     double divide_ratio = m_divide_ratio + 1; // A[3:0]+1, 1..16
     double clocks_per_row = m_phase1_period + m_phase2_period +
-                            kBank0PulseWidth;
-    double freq = kOscFreqHz / (divide_ratio * clocks_per_row * m_mux_ratio);
+                            bank0_pulse_width;
+    double freq = osc_freq / (divide_ratio * clocks_per_row * m_mux_ratio);
     return sc_core::sc_time(1.0 / freq, sc_core::SC_SEC);
 }
 
@@ -107,7 +102,7 @@ void ssd1306::reset() {
     m_scroll_vertical = false;
     m_scroll_page_start = 0;
     m_scroll_page_end = kPages - 1;
-    m_scroll_frames = kScrollFrameSteps[0];
+    m_scroll_frames = SCROLL_FRAME_STEPS[0];
     m_scroll_row_step = 1;
     m_scroll_offset = 0;
     m_scroll_vshift = 0;
@@ -259,7 +254,7 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
         m_scroll_left = (opcode == 0x27);
         m_scroll_vertical = false;
         m_scroll_page_start = mwr::extract(args[1], 0, 3);
-        m_scroll_frames = kScrollFrameSteps[mwr::extract(args[2], 0, 3)];
+        m_scroll_frames = SCROLL_FRAME_STEPS[mwr::extract(args[2], 0, 3)];
         m_scroll_page_end = mwr::extract(args[3], 0, 3);
         break;
     case 0x29:
@@ -267,7 +262,7 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
         m_scroll_left = (opcode == 0x2a);
         m_scroll_vertical = true;
         m_scroll_page_start = mwr::extract(args[1], 0, 3);
-        m_scroll_frames = kScrollFrameSteps[mwr::extract(args[2], 0, 3)];
+        m_scroll_frames = SCROLL_FRAME_STEPS[mwr::extract(args[2], 0, 3)];
         m_scroll_page_end = mwr::extract(args[3], 0, 3);
         m_scroll_row_step = mwr::extract(args[4], 0, 6);
         break;
@@ -499,7 +494,7 @@ void ssd1306::scroll_thread() {
         wait(scroll_step_period(), m_scroll_ev);
 
         if (m_scroll_ev.triggered())
-            continue; // scroll setup changed, or scrolling got (de)activated
+            continue;
 
         advance_scroll();
         redraw();
