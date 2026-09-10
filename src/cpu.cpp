@@ -22,41 +22,6 @@ Cpu::Cpu()
   define_cpureg_rw(33, "sp", sizeof(AddrType));
   define_cpureg_rw(34, "pc2", sizeof(u32));
   define_cpureg_rw(35, "pc", sizeof(AddrType));
-
-  define_cpureg_rw(IoRegisters::PCIFR, "pcifr", 1);
-  define_cpureg_rw(IoRegisters::EIFR, "eifr", 1);
-  define_cpureg_rw(IoRegisters::EIMSK, "eimsk", 1);
-  define_cpureg_rw(IoRegisters::GPIOR0, "gpi0r0", 1);
-  define_cpureg_rw(IoRegisters::EECR, "eecr", 1);
-  define_cpureg_rw(IoRegisters::EEDR, "eedr", 1);
-  define_cpureg_rw(IoRegisters::EEARL, "eearl", 1);
-  define_cpureg_rw(IoRegisters::EEARH, "eearh", 1);
-  define_cpureg_rw(IoRegisters::GTCCR, "gtccr", 1);
-  define_cpureg_rw(IoRegisters::GPIOR1, "gpi0r1", 1);
-  define_cpureg_rw(IoRegisters::GPIOR2, "gpi0r2", 1);
-  define_cpureg_rw(IoRegisters::SPCR, "spcr", 1);
-  define_cpureg_rw(IoRegisters::SPSR, "spsr", 1);
-  define_cpureg_rw(IoRegisters::SPDR, "spdr", 1);
-  define_cpureg_rw(IoRegisters::ACSR, "acsr", 1);
-  define_cpureg_rw(IoRegisters::SCMR, "scmr", 1);
-  define_cpureg_rw(IoRegisters::MCUSR, "mcusr", 1);
-  define_cpureg_rw(IoRegisters::MCUCR, "mcucr", 1);
-  define_cpureg_rw(IoRegisters::SPMCSR, "spmcsr", 1);
-  define_cpureg_rw(IoRegisters::SPL, "spl", 1);
-  define_cpureg_rw(IoRegisters::SPH, "sph", 1);
-  define_cpureg_rw(IoRegisters::SREG, "TODO", 1);
-  define_cpureg_rw(IoRegisters::WDTCSR, "wdtcsr", 1);
-  define_cpureg_rw(IoRegisters::CLKPR, "clkpr", 1);
-  define_cpureg_rw(IoRegisters::PRR, "prr", 1);
-  define_cpureg_rw(IoRegisters::OSCCAL, "osccal", 1);
-  define_cpureg_rw(IoRegisters::PCICR, "pcicr", 1);
-  define_cpureg_rw(IoRegisters::EICRA, "eicra", 1);
-  define_cpureg_rw(IoRegisters::PCMSK0, "pcmsk0", 1);
-  define_cpureg_rw(IoRegisters::PCMSK1, "pcmsk1", 1);
-  define_cpureg_rw(IoRegisters::PCMSK2, "pcmsk2", 1);
-  define_cpureg_rw(IoRegisters::DIDR0, "didr0", 1);
-  define_cpureg_rw(IoRegisters::DIDR1, "didr1", 1);
-  define_cpureg_rw(IoRegisters::ASSR, "assr", 1);;
 }
 
 u16 Cpu::InsnDmiRead(vcml::u64 adr) {
@@ -162,7 +127,7 @@ void Cpu::reset() {
   sreg.s = 0;
   sreg.h = 0;
   sreg.t = 0;
-  sreg.i = 1;  // Global interrupt enabled
+  sreg.i = 1;
   skip = false;
   branch_taken = false;
   break_hit = false;
@@ -372,7 +337,6 @@ void Cpu::interrupt(size_t irq, bool set) {
     irq_level_mask_ |= bit;
   } else {
     irq_level_mask_ &= ~bit;
-    // Once the line is deasserted, it can be accepted again.
     irq_acked_mask_ &= ~bit;
   }
 

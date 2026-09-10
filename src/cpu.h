@@ -8,32 +8,33 @@
 
 using RegType = u8;
 using AddrType = u16;
+
 struct Cpu : public vcml::processor {
   Cpu();
   virtual ~Cpu() = default;
 
   vcml::gpio_initiator_array<> irq_ack;
 
-  std::array<RegType, 32> rf = {0};  // Register file
-  u16 pc = 0;                        // Program counter
-  u16 sp = 0x8ff;                    // Stack pointer
-  u16& x;                            // X register (R26-R27)
-  u16& y;                            // Y register (R28-R29)
-  u16& z;                            // Z register (R30-R31)
+  std::array<RegType, 32> rf = {0};
+  u16 pc = 0;
+  u16 sp = 0x8ff;
+  u16& x;
+  u16& y;
+  u16& z;
 
   u32 watchdog_timer = 0;
 
   struct Sreg {
     union {
       struct {
-        u8 c : 1;  // Carry
-        u8 z : 1;  // Zero
-        u8 n : 1;  // Negative
-        u8 v : 1;  // Two's complement overflow
-        u8 s : 1;  // Sign
-        u8 h : 1;  // Half-carry
-        u8 t : 1;  // Transfer
-        u8 i : 1;  // Global interrupt enable
+        u8 c : 1;
+        u8 z : 1;
+        u8 n : 1;
+        u8 v : 1;
+        u8 s : 1;
+        u8 h : 1;
+        u8 t : 1;
+        u8 i : 1;
       };
       u8 value;
     };
@@ -59,51 +60,6 @@ struct Cpu : public vcml::processor {
 
   u16 InsnDmiRead(vcml::u64 adr);
 
-  enum IoRegisters {
-    TIFRO = 0x35,
-    TIFR1 = 0x36,
-    TIFR2 = 0x37,
-    PCIFR = 0x3b,
-    EIFR = 0x3c,
-    EIMSK = 0x3d,
-    GPIOR0 = 0x3e,
-    EECR = 0x3f,
-    EEDR = 0x40,
-    EEARL = 0x41,
-    EEARH = 0x42,
-    GTCCR = 0x43,
-    TCCR0A = 0x44,
-    TCCR0B = 0x45,
-    TCNT0 = 0x46,
-    OCR0A = 0x47,
-    OCR0B = 0x48,
-    GPIOR1 = 0x5a,
-    GPIOR2 = 0x5b,
-    SPCR = 0x4c,
-    SPSR = 0x4d,
-    SPDR = 0x4e,
-    ACSR = 0x50,
-    SCMR = 0x53,
-    MCUSR = 0x54,
-    MCUCR = 0x55,
-    SPMCSR = 0x57,
-    SPL = 0x5d,
-    SPH = 0x5e,
-    SREG = 0x5f,
-    WDTCSR = 0x60,
-    CLKPR = 0x61,
-    PRR = 0x64,
-    OSCCAL = 0x66,
-    PCICR = 0x68,
-    EICRA = 0x69,
-    PCMSK0 = 0x6b,
-    PCMSK1 = 0x6c,
-    PCMSK2 = 0x6d,
-    DIDR0 = 0x7e,
-    DIDR1 = 0x7f,
-    ASSR = 0xb6,
-  };
-
   u8 gpior0 = 0;
   u8 gpior1 = 0;
   u8 gpior2 = 0;
@@ -127,8 +83,6 @@ struct Cpu : public vcml::processor {
   virtual bool remove_breakpoint(vcml::u64 addr) override;
   virtual bool disassemble(vcml::u8* ibuf, vcml::u64& addr, string& code) override;
 
-  // AVR semantics: after SEI, interrupts are enabled after the following
-  // instruction. Instruction implementations may set this when they execute SEI.
   bool irq_sei_delay = false;
 
  protected:
@@ -137,8 +91,7 @@ struct Cpu : public vcml::processor {
   virtual bool read_reg_dbg(size_t idx, void* buf, size_t len) override;
   virtual bool write_reg_dbg(size_t idx, const void*, size_t l) override;
   virtual void interrupt(size_t irq, bool set) override;
-  virtual void invalidate_direct_mem_ptr(vcml::tlm_initiator_socket& origin, vcml::u64 start,
-                                          vcml::u64 end) override;
+  virtual void invalidate_direct_mem_ptr(vcml::tlm_initiator_socket& origin, vcml::u64 start, vcml::u64 end) override;
   void start_of_simulation() override;
   void end_of_simulation() override;
 
@@ -146,9 +99,8 @@ struct Cpu : public vcml::processor {
 
   u8* insn_dmi_ptr_ = nullptr;
 
-  // IRQ handling state (simple level-triggered model).
-  u64 irq_level_mask_ = 0; // bit i: irq[i] currently asserted
-  u64 irq_acked_mask_ = 0; // bit i: irq[i] already accepted, wait for deassert
+  u64 irq_level_mask_ = 0;  // bit i: irq[i] currently asserted
+  u64 irq_acked_mask_ = 0;  // bit i: irq[i] already accepted, wait for deassert
 
   std::vector<u16> breakpoints_;
   std::vector<u16> watchpoints_;
