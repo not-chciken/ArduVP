@@ -8,18 +8,18 @@ struct Twi : public vcml::peripheral, public vcml::i2c_host {
   Twi(const sc_core::sc_module_name& nm);
   ~Twi() = default;
 
-  vcml::i2c_initiator_socket out_i2c;
-  vcml::i2c_target_socket in_i2c;
-  vcml::gpio_initiator_socket irq;
-  vcml::gpio_target_socket ack;
-  vcml::tlm_target_socket in;
-
   vcml::reg<u8> twbr;
   vcml::reg<u8> twcr;
   vcml::reg<u8> twsr;
   vcml::reg<u8> twdr;
   vcml::reg<u8> twar;
   vcml::reg<u8> twamr;
+
+  vcml::i2c_initiator_socket out_i2c;
+  vcml::i2c_target_socket in_i2c;
+  vcml::gpio_initiator_socket irq;
+  vcml::gpio_target_socket ack;
+  vcml::tlm_target_socket in;
 
   virtual void reset() override;
   virtual void i2c_transport(vcml::i2c_target_socket&, vcml::i2c_payload&) override;
