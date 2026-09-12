@@ -32,6 +32,7 @@ static constexpr u8 UCSRNC_UMSELN1 = mwr::bit(7);
 Usart::Usart(const sc_core::sc_module_name& nm)
     : peripheral(nm),
       serial_host(),
+      untimed("untimed", false),
       ucsrna("ucsrna", 0x0, UCSRNA_UDREN),
       ucsrnb("ucsrnb", 0x1, 0x00),
       ucsrnc("ucsrnc", 0x2, UCSRNC_UCSZ0N | UCSRNC_UCSZN1),
@@ -47,7 +48,6 @@ Usart::Usart(const sc_core::sc_module_name& nm)
       rxc_ack("rxc_ack"),
       udre_ack("udre_ack"),
       tx_ack("tx_ack"),
-      untimed("untimed", false),
       tx_ev_("tx_ev"),
       rx_pending_(false),
       rx_data_(0) {

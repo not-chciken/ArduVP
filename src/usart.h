@@ -4,6 +4,11 @@
 #include "common.h"
 
 struct Usart : public vcml::peripheral, public vcml::serial_host {
+  Usart(const sc_core::sc_module_name& nm);
+  virtual ~Usart() = default;
+
+  vcml::property<bool> untimed;
+
   vcml::reg<u8> ucsrna;
   vcml::reg<u8> ucsrnb;
   vcml::reg<u8> ucsrnc;
@@ -23,15 +28,8 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
   vcml::gpio_target_socket udre_ack;
   vcml::gpio_target_socket tx_ack;
 
-  vcml::property<bool> untimed;
-
-  Usart(const sc_core::sc_module_name& nm);
-
   virtual void reset() override;
-
   virtual void serial_receive(const vcml::serial_target_socket& socket, vcml::serial_payload& tx) override;
-
-  virtual ~Usart() = default;
 
  private:
   SC_HAS_PROCESS(Usart);
