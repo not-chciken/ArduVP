@@ -124,8 +124,6 @@ void Twi::AbortTransaction() {
 }
 
 void Twi::WriteTwsr(u8 val) {
-  // TWS7..3 are read-only status bits; only the prescaler bits are
-  // software-writable.
   twsr = (u8)((twsr & ~TWSR_TWPS_MASK) | (val & TWSR_TWPS_MASK));
 }
 
@@ -139,8 +137,6 @@ void Twi::WriteTwamr(u8 val) {
 
 void Twi::WriteTwdr(u8 val) {
   if (!(twcr & TWCR_TWINT)) {
-    // Writing TWDR while a transfer is in progress (TWINT low) is
-    // discarded and flagged instead of applied.
     twcr = (u8)(twcr | TWCR_TWWC);
     return;
   }
@@ -157,17 +153,10 @@ void Twi::WriteTwcr(u8 val) {
   bool twsto = (val & TWCR_TWSTO) != 0;
   bool twint = (val & TWCR_TWINT) != 0;
 
-  // TWINT is write-1-to-clear: writing a zero leaves the current flag
-  // untouched. TWSTA is not auto-cleared by hardware and is stored as
-  // written; TWSTO auto-clears once the requested action below has been
-  // carried out, so it is never persisted into the stored register.
-  u8 cfg = (u8)((twcr & TWCR_TWINT) | (twea ? TWCR_TWEA : 0) | (twsta ? TWCR_TWSTA : 0) |
-                 (twen ? TWCR_TWEN : 0) | (twie ? TWCR_TWIE : 0) | (twcr & TWCR_TWWC));
+  u8 cfg = (u8)((twcr & TWCR_TWINT) | (twea ? TWCR_TWEA : 0) | (twsta ? TWCR_TWSTA : 0) | (twen ? TWCR_TWEN : 0) |
+                (twie ? TWCR_TWIE : 0) | (twcr & TWCR_TWWC));
 
   if (!twen) {
-    // "If this bit is written to zero, the TWI is switched off and all
-    // TWI transmissions are terminated, regardless of any ongoing
-    // operation."
     AbortTransaction();
     twcr = (u8)(cfg & ~TWCR_TWINT);
     irq = false;
@@ -177,18 +166,11 @@ void Twi::WriteTwcr(u8 val) {
   twcr = cfg;
 
   if (!twint) {
-    // TWINT not written: just reconfigured TWEA/TWSTA/TWIE, no new bus
-    // action and any pending interrupt condition is left untouched.
     UpdateIrq();
     return;
   }
 
   twcr = (u8)(twcr & ~TWCR_TWINT);
-  // Force the irq line to actually observe the low level: the CPU's
-  // interrupt controller ignores a write that doesn't change the signal's
-  // value, so if a new status gets set further down without an
-  // intervening low pulse here, the next event would silently never be
-  // redelivered.
   UpdateIrq();
 
   if (twsta) {
@@ -211,7 +193,6 @@ void Twi::WriteTwcr(u8 val) {
   }
 
   if (twsto) {
-    // "Note that TWINT is NOT set after a STOP condition has been sent."
     if (master_active_)
       out_i2c.stop();
     master_active_ = false;
@@ -228,9 +209,6 @@ void Twi::WriteTwcr(u8 val) {
     return;
   }
 
-  // No start/stop requested and not master-active: software is just
-  // re-arming (e.g. after servicing a slave-mode event). TWINT stays low
-  // until the next bus event or master operation raises it again.
   twsr = (u8)((twsr & TWSR_TWPS_MASK) | TWS_IDLE);
   UpdateIrq();
 }
@@ -249,8 +227,6 @@ void Twi::DoMasterContinue(bool twea) {
       master_dir_ = cmd;
       SetStatus(is_read ? TWS_MR_SLA_ACK : TWS_MT_SLA_ACK);
     } else {
-      // The bus is still held by the master after a NACK; software must
-      // still issue a STOP (or repeated START) to release it.
       master_dir_ = vcml::TLM_IGNORE_COMMAND;
       SetStatus(is_read ? TWS_MR_SLA_NACK : TWS_MT_SLA_NACK);
     }
@@ -265,8 +241,6 @@ void Twi::DoMasterContinue(bool twea) {
     u8 data = 0;
     out_i2c.transport(data);
     twdr = data;
-    // In master receiver mode TWEA (not the peer's response) determines
-    // the ACK/NACK bit the master places on the bus for this byte.
     SetStatus(twea ? TWS_MR_DATA_ACK : TWS_MR_DATA_NACK);
   }
 }
@@ -329,7 +303,7 @@ void Twi::SlaveData(vcml::i2c_payload& tx) {
   if (slave_dir_ == vcml::TLM_WRITE_COMMAND) {
     twdr = tx.data;
     u8 status = slave_general_call_ ? (twea ? TWS_SR_GCALL_DATA_ACK : TWS_SR_GCALL_DATA_NACK)
-                                     : (twea ? TWS_SR_DATA_ACK : TWS_SR_DATA_NACK);
+                                    : (twea ? TWS_SR_DATA_ACK : TWS_SR_DATA_NACK);
     SetStatus(status);
     tx.resp = twea ? vcml::I2C_ACK : vcml::I2C_NACK;
   } else {
