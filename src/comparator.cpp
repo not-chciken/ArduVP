@@ -17,9 +17,10 @@ Comparator::Comparator(const sc_core::sc_module_name& nm)
     : peripheral(nm),
       signal_host<float>(),
       signal_host<u8>(),
+      volt_bandgap("volt_bandgap", 1.1f),
+      acsr("acsr", 0x0),
       volt_adc("volt_adc"),
       volt_ain("volt_ain"),
-      volt_bandgap("volt_bandgap", 1.1f),
       aco("aco"),
       acic("acic"),
       irq("irq"),
@@ -27,8 +28,7 @@ Comparator::Comparator(const sc_core::sc_module_name& nm)
       in_acme("in_acme"),
       in_aden("in_aden"),
       in_admux("in_admux"),
-      in("in"),
-      acsr("acsr", 0x0) {
+      in("in") {
   acsr.allow_read_write();
   acsr.on_write(&Comparator::WriteAcsr);
   acsr.sync_always();
