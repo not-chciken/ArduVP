@@ -5,6 +5,9 @@
 #include "common.h"
 
 struct Adc : public vcml::peripheral, public vcml::signal_host<float> {
+  Adc(const sc_core::sc_module_name& nm);
+  ~Adc() = default;
+
   vcml::signal_target_array<float, 8> volt_adc;
 
   vcml::property<float> volt_aref;
@@ -33,8 +36,6 @@ struct Adc : public vcml::peripheral, public vcml::signal_host<float> {
   vcml::reg<u8> adcsra;
   vcml::reg<u8> adcsrb;
   vcml::reg<u8> admux;
-
-  Adc(const sc_core::sc_module_name& nm);
 
   virtual void reset() override;
 
