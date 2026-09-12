@@ -26,7 +26,7 @@ import re
 import sys
 import getopt
 
-insnwidth = 32
+insnwidth = 16
 bitop_width = 32
 insnmask = 0xffffffff
 variablewidth = False
@@ -42,9 +42,10 @@ translate_scope = 'static '
 input_file = ''
 output_file = None
 output_fd = None
+args_file = None
 output_null = False
 insntype = 'uint32_t'
-decode_function = 'decode'
+decode_function = 'DoDecode'
 
 # An identifier for C.
 re_C_ident = '[a-zA-Z][a-zA-Z0-9_]*'
@@ -286,9 +287,8 @@ class Field:
         return str(self.pos) + ':' + s + str(self.len)
 
     def str_extract(self, lvalue_formatter):
-        global bitop_width
-        s = 's' if self.sign else ''
-        return f'{s}extract{bitop_width}(insn, {self.pos}, {self.len})'
+        fn = 'ExtractBitsSigned' if self.sign else 'ExtractBits'
+        return f'{fn}(opcode, {self.pos}, {self.len})'
 
     def referenced_fields(self):
         return []
@@ -320,7 +320,7 @@ class MultiField:
             if pos == 0:
                 ret = ext
             else:
-                ret = f'deposit{bitop_width}({ret}, {pos}, {bitop_width - pos}, {ext})'
+                ret = f'DepositBits({ret}, {pos}, {bitop_width - pos}, {ext})'
             pos += f.len
         return ret
 
@@ -425,10 +425,9 @@ class NamedField:
         return self.name
 
     def str_extract(self, lvalue_formatter):
-        global bitop_width
-        s = 's' if self.sign else ''
         lvalue = lvalue_formatter(self.name)
-        return f'{s}extract{bitop_width}({lvalue}, 0, {self.len})'
+        fn = 'ExtractBitsSigned' if self.sign else 'ExtractBits'
+        return f'{fn}({lvalue}, 0, {self.len})'
 
     def referenced_fields(self):
         return [self.name]
@@ -452,14 +451,17 @@ class Arguments:
         return self.name + ' ' + str(self.fields)
 
     def struct_name(self):
-        return 'arg_' + self.name
+        return 'Arg' + ''.join(w.capitalize() for w in self.name.split('_'))
+
+    def member_name(self):
+        return self.name
 
     def output_def(self):
         if not self.extern:
-            output('typedef struct {\n')
+            output('struct ', self.struct_name(), ' {\n')
             for (n, t) in zip(self.fields, self.types):
-                output(f'    {t} {n};\n')
-            output('} ', self.struct_name(), ';\n\n')
+                output(f'  {t} {n};\n')
+            output('};\n\n')
 # end Arguments
 
 class General:
@@ -539,9 +541,9 @@ class Format(General):
         return decode_function + '_extract_' + self.name
 
     def output_extract(self):
-        output('static void ', self.extract_name(), '(DisasContext *ctx, ',
-               self.base.struct_name(), ' *a, ', insntype, ' insn)\n{\n')
-        self.output_fields(str_indent(4), lambda n: 'a->' + n)
+        output('inline void ', self.extract_name(), '(DisasContext* ctx, ',
+               self.base.struct_name(), '* a, ', insntype, ' opcode) {\n')
+        self.output_fields(str_indent(2), lambda n: 'a->' + n)
         output('}\n\n')
 # end Format
 
@@ -552,10 +554,9 @@ class Pattern(General):
     def output_decl(self):
         global translate_scope
         global translate_prefix
-        # output('typedef ', self.base.base.struct_name(), # Changed
-        #        ' arg_', self.name, ';\n')
+        pass
         # output(translate_scope, 'bool ', translate_prefix, '_', self.name,
-        #        '(DisasContext *ctx, arg_', self.name, ' *a);\n')
+        #        '(disas_context *ctx, arg_', self.name, ' *a);\n')
 
     def output_code(self, i, extracted, outerbits, outermask):
         global translate_prefix
@@ -581,19 +582,30 @@ class Pattern(General):
             error(self.lineno, ('pattern that uses fields defined in format '
                                 'cannot use format that uses fields defined '
                                 'in pattern'))
+        # The body declares a variable, so it needs a scope of its own to be
+        # legal inside a switch statement.
+        output(ind, '{\n')
+        ind2 = str_indent(i + 2)
         if fmt_refs:
             # pattern fields first
-            self.output_fields(ind, lambda n: 'u.f_' + arg + '.' + n)
+            self.output_fields(ind2, lambda n: 'u.' + arg + '.' + n)
             assert not extracted, "dangling fmt refs but it was already extracted"
-        # if not extracted: # Changed.
-        #     output(ind, self.base.extract_name(),
-        #            '(ctx, &u.f_', arg, ', insn);\n')
+        if not extracted:
+            output(ind2, self.base.extract_name(),
+                   '(ctx, &u.', arg, ', opcode);\n')
         if not fmt_refs:
             # pattern fields last
-            self.output_fields(ind, lambda n: 'u.f_' + arg + '.' + n)
-        output(ind, 'return &', self.name.replace('_',''), "_obj", ';\n') # Changed.
-        # output(ind, 'if (', translate_prefix, '_', self.name,
-        #        '(ctx, &u.f_', arg, ')) return true;\n')
+            self.output_fields(ind2, lambda n: 'u.' + arg + '.' + n)
+
+        cls = 'Insn::' + self.name.replace('_', '').capitalize()
+        output(ind2, 'Instruction i;\n')
+        output(ind2, 'i.args = u;\n')
+        output(ind2, 'i.Execute = ', cls, '::Execute;\n')
+        output(ind2, 'i.GetStatementString = ', cls, '::GetStatementString;\n')
+        output(ind2, 'i.cycles = ', cls, '::kCycles;\n')
+        output(ind2, 'i.is_32bit = ', cls, '::kIs32Bit;\n')
+        output(ind2, 'return i;\n')
+        output(ind, '}\n')
 
     # Normal patterns do not have children.
     def build_tree(self):
@@ -694,7 +706,7 @@ class IncMultiPattern(MultiPattern):
             if outermask != p.fixedmask:
                 innermask = p.fixedmask & ~outermask
                 innerbits = p.fixedbits & ~outermask
-                output(ind, f'if ((insn & {whexC(innermask)}) == {whexC(innerbits)}) {{\n')
+                output(ind, f'if ((opcode & {whexC(innermask)}) == {whexC(innerbits)}) {{\n')
                 output(ind, f'    /* {str_match_bits(p.fixedbits, p.fixedmask)} */\n')
                 p.output_code(i + 4, extracted, p.fixedbits, p.fixedmask)
                 output(ind, '}\n')
@@ -741,8 +753,8 @@ class Tree:
         # on named fields from the insn pattern, as those won't have
         # been initialised at this point.
         if not extracted and self.base and not self.base.dangling_references():
-            # output(ind, self.base.extract_name(),
-            #        '(ctx, &u.f_', self.base.base.name, ', insn);\n') # Changed.
+            output(ind, self.base.extract_name(),
+                   '(ctx, &u.', self.base.base.member_name(), ', opcode);\n')
             extracted = True
 
         # Attempt to aid the compiler in producing compact switch statements.
@@ -751,13 +763,13 @@ class Tree:
         if sh > 0:
             # Propagate SH down into the local functions.
             def str_switch(b, sh=sh):
-                return f'(insn >> {sh}) & {b >> sh:#x}'
+                return f'(opcode >> {sh}) & {b >> sh:#x}'
 
             def str_case(b, sh=sh):
                 return hex(b >> sh)
         else:
             def str_switch(b):
-                return f'insn & {whexC(b)}'
+                return f'opcode & {whexC(b)}'
 
             def str_case(b):
                 return whexC(b)
@@ -771,7 +783,8 @@ class Tree:
             output(ind, '    /* ',
                    str_match_bits(innerbits, innermask), ' */\n')
             s.output_code(i + 4, extracted, innerbits, innermask)
-            output(ind, '    break;\n')
+            if not isinstance(s, Pattern):
+                output(ind, '    break;\n')
         output(ind, '}\n')
 # end Tree
 
@@ -1028,7 +1041,7 @@ def infer_format(arg, fieldmask, flds, width):
             continue
         return (fmt, const_flds)
 
-    name = decode_function + '_Fmt_' + str(len(formats))
+    name = decode_function + '_fmt_' + str(len(formats))
     if not arg:
         arg = infer_argument_set(flds)
 
@@ -1365,8 +1378,8 @@ class SizeTree:
 
         # If we need to load more bytes to test, do so now.
         if extracted < self.width:
-            output(ind, f'insn = {decode_function}_load_bytes',
-                   f'(ctx, insn, {extracted // 8}, {self.width // 8});\n')
+            output(ind, f'opcode = {decode_function}_load_bytes',
+                   f'(ctx, opcode, {extracted // 8}, {self.width // 8});\n')
             extracted = self.width
 
         # Attempt to aid the compiler in producing compact switch statements.
@@ -1375,13 +1388,13 @@ class SizeTree:
         if sh > 0:
             # Propagate SH down into the local functions.
             def str_switch(b, sh=sh):
-                return f'(insn >> {sh}) & {b >> sh:#x}'
+                return f'(opcode >> {sh}) & {b >> sh:#x}'
 
             def str_case(b, sh=sh):
                 return hex(b >> sh)
         else:
             def str_switch(b):
-                return f'insn & {whexC(b)}'
+                return f'opcode & {whexC(b)}'
 
             def str_case(b):
                 return whexC(b)
@@ -1395,7 +1408,7 @@ class SizeTree:
                    str_match_bits(innerbits, innermask), ' */\n')
             s.output_code(i + 4, extracted, innerbits, innermask)
         output(ind, '}\n')
-        output(ind, 'return insn;\n')
+        output(ind, 'return opcode;\n')
 # end SizeTree
 
 class SizeLeaf:
@@ -1417,10 +1430,10 @@ class SizeLeaf:
 
         # If we need to load more bytes, do so now.
         if extracted < self.width:
-            output(ind, f'insn = {decode_function}_load_bytes',
-                   f'(ctx, insn, {extracted // 8}, {self.width // 8});\n')
+            output(ind, f'opcode = {decode_function}_load_bytes',
+                   f'(ctx, opcode, {extracted // 8}, {self.width // 8});\n')
             extracted = self.width
-        output(ind, 'return insn;\n')
+        output(ind, 'return opcode;\n')
 # end SizeLeaf
 
 
@@ -1502,6 +1515,7 @@ def main():
     global output_fd
     global output_file
     global output_null
+    global args_file
     global input_file
     global insnwidth
     global insntype
@@ -1515,8 +1529,8 @@ def main():
     decode_scope = 'static '
 
     long_opts = ['decode=', 'translate=', 'output=', 'insnwidth=',
-                 'static-decode=', 'varinsnwidth=', 'test-for-error',
-                 'output-null']
+                 'args-output=', 'static-decode=', 'varinsnwidth=',
+                 'test-for-error', 'output-null']
     try:
         (opts, args) = getopt.gnu_getopt(sys.argv[1:], 'o:vw:', long_opts)
     except getopt.GetoptError as err:
@@ -1524,6 +1538,8 @@ def main():
     for o, a in opts:
         if o in ('-o', '--output'):
             output_file = a
+        elif o == '--args-output':
+            args_file = a
         elif o == '--decode':
             decode_function = a
             decode_scope = ''
@@ -1537,7 +1553,7 @@ def main():
                 variablewidth = True
             insnwidth = int(a)
             if insnwidth == 16:
-                insntype = 'uint16_t'
+                insntype = 'u16'
                 insnmask = 0xffff
             elif insnwidth == 64:
                 insntype = 'uint64_t'
@@ -1589,80 +1605,62 @@ def main():
 
     output_autogen()
 
-    output(
-      r'''#pragma once
-
-#include "insn.h"
-''')
-
-    output("namespace Decode {\n")
-    for n in sorted(arguments.keys()):
-        f = arguments[n]
-        # f.output_def() # Changed.
-
-    # A single translate function can be invoked for different patterns.
-    # Make sure that the argument sets are the same, and declare the
-    # function only once.
-    #
-    # If we're sharing formats, we're likely also sharing trans_* functions,
-    # but we can't tell which ones.  Prevent issues from the compiler by
-    # suppressing redundant declaration warnings.
-    if anyextern:
-        output("#pragma GCC diagnostic push\n",
-               "#pragma GCC diagnostic ignored \"-Wredundant-decls\"\n",
-               "#ifdef __clang__\n"
-               "#  pragma GCC diagnostic ignored \"-Wtypedef-redefinition\"\n",
-               "#endif\n\n")
-
-    out_pats = {}
-    for i in allpatterns:
-        if i.name in out_pats:
-            p = out_pats[i.name]
-            if i.base.base != p.base.base:
-                error(0, i.name, ' has conflicting argument sets')
-        else:
-            i.output_decl()
-            out_pats[i.name] = i
-    output('\n\n')
-
-    for i in allpatterns:
-      class_name = i.name.replace("_","").capitalize()
-      obj_name = i.name.replace("_","") + "_obj"
-      output("static Insn::", class_name, " ", obj_name, ";\n")
-    output("static Insn::Illegal illegal_obj;\n")
-    output("static Insn::Nop nop_obj;\n")
-    output("\n")
-
-    if anyextern:
-        output("#pragma GCC diagnostic pop\n\n")
-
-    for n in sorted(formats.keys()):
-        f = formats[n]
-        #f.output_extract() # Changed.
-
-    # output(decode_scope, 'bool ', decode_function,
-    #        '(DisasContext *ctx, ', insntype, ' insn)\n{\n')
-    output(decode_scope, 'inline InsnBase* ', decode_function, # Changed
-           '(', insntype, ' insn)\n{\n')
-
+    i2 = str_indent(2)
     i4 = str_indent(4)
 
-    if len(allpatterns) != 0:
-        # output(i4, 'union {\n')
-        # for n in sorted(arguments.keys()):
-        #     f = arguments[n]
-        #     output(i4, i4, f.struct_name(), ' f_', f.name, ';\n')
-        # output(i4, '} u;\n\n') # Changed.
-        toppat.output_code(4, False, 0, 0)
+    # The argument sets and their union go into a header of their own, so that
+    # insn.h can name InsnArgs without depending on the decoder itself.
+    if args_file:
+        args_fd = output_fd
+        output_fd = open(args_file, 'wt', encoding='utf-8')
+        output_autogen()
+        output('#pragma once\n\n')
+        output('#include "common.h"\n\n')
 
-    output(i4, 'return &illegal_obj;\n')
-    output('}\n')
-    output('}\n')
+    for n in sorted(arguments.keys()):
+        arguments[n].output_def()
+
+    output('// Decoded operands of a single instruction.\n')
+    output('union InsnArgs {\n')
+    for n in sorted(arguments.keys()):
+        f = arguments[n]
+        output(i2, f.struct_name(), ' ', f.member_name(), ';\n')
+    output('};\n')
+
+    if args_file:
+        output_fd.close()
+        output_fd = args_fd
+
+    output('#pragma once\n\n')
+    output('#include "insn.h"\n\n')
+    output('namespace Decode {\n\n')
+
+    for n in sorted(formats.keys()):
+        formats[n].output_extract()
+
+    output(decode_scope, 'inline Instruction ', decode_function,
+           '(', insntype, ' opcode, DisasContext* ctx) {\n')
+
+    output(i2, 'InsnArgs u = {};\n\n')
+
+    if len(allpatterns) != 0:
+        toppat.output_code(2, False, 0, 0)
+
+    output(i2, '// No pattern matched.\n')
+    output(i2, 'Instruction i;\n')
+    output(i2, 'i.args = u;\n')
+    output(i2, 'i.Execute = Insn::Illegal::Execute;\n')
+    output(i2, 'i.GetStatementString = Insn::Illegal::GetStatementString;\n')
+    output(i2, 'i.cycles = Insn::Illegal::kCycles;\n')
+    output(i2, 'i.is_32bit = Insn::Illegal::kIs32Bit;\n')
+    output(i2, 'return i;\n')
+    output('}\n\n')
+    output('}  // namespace Decode\n')
 
     if variablewidth:
         output('\n', decode_scope, insntype, ' ', decode_function,
-               '_load(DisasContext *ctx)\n{\n',
-               '    ', insntype, ' insn = 0;\n\n')
+               '_load(DisasContext* ctx)\n{\n',
+               '    ', insntype, ' opcode = 0;\n\n')
         stree.output_code(4, 0, 0, 0)
         output('}\n')
 

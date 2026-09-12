@@ -2,9 +2,9 @@
 
 #include <array>
 #include <chrono>
-#include <functional>
 
 #include "common.h"
+#include "insn.h"
 
 using RegType = u8;
 using AddrType = u16;
@@ -56,7 +56,7 @@ struct Cpu : public vcml::processor {
   u64 cycle_counter = 0;
   u64 retired_instructions = 0;
 
-  std::function<void()> FetchInstruction(vcml::u64 adr, uint* cyc);
+  Instruction FetchInstruction(vcml::u64 adr);
 
   u16 InsnDmiRead(vcml::u64 adr);
 

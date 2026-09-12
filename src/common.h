@@ -36,6 +36,15 @@ constexpr T SignExtend(T value, int bits) {
   return (value ^ m) - m;
 }
 
+constexpr i32 ExtractBitsSigned(u64 value, uint start, uint n) {
+  return SignExtend(static_cast<i32>(ExtractBits(value, start, n)), n);
+}
+
+constexpr u32 DepositBits(u32 value, uint start, uint n, u32 field) {
+  u32 mask = static_cast<u32>(Bitmask(n)) << start;
+  return (value & ~mask) | ((field << start) & mask);
+}
+
 namespace Avr {
 enum Regs {
   R0 = 0,

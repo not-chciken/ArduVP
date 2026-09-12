@@ -29,6 +29,16 @@ endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
+add_custom_target(gen_decode
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/src/decode/decodetree.py
+          --decode DoDecode
+          --insnwidth 16
+          --args-output ${CMAKE_SOURCE_DIR}/src/decode/insn_args.h
+          --output ${CMAKE_SOURCE_DIR}/src/decode/decode.h
+          ${CMAKE_SOURCE_DIR}/src/decode/insn.decode
+  COMMENT "Generating instruction decoder from insn.decode"
+  VERBATIM)
+
 set(ALL_CPPS
   ${CMAKE_SOURCE_DIR}/src/adc.cpp
   ${CMAKE_SOURCE_DIR}/src/comparator.cpp

@@ -3,734 +3,1451 @@
 #pragma once
 
 #include "insn.h"
+
 namespace Decode {
 
-
-static Insn::Add ADD_obj;
-static Insn::Adc ADC_obj;
-static Insn::Adiw ADIW_obj;
-static Insn::Sub SUB_obj;
-static Insn::Subi SUBI_obj;
-static Insn::Sbc SBC_obj;
-static Insn::Sbci SBCI_obj;
-static Insn::Sbiw SBIW_obj;
-static Insn::And AND_obj;
-static Insn::Andi ANDI_obj;
-static Insn::Or OR_obj;
-static Insn::Ori ORI_obj;
-static Insn::Eor EOR_obj;
-static Insn::Com COM_obj;
-static Insn::Neg NEG_obj;
-static Insn::Inc INC_obj;
-static Insn::Dec DEC_obj;
-static Insn::Mul MUL_obj;
-static Insn::Muls MULS_obj;
-static Insn::Mulsu MULSU_obj;
-static Insn::Fmul FMUL_obj;
-static Insn::Fmuls FMULS_obj;
-static Insn::Fmulsu FMULSU_obj;
-static Insn::Rjmp RJMP_obj;
-static Insn::Ijmp IJMP_obj;
-static Insn::Eijmp EIJMP_obj;
-static Insn::Jmp JMP_obj;
-static Insn::Rcall RCALL_obj;
-static Insn::Icall ICALL_obj;
-static Insn::Eicall EICALL_obj;
-static Insn::Call CALL_obj;
-static Insn::Ret RET_obj;
-static Insn::Reti RETI_obj;
-static Insn::Cpse CPSE_obj;
-static Insn::Cp CP_obj;
-static Insn::Cpc CPC_obj;
-static Insn::Cpi CPI_obj;
-static Insn::Sbrc SBRC_obj;
-static Insn::Sbrs SBRS_obj;
-static Insn::Sbic SBIC_obj;
-static Insn::Sbis SBIS_obj;
-static Insn::Brbs BRBS_obj;
-static Insn::Brbc BRBC_obj;
-static Insn::Mov MOV_obj;
-static Insn::Movw MOVW_obj;
-static Insn::Ldi LDI_obj;
-static Insn::Lds LDS_obj;
-static Insn::Ldx1 LDX1_obj;
-static Insn::Ldx2 LDX2_obj;
-static Insn::Ldx3 LDX3_obj;
-static Insn::Ldy2 LDY2_obj;
-static Insn::Ldy3 LDY3_obj;
-static Insn::Ldz2 LDZ2_obj;
-static Insn::Ldz3 LDZ3_obj;
-static Insn::Lddy LDDY_obj;
-static Insn::Lddz LDDZ_obj;
-static Insn::Sts STS_obj;
-static Insn::Stx1 STX1_obj;
-static Insn::Stx2 STX2_obj;
-static Insn::Stx3 STX3_obj;
-static Insn::Sty2 STY2_obj;
-static Insn::Sty3 STY3_obj;
-static Insn::Stz2 STZ2_obj;
-static Insn::Stz3 STZ3_obj;
-static Insn::Stdy STDY_obj;
-static Insn::Stdz STDZ_obj;
-static Insn::Lpm1 LPM1_obj;
-static Insn::Lpm2 LPM2_obj;
-static Insn::Lpmx LPMX_obj;
-static Insn::Spm SPM_obj;
-static Insn::Spmx SPMX_obj;
-static Insn::In IN_obj;
-static Insn::Out OUT_obj;
-static Insn::Push PUSH_obj;
-static Insn::Pop POP_obj;
-static Insn::Xch XCH_obj;
-static Insn::Lac LAC_obj;
-static Insn::Las LAS_obj;
-static Insn::Lat LAT_obj;
-static Insn::Lsr LSR_obj;
-static Insn::Ror ROR_obj;
-static Insn::Asr ASR_obj;
-static Insn::Swap SWAP_obj;
-static Insn::Sbi SBI_obj;
-static Insn::Cbi CBI_obj;
-static Insn::Bst BST_obj;
-static Insn::Bld BLD_obj;
-static Insn::Bset BSET_obj;
-static Insn::Bclr BCLR_obj;
-static Insn::Break BREAK_obj;
-static Insn::Nop NOP_obj;
-static Insn::Sleep SLEEP_obj;
-static Insn::Wdr WDR_obj;
-static Insn::Illegal illegal_obj;
-static Insn::Nop nop_obj;
-
-inline Insn::InsnBase* DecodeInsn(uint16_t insn)
-{
-    switch (insn & 0xd000) {
-    case 0x0000:
-        /* 00.0.... ........ */
-        switch (insn & 0x2c00) {
-        case 0x0000:
-            /* 000000.. ........ */
-            switch ((insn >> 8) & 0x3) {
-            case 0x0:
-                /* 00000000 ........ */
-                switch (insn & 0x00ff) {
-                case 0x0000:
-                    /* 00000000 00000000 */
-                    /* insn.decode:182 */
-                    return &NOP_obj;
-                    break;
-                }
-                break;
-            case 0x1:
-                /* 00000001 ........ */
-                /* insn.decode:125 */
-                return &MOVW_obj;
-                break;
-            case 0x2:
-                /* 00000010 ........ */
-                /* insn.decode:71 */
-                return &MULS_obj;
-                break;
-            case 0x3:
-                /* 00000011 ........ */
-                switch (insn & 0x0088) {
-                case 0x0000:
-                    /* 00000011 0...0... */
-                    /* insn.decode:72 */
-                    return &MULSU_obj;
-                    break;
-                case 0x0008:
-                    /* 00000011 0...1... */
-                    /* insn.decode:73 */
-                    return &FMUL_obj;
-                    break;
-                case 0x0080:
-                    /* 00000011 1...0... */
-                    /* insn.decode:74 */
-                    return &FMULS_obj;
-                    break;
-                case 0x0088:
-                    /* 00000011 1...1... */
-                    /* insn.decode:75 */
-                    return &FMULSU_obj;
-                    break;
-                }
-                break;
-            }
-            break;
-        case 0x0400:
-            /* 000001.. ........ */
-            /* insn.decode:102 */
-            return &CPC_obj;
-            break;
-        case 0x0800:
-            /* 000010.. ........ */
-            /* insn.decode:58 */
-            return &SBC_obj;
-            break;
-        case 0x0c00:
-            /* 000011.. ........ */
-            /* insn.decode:53 */
-            return &ADD_obj;
-            break;
-        case 0x2000:
-            /* 001000.. ........ */
-            /* insn.decode:61 */
-            return &AND_obj;
-            break;
-        case 0x2400:
-            /* 001001.. ........ */
-            /* insn.decode:65 */
-            return &EOR_obj;
-            break;
-        case 0x2800:
-            /* 001010.. ........ */
-            /* insn.decode:63 */
-            return &OR_obj;
-            break;
-        case 0x2c00:
-            /* 001011.. ........ */
-            /* insn.decode:124 */
-            return &MOV_obj;
-            break;
-        }
-        break;
-    case 0x1000:
-        /* 00.1.... ........ */
-        switch ((insn >> 13) & 0x1) {
-        case 0x0:
-            /* 0001.... ........ */
-            switch ((insn >> 10) & 0x3) {
-            case 0x0:
-                /* 000100.. ........ */
-                /* insn.decode:100 */
-                return &CPSE_obj;
-                break;
-            case 0x1:
-                /* 000101.. ........ */
-                /* insn.decode:101 */
-                return &CP_obj;
-                break;
-            case 0x2:
-                /* 000110.. ........ */
-                /* insn.decode:56 */
-                return &SUB_obj;
-                break;
-            case 0x3:
-                /* 000111.. ........ */
-                /* insn.decode:54 */
-                return &ADC_obj;
-                break;
-            }
-            break;
-        case 0x1:
-            /* 0011.... ........ */
-            /* insn.decode:103 */
-            return &CPI_obj;
-            break;
-        }
-        break;
-    case 0x4000:
-        /* 01.0.... ........ */
-        switch ((insn >> 13) & 0x1) {
-        case 0x0:
-            /* 0100.... ........ */
-            /* insn.decode:59 */
-            return &SBCI_obj;
-            break;
-        case 0x1:
-            /* 0110.... ........ */
-            /* insn.decode:64 */
-            return &ORI_obj;
-            break;
-        }
-        break;
-    case 0x5000:
-        /* 01.1.... ........ */
-        switch ((insn >> 13) & 0x1) {
-        case 0x0:
-            /* 0101.... ........ */
-            /* insn.decode:57 */
-            return &SUBI_obj;
-            break;
-        case 0x1:
-            /* 0111.... ........ */
-            /* insn.decode:62 */
-            return &ANDI_obj;
-            break;
-        }
-        break;
-    case 0x8000:
-        /* 10.0.... ........ */
-        switch (insn & 0x0208) {
-        case 0x0000:
-            /* 10.0..0. ....0... */
-            /* insn.decode:136 */
-            return &LDDZ_obj;
-            break;
-        case 0x0008:
-            /* 10.0..0. ....1... */
-            /* insn.decode:135 */
-            return &LDDY_obj;
-            break;
-        case 0x0200:
-            /* 10.0..1. ....0... */
-            /* insn.decode:146 */
-            return &STDZ_obj;
-            break;
-        case 0x0208:
-            /* 10.0..1. ....1... */
-            /* insn.decode:145 */
-            return &STDY_obj;
-            break;
-        }
-        break;
-    case 0x9000:
-        /* 10.1.... ........ */
-        switch (insn & 0x2800) {
-        case 0x0000:
-            /* 10010... ........ */
-            switch ((insn >> 9) & 0x3) {
-            case 0x0:
-                /* 1001000. ........ */
-                switch (insn & 0x000f) {
-                case 0x0000:
-                    /* 1001000. ....0000 */
-                    /* insn.decode:127 */
-                    return &LDS_obj;
-                    break;
-                case 0x0001:
-                    /* 1001000. ....0001 */
-                    /* insn.decode:133 */
-                    return &LDZ2_obj;
-                    break;
-                case 0x0002:
-                    /* 1001000. ....0010 */
-                    /* insn.decode:134 */
-                    return &LDZ3_obj;
-                    break;
-                case 0x0004:
-                    /* 1001000. ....0100 */
-                    /* insn.decode:148 */
-                    return &LPM2_obj;
-                    break;
-                case 0x0005:
-                    /* 1001000. ....0101 */
-                    /* insn.decode:149 */
-                    return &LPMX_obj;
-                    break;
-                case 0x0009:
-                    /* 1001000. ....1001 */
-                    /* insn.decode:131 */
-                    return &LDY2_obj;
-                    break;
-                case 0x000a:
-                    /* 1001000. ....1010 */
-                    /* insn.decode:132 */
-                    return &LDY3_obj;
-                    break;
-                case 0x000c:
-                    /* 1001000. ....1100 */
-                    /* insn.decode:128 */
-                    return &LDX1_obj;
-                    break;
-                case 0x000d:
-                    /* 1001000. ....1101 */
-                    /* insn.decode:129 */
-                    return &LDX2_obj;
-                    break;
-                case 0x000e:
-                    /* 1001000. ....1110 */
-                    /* insn.decode:130 */
-                    return &LDX3_obj;
-                    break;
-                case 0x000f:
-                    /* 1001000. ....1111 */
-                    /* insn.decode:158 */
-                    return &POP_obj;
-                    break;
-                }
-                break;
-            case 0x1:
-                /* 1001001. ........ */
-                switch (insn & 0x000f) {
-                case 0x0000:
-                    /* 1001001. ....0000 */
-                    /* insn.decode:137 */
-                    return &STS_obj;
-                    break;
-                case 0x0001:
-                    /* 1001001. ....0001 */
-                    /* insn.decode:143 */
-                    return &STZ2_obj;
-                    break;
-                case 0x0002:
-                    /* 1001001. ....0010 */
-                    /* insn.decode:144 */
-                    return &STZ3_obj;
-                    break;
-                case 0x0004:
-                    /* 1001001. ....0100 */
-                    /* insn.decode:159 */
-                    return &XCH_obj;
-                    break;
-                case 0x0005:
-                    /* 1001001. ....0101 */
-                    /* insn.decode:161 */
-                    return &LAS_obj;
-                    break;
-                case 0x0006:
-                    /* 1001001. ....0110 */
-                    /* insn.decode:160 */
-                    return &LAC_obj;
-                    break;
-                case 0x0007:
-                    /* 1001001. ....0111 */
-                    /* insn.decode:162 */
-                    return &LAT_obj;
-                    break;
-                case 0x0009:
-                    /* 1001001. ....1001 */
-                    /* insn.decode:141 */
-                    return &STY2_obj;
-                    break;
-                case 0x000a:
-                    /* 1001001. ....1010 */
-                    /* insn.decode:142 */
-                    return &STY3_obj;
-                    break;
-                case 0x000c:
-                    /* 1001001. ....1100 */
-                    /* insn.decode:138 */
-                    return &STX1_obj;
-                    break;
-                case 0x000d:
-                    /* 1001001. ....1101 */
-                    /* insn.decode:139 */
-                    return &STX2_obj;
-                    break;
-                case 0x000e:
-                    /* 1001001. ....1110 */
-                    /* insn.decode:140 */
-                    return &STX3_obj;
-                    break;
-                case 0x000f:
-                    /* 1001001. ....1111 */
-                    /* insn.decode:157 */
-                    return &PUSH_obj;
-                    break;
-                }
-                break;
-            case 0x2:
-                /* 1001010. ........ */
-                switch ((insn >> 1) & 0x7) {
-                case 0x0:
-                    /* 1001010. ....000. */
-                    switch (insn & 0x0001) {
-                    case 0x0000:
-                        /* 1001010. ....0000 */
-                        /* insn.decode:66 */
-                        return &COM_obj;
-                        break;
-                    case 0x0001:
-                        /* 1001010. ....0001 */
-                        /* insn.decode:67 */
-                        return &NEG_obj;
-                        break;
-                    }
-                    break;
-                case 0x1:
-                    /* 1001010. ....001. */
-                    switch (insn & 0x0001) {
-                    case 0x0000:
-                        /* 1001010. ....0010 */
-                        /* insn.decode:170 */
-                        return &SWAP_obj;
-                        break;
-                    case 0x0001:
-                        /* 1001010. ....0011 */
-                        /* insn.decode:68 */
-                        return &INC_obj;
-                        break;
-                    }
-                    break;
-                case 0x2:
-                    /* 1001010. ....010. */
-                    switch (insn & 0x0001) {
-                    case 0x0001:
-                        /* 1001010. ....0101 */
-                        /* insn.decode:169 */
-                        return &ASR_obj;
-                        break;
-                    }
-                    break;
-                case 0x3:
-                    /* 1001010. ....011. */
-                    switch (insn & 0x0001) {
-                    case 0x0000:
-                        /* 1001010. ....0110 */
-                        /* insn.decode:167 */
-                        return &LSR_obj;
-                        break;
-                    case 0x0001:
-                        /* 1001010. ....0111 */
-                        /* insn.decode:168 */
-                        return &ROR_obj;
-                        break;
-                    }
-                    break;
-                case 0x4:
-                    /* 1001010. ....100. */
-                    switch (insn & 0x0181) {
-                    case 0x0000:
-                        /* 10010100 0...1000 */
-                        /* insn.decode:175 */
-                        return &BSET_obj;
-                        break;
-                    case 0x0001:
-                        /* 10010100 0...1001 */
-                        switch ((insn >> 4) & 0x7) {
-                        case 0x0:
-                            /* 10010100 00001001 */
-                            /* insn.decode:91 */
-                            return &IJMP_obj;
-                            break;
-                        case 0x1:
-                            /* 10010100 00011001 */
-                            /* insn.decode:92 */
-                            return &EIJMP_obj;
-                            break;
-                        }
-                        break;
-                    case 0x0080:
-                        /* 10010100 1...1000 */
-                        /* insn.decode:176 */
-                        return &BCLR_obj;
-                        break;
-                    case 0x0100:
-                        /* 10010101 0...1000 */
-                        switch ((insn >> 4) & 0x7) {
-                        case 0x0:
-                            /* 10010101 00001000 */
-                            /* insn.decode:98 */
-                            return &RET_obj;
-                            break;
-                        case 0x1:
-                            /* 10010101 00011000 */
-                            /* insn.decode:99 */
-                            return &RETI_obj;
-                            break;
-                        }
-                        break;
-                    case 0x0101:
-                        /* 10010101 0...1001 */
-                        switch ((insn >> 4) & 0x7) {
-                        case 0x0:
-                            /* 10010101 00001001 */
-                            /* insn.decode:95 */
-                            return &ICALL_obj;
-                            break;
-                        case 0x1:
-                            /* 10010101 00011001 */
-                            /* insn.decode:96 */
-                            return &EICALL_obj;
-                            break;
-                        }
-                        break;
-                    case 0x0180:
-                        /* 10010101 1...1000 */
-                        switch ((insn >> 4) & 0x7) {
-                        case 0x0:
-                            /* 10010101 10001000 */
-                            /* insn.decode:183 */
-                            return &SLEEP_obj;
-                            break;
-                        case 0x1:
-                            /* 10010101 10011000 */
-                            /* insn.decode:181 */
-                            return &BREAK_obj;
-                            break;
-                        case 0x2:
-                            /* 10010101 10101000 */
-                            /* insn.decode:184 */
-                            return &WDR_obj;
-                            break;
-                        case 0x4:
-                            /* 10010101 11001000 */
-                            /* insn.decode:147 */
-                            return &LPM1_obj;
-                            break;
-                        case 0x6:
-                            /* 10010101 11101000 */
-                            /* insn.decode:153 */
-                            return &SPM_obj;
-                            break;
-                        case 0x7:
-                            /* 10010101 11111000 */
-                            /* insn.decode:154 */
-                            return &SPMX_obj;
-                            break;
-                        }
-                        break;
-                    }
-                    break;
-                case 0x5:
-                    /* 1001010. ....101. */
-                    switch (insn & 0x0001) {
-                    case 0x0000:
-                        /* 1001010. ....1010 */
-                        /* insn.decode:69 */
-                        return &DEC_obj;
-                        break;
-                    }
-                    break;
-                case 0x6:
-                    /* 1001010. ....110. */
-                    /* insn.decode:93 */
-                    return &JMP_obj;
-                    break;
-                case 0x7:
-                    /* 1001010. ....111. */
-                    /* insn.decode:97 */
-                    return &CALL_obj;
-                    break;
-                }
-                break;
-            case 0x3:
-                /* 1001011. ........ */
-                switch ((insn >> 8) & 0x1) {
-                case 0x0:
-                    /* 10010110 ........ */
-                    /* insn.decode:55 */
-                    return &ADIW_obj;
-                    break;
-                case 0x1:
-                    /* 10010111 ........ */
-                    /* insn.decode:60 */
-                    return &SBIW_obj;
-                    break;
-                }
-                break;
-            }
-            break;
-        case 0x0800:
-            /* 10011... ........ */
-            switch ((insn >> 10) & 0x1) {
-            case 0x0:
-                /* 100110.. ........ */
-                switch ((insn >> 8) & 0x3) {
-                case 0x0:
-                    /* 10011000 ........ */
-                    /* insn.decode:172 */
-                    return &CBI_obj;
-                    break;
-                case 0x1:
-                    /* 10011001 ........ */
-                    /* insn.decode:106 */
-                    return &SBIC_obj;
-                    break;
-                case 0x2:
-                    /* 10011010 ........ */
-                    /* insn.decode:171 */
-                    return &SBI_obj;
-                    break;
-                case 0x3:
-                    /* 10011011 ........ */
-                    /* insn.decode:107 */
-                    return &SBIS_obj;
-                    break;
-                }
-                break;
-            case 0x1:
-                /* 100111.. ........ */
-                /* insn.decode:70 */
-                return &MUL_obj;
-                break;
-            }
-            break;
-        case 0x2000:
-            /* 10110... ........ */
-            /* insn.decode:155 */
-            return &IN_obj;
-            break;
-        case 0x2800:
-            /* 10111... ........ */
-            /* insn.decode:156 */
-            return &OUT_obj;
-            break;
-        }
-        break;
-    case 0xc000:
-        /* 11.0.... ........ */
-        switch ((insn >> 13) & 0x1) {
-        case 0x0:
-            /* 1100.... ........ */
-            /* insn.decode:90 */
-            return &RJMP_obj;
-            break;
-        case 0x1:
-            /* 1110.... ........ */
-            /* insn.decode:126 */
-            return &LDI_obj;
-            break;
-        }
-        break;
-    case 0xd000:
-        /* 11.1.... ........ */
-        switch ((insn >> 13) & 0x1) {
-        case 0x0:
-            /* 1101.... ........ */
-            /* insn.decode:94 */
-            return &RCALL_obj;
-            break;
-        case 0x1:
-            /* 1111.... ........ */
-            switch ((insn >> 10) & 0x3) {
-            case 0x0:
-                /* 111100.. ........ */
-                /* insn.decode:108 */
-                return &BRBS_obj;
-                break;
-            case 0x1:
-                /* 111101.. ........ */
-                /* insn.decode:109 */
-                return &BRBC_obj;
-                break;
-            case 0x2:
-                /* 111110.. ........ */
-                switch (insn & 0x0208) {
-                case 0x0000:
-                    /* 1111100. ....0... */
-                    /* insn.decode:174 */
-                    return &BLD_obj;
-                    break;
-                case 0x0200:
-                    /* 1111101. ....0... */
-                    /* insn.decode:173 */
-                    return &BST_obj;
-                    break;
-                }
-                break;
-            case 0x3:
-                /* 111111.. ........ */
-                switch (insn & 0x0208) {
-                case 0x0000:
-                    /* 1111110. ....0... */
-                    /* insn.decode:104 */
-                    return &SBRC_obj;
-                    break;
-                case 0x0200:
-                    /* 1111111. ....0... */
-                    /* insn.decode:105 */
-                    return &SBRS_obj;
-                    break;
-                }
-                break;
-            }
-            break;
-        }
-        break;
-    }
-    return &illegal_obj;
+inline void DoDecode_extract_DoDecode_fmt_10(DisasContext* ctx, ArgImm* a, u16 opcode) {
+  a->imm = Append16(ctx, DepositBits(ExtractBits(opcode, 0, 1), 1, 31, ExtractBits(opcode, 4, 5)));
 }
+
+inline void DoDecode_extract_DoDecode_fmt_11(DisasContext* ctx, ArgRrBit* a, u16 opcode) {
+  a->bit = ExtractBits(opcode, 0, 3);
+  a->rr = ExtractBits(opcode, 4, 5);
 }
+
+inline void DoDecode_extract_DoDecode_fmt_12(DisasContext* ctx, ArgRegBit* a, u16 opcode) {
+  a->reg = ExtractBits(opcode, 3, 5);
+  a->bit = ExtractBits(opcode, 0, 3);
+}
+
+inline void DoDecode_extract_DoDecode_fmt_16(DisasContext* ctx, ArgRdRr* a, u16 opcode) {
+  a->rd = ToRegs00To30ByTwo(ctx, ExtractBits(opcode, 4, 4));
+  a->rr = ToRegs00To30ByTwo(ctx, ExtractBits(opcode, 0, 4));
+}
+
+inline void DoDecode_extract_DoDecode_fmt_17(DisasContext* ctx, ArgRr* a, u16 opcode) {
+  a->rr = ExtractBits(opcode, 4, 5);
+}
+
+inline void DoDecode_extract_DoDecode_fmt_18(DisasContext* ctx, ArgRdBit* a, u16 opcode) {
+  a->rd = ExtractBits(opcode, 4, 5);
+  a->bit = ExtractBits(opcode, 0, 3);
+}
+
+inline void DoDecode_extract_DoDecode_fmt_4(DisasContext* ctx, ArgRd* a, u16 opcode) {
+  a->rd = ExtractBits(opcode, 4, 5);
+}
+
+inline void DoDecode_extract_DoDecode_fmt_5(DisasContext* ctx, ArgRdRr* a, u16 opcode) {
+  a->rd = ToRegs16To31ByOne(ctx, ExtractBits(opcode, 4, 4));
+  a->rr = ToRegs16To31ByOne(ctx, ExtractBits(opcode, 0, 4));
+}
+
+inline void DoDecode_extract_DoDecode_fmt_8(DisasContext* ctx, ArgImm* a, u16 opcode) {
+  a->imm = ExtractBitsSigned(opcode, 0, 12);
+}
+
+inline void DoDecode_extract_DoDecode_fmt_9(DisasContext* ctx, ArgNone* a, u16 opcode) {
+}
+
+inline void DoDecode_extract_fmul(DisasContext* ctx, ArgRdRr* a, u16 opcode) {
+  a->rd = ToRegs16To23ByOne(ctx, ExtractBits(opcode, 4, 3));
+  a->rr = ToRegs16To23ByOne(ctx, ExtractBits(opcode, 0, 3));
+}
+
+inline void DoDecode_extract_io_rd_imm(DisasContext* ctx, ArgRdImm* a, u16 opcode) {
+  a->imm = DepositBits(ExtractBits(opcode, 0, 4), 4, 28, ExtractBits(opcode, 9, 2));
+  a->rd = ExtractBits(opcode, 4, 5);
+}
+
+inline void DoDecode_extract_ldst_d(DisasContext* ctx, ArgRdImm* a, u16 opcode) {
+  a->imm = DepositBits(DepositBits(ExtractBits(opcode, 0, 3), 3, 29, ExtractBits(opcode, 10, 2)), 5, 27, ExtractBits(opcode, 13, 1));
+  a->rd = ExtractBits(opcode, 4, 5);
+}
+
+inline void DoDecode_extract_ldst_s(DisasContext* ctx, ArgRdImm* a, u16 opcode) {
+  a->imm = NextWord(ctx);
+  a->rd = ExtractBits(opcode, 4, 5);
+}
+
+inline void DoDecode_extract_op_bit(DisasContext* ctx, ArgBit* a, u16 opcode) {
+  a->bit = ExtractBits(opcode, 4, 3);
+}
+
+inline void DoDecode_extract_op_bit_imm(DisasContext* ctx, ArgImmBit* a, u16 opcode) {
+  a->imm = ExtractBitsSigned(opcode, 3, 7);
+  a->bit = ExtractBits(opcode, 0, 3);
+}
+
+inline void DoDecode_extract_op_rd_imm6(DisasContext* ctx, ArgRdImm* a, u16 opcode) {
+  a->imm = DepositBits(ExtractBits(opcode, 0, 4), 4, 28, ExtractBits(opcode, 6, 2));
+  a->rd = ToRegs24To30ByTwo(ctx, ExtractBits(opcode, 4, 2));
+}
+
+inline void DoDecode_extract_op_rd_imm8(DisasContext* ctx, ArgRdImm* a, u16 opcode) {
+  a->imm = DepositBits(ExtractBits(opcode, 0, 4), 4, 28, ExtractBits(opcode, 8, 4));
+  a->rd = ToRegs16To31ByOne(ctx, ExtractBits(opcode, 4, 4));
+}
+
+inline void DoDecode_extract_op_rd_rr(DisasContext* ctx, ArgRdRr* a, u16 opcode) {
+  a->rd = ExtractBits(opcode, 4, 5);
+  a->rr = DepositBits(ExtractBits(opcode, 0, 4), 4, 28, ExtractBits(opcode, 9, 1));
+}
+
+inline Instruction DoDecode(u16 opcode, DisasContext* ctx) {
+  InsnArgs u = {};
+
+  switch (opcode & 0xd000) {
+  case 0x0000:
+      /* 00.0.... ........ */
+      switch (opcode & 0x2c00) {
+      case 0x0000:
+          /* 000000.. ........ */
+          switch ((opcode >> 8) & 0x3) {
+          case 0x0:
+              /* 00000000 ........ */
+              DoDecode_extract_DoDecode_fmt_9(ctx, &u.none, opcode);
+              switch (opcode & 0x00ff) {
+              case 0x0000:
+                  /* 00000000 00000000 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:196 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Nop::Execute;
+                    i.GetStatementString = Insn::Nop::GetStatementString;
+                    i.cycles = Insn::Nop::kCycles;
+                    i.is_32bit = Insn::Nop::kIs32Bit;
+                    return i;
+                  }
+              }
+              break;
+          case 0x1:
+              /* 00000001 ........ */
+              /* /home/niko/repos/arduvp/src/decode/insn.decode:139 */
+              {
+                DoDecode_extract_DoDecode_fmt_16(ctx, &u.rd_rr, opcode);
+                Instruction i;
+                i.args = u;
+                i.Execute = Insn::Movw::Execute;
+                i.GetStatementString = Insn::Movw::GetStatementString;
+                i.cycles = Insn::Movw::kCycles;
+                i.is_32bit = Insn::Movw::kIs32Bit;
+                return i;
+              }
+          case 0x2:
+              /* 00000010 ........ */
+              /* /home/niko/repos/arduvp/src/decode/insn.decode:85 */
+              {
+                DoDecode_extract_DoDecode_fmt_5(ctx, &u.rd_rr, opcode);
+                Instruction i;
+                i.args = u;
+                i.Execute = Insn::Muls::Execute;
+                i.GetStatementString = Insn::Muls::GetStatementString;
+                i.cycles = Insn::Muls::kCycles;
+                i.is_32bit = Insn::Muls::kIs32Bit;
+                return i;
+              }
+          case 0x3:
+              /* 00000011 ........ */
+              DoDecode_extract_fmul(ctx, &u.rd_rr, opcode);
+              switch (opcode & 0x0088) {
+              case 0x0000:
+                  /* 00000011 0...0... */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:86 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Mulsu::Execute;
+                    i.GetStatementString = Insn::Mulsu::GetStatementString;
+                    i.cycles = Insn::Mulsu::kCycles;
+                    i.is_32bit = Insn::Mulsu::kIs32Bit;
+                    return i;
+                  }
+              case 0x0008:
+                  /* 00000011 0...1... */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:87 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Fmul::Execute;
+                    i.GetStatementString = Insn::Fmul::GetStatementString;
+                    i.cycles = Insn::Fmul::kCycles;
+                    i.is_32bit = Insn::Fmul::kIs32Bit;
+                    return i;
+                  }
+              case 0x0080:
+                  /* 00000011 1...0... */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:88 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Fmuls::Execute;
+                    i.GetStatementString = Insn::Fmuls::GetStatementString;
+                    i.cycles = Insn::Fmuls::kCycles;
+                    i.is_32bit = Insn::Fmuls::kIs32Bit;
+                    return i;
+                  }
+              case 0x0088:
+                  /* 00000011 1...1... */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:89 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Fmulsu::Execute;
+                    i.GetStatementString = Insn::Fmulsu::GetStatementString;
+                    i.cycles = Insn::Fmulsu::kCycles;
+                    i.is_32bit = Insn::Fmulsu::kIs32Bit;
+                    return i;
+                  }
+              }
+              break;
+          }
+          break;
+      case 0x0400:
+          /* 000001.. ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:116 */
+          {
+            DoDecode_extract_op_rd_rr(ctx, &u.rd_rr, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Cpc::Execute;
+            i.GetStatementString = Insn::Cpc::GetStatementString;
+            i.cycles = Insn::Cpc::kCycles;
+            i.is_32bit = Insn::Cpc::kIs32Bit;
+            return i;
+          }
+      case 0x0800:
+          /* 000010.. ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:72 */
+          {
+            DoDecode_extract_op_rd_rr(ctx, &u.rd_rr, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Sbc::Execute;
+            i.GetStatementString = Insn::Sbc::GetStatementString;
+            i.cycles = Insn::Sbc::kCycles;
+            i.is_32bit = Insn::Sbc::kIs32Bit;
+            return i;
+          }
+      case 0x0c00:
+          /* 000011.. ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:67 */
+          {
+            DoDecode_extract_op_rd_rr(ctx, &u.rd_rr, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Add::Execute;
+            i.GetStatementString = Insn::Add::GetStatementString;
+            i.cycles = Insn::Add::kCycles;
+            i.is_32bit = Insn::Add::kIs32Bit;
+            return i;
+          }
+      case 0x2000:
+          /* 001000.. ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:75 */
+          {
+            DoDecode_extract_op_rd_rr(ctx, &u.rd_rr, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::And::Execute;
+            i.GetStatementString = Insn::And::GetStatementString;
+            i.cycles = Insn::And::kCycles;
+            i.is_32bit = Insn::And::kIs32Bit;
+            return i;
+          }
+      case 0x2400:
+          /* 001001.. ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:79 */
+          {
+            DoDecode_extract_op_rd_rr(ctx, &u.rd_rr, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Eor::Execute;
+            i.GetStatementString = Insn::Eor::GetStatementString;
+            i.cycles = Insn::Eor::kCycles;
+            i.is_32bit = Insn::Eor::kIs32Bit;
+            return i;
+          }
+      case 0x2800:
+          /* 001010.. ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:77 */
+          {
+            DoDecode_extract_op_rd_rr(ctx, &u.rd_rr, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Or::Execute;
+            i.GetStatementString = Insn::Or::GetStatementString;
+            i.cycles = Insn::Or::kCycles;
+            i.is_32bit = Insn::Or::kIs32Bit;
+            return i;
+          }
+      case 0x2c00:
+          /* 001011.. ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:138 */
+          {
+            DoDecode_extract_op_rd_rr(ctx, &u.rd_rr, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Mov::Execute;
+            i.GetStatementString = Insn::Mov::GetStatementString;
+            i.cycles = Insn::Mov::kCycles;
+            i.is_32bit = Insn::Mov::kIs32Bit;
+            return i;
+          }
+      }
+      break;
+  case 0x1000:
+      /* 00.1.... ........ */
+      switch ((opcode >> 13) & 0x1) {
+      case 0x0:
+          /* 0001.... ........ */
+          DoDecode_extract_op_rd_rr(ctx, &u.rd_rr, opcode);
+          switch ((opcode >> 10) & 0x3) {
+          case 0x0:
+              /* 000100.. ........ */
+              /* /home/niko/repos/arduvp/src/decode/insn.decode:114 */
+              {
+                Instruction i;
+                i.args = u;
+                i.Execute = Insn::Cpse::Execute;
+                i.GetStatementString = Insn::Cpse::GetStatementString;
+                i.cycles = Insn::Cpse::kCycles;
+                i.is_32bit = Insn::Cpse::kIs32Bit;
+                return i;
+              }
+          case 0x1:
+              /* 000101.. ........ */
+              /* /home/niko/repos/arduvp/src/decode/insn.decode:115 */
+              {
+                Instruction i;
+                i.args = u;
+                i.Execute = Insn::Cp::Execute;
+                i.GetStatementString = Insn::Cp::GetStatementString;
+                i.cycles = Insn::Cp::kCycles;
+                i.is_32bit = Insn::Cp::kIs32Bit;
+                return i;
+              }
+          case 0x2:
+              /* 000110.. ........ */
+              /* /home/niko/repos/arduvp/src/decode/insn.decode:70 */
+              {
+                Instruction i;
+                i.args = u;
+                i.Execute = Insn::Sub::Execute;
+                i.GetStatementString = Insn::Sub::GetStatementString;
+                i.cycles = Insn::Sub::kCycles;
+                i.is_32bit = Insn::Sub::kIs32Bit;
+                return i;
+              }
+          case 0x3:
+              /* 000111.. ........ */
+              /* /home/niko/repos/arduvp/src/decode/insn.decode:68 */
+              {
+                Instruction i;
+                i.args = u;
+                i.Execute = Insn::Adc::Execute;
+                i.GetStatementString = Insn::Adc::GetStatementString;
+                i.cycles = Insn::Adc::kCycles;
+                i.is_32bit = Insn::Adc::kIs32Bit;
+                return i;
+              }
+          }
+          break;
+      case 0x1:
+          /* 0011.... ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:117 */
+          {
+            DoDecode_extract_op_rd_imm8(ctx, &u.rd_imm, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Cpi::Execute;
+            i.GetStatementString = Insn::Cpi::GetStatementString;
+            i.cycles = Insn::Cpi::kCycles;
+            i.is_32bit = Insn::Cpi::kIs32Bit;
+            return i;
+          }
+      }
+      break;
+  case 0x4000:
+      /* 01.0.... ........ */
+      DoDecode_extract_op_rd_imm8(ctx, &u.rd_imm, opcode);
+      switch ((opcode >> 13) & 0x1) {
+      case 0x0:
+          /* 0100.... ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:73 */
+          {
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Sbci::Execute;
+            i.GetStatementString = Insn::Sbci::GetStatementString;
+            i.cycles = Insn::Sbci::kCycles;
+            i.is_32bit = Insn::Sbci::kIs32Bit;
+            return i;
+          }
+      case 0x1:
+          /* 0110.... ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:78 */
+          {
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Ori::Execute;
+            i.GetStatementString = Insn::Ori::GetStatementString;
+            i.cycles = Insn::Ori::kCycles;
+            i.is_32bit = Insn::Ori::kIs32Bit;
+            return i;
+          }
+      }
+      break;
+  case 0x5000:
+      /* 01.1.... ........ */
+      DoDecode_extract_op_rd_imm8(ctx, &u.rd_imm, opcode);
+      switch ((opcode >> 13) & 0x1) {
+      case 0x0:
+          /* 0101.... ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:71 */
+          {
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Subi::Execute;
+            i.GetStatementString = Insn::Subi::GetStatementString;
+            i.cycles = Insn::Subi::kCycles;
+            i.is_32bit = Insn::Subi::kIs32Bit;
+            return i;
+          }
+      case 0x1:
+          /* 0111.... ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:76 */
+          {
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Andi::Execute;
+            i.GetStatementString = Insn::Andi::GetStatementString;
+            i.cycles = Insn::Andi::kCycles;
+            i.is_32bit = Insn::Andi::kIs32Bit;
+            return i;
+          }
+      }
+      break;
+  case 0x8000:
+      /* 10.0.... ........ */
+      DoDecode_extract_ldst_d(ctx, &u.rd_imm, opcode);
+      switch (opcode & 0x0208) {
+      case 0x0000:
+          /* 10.0..0. ....0... */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:150 */
+          {
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Lddz::Execute;
+            i.GetStatementString = Insn::Lddz::GetStatementString;
+            i.cycles = Insn::Lddz::kCycles;
+            i.is_32bit = Insn::Lddz::kIs32Bit;
+            return i;
+          }
+      case 0x0008:
+          /* 10.0..0. ....1... */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:149 */
+          {
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Lddy::Execute;
+            i.GetStatementString = Insn::Lddy::GetStatementString;
+            i.cycles = Insn::Lddy::kCycles;
+            i.is_32bit = Insn::Lddy::kIs32Bit;
+            return i;
+          }
+      case 0x0200:
+          /* 10.0..1. ....0... */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:160 */
+          {
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Stdz::Execute;
+            i.GetStatementString = Insn::Stdz::GetStatementString;
+            i.cycles = Insn::Stdz::kCycles;
+            i.is_32bit = Insn::Stdz::kIs32Bit;
+            return i;
+          }
+      case 0x0208:
+          /* 10.0..1. ....1... */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:159 */
+          {
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Stdy::Execute;
+            i.GetStatementString = Insn::Stdy::GetStatementString;
+            i.cycles = Insn::Stdy::kCycles;
+            i.is_32bit = Insn::Stdy::kIs32Bit;
+            return i;
+          }
+      }
+      break;
+  case 0x9000:
+      /* 10.1.... ........ */
+      switch (opcode & 0x2800) {
+      case 0x0000:
+          /* 10010... ........ */
+          switch ((opcode >> 9) & 0x3) {
+          case 0x0:
+              /* 1001000. ........ */
+              switch (opcode & 0x000f) {
+              case 0x0000:
+                  /* 1001000. ....0000 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:141 */
+                  {
+                    DoDecode_extract_ldst_s(ctx, &u.rd_imm, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Lds::Execute;
+                    i.GetStatementString = Insn::Lds::GetStatementString;
+                    i.cycles = Insn::Lds::kCycles;
+                    i.is_32bit = Insn::Lds::kIs32Bit;
+                    return i;
+                  }
+              case 0x0001:
+                  /* 1001000. ....0001 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:147 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Ldz2::Execute;
+                    i.GetStatementString = Insn::Ldz2::GetStatementString;
+                    i.cycles = Insn::Ldz2::kCycles;
+                    i.is_32bit = Insn::Ldz2::kIs32Bit;
+                    return i;
+                  }
+              case 0x0002:
+                  /* 1001000. ....0010 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:148 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Ldz3::Execute;
+                    i.GetStatementString = Insn::Ldz3::GetStatementString;
+                    i.cycles = Insn::Ldz3::kCycles;
+                    i.is_32bit = Insn::Ldz3::kIs32Bit;
+                    return i;
+                  }
+              case 0x0004:
+                  /* 1001000. ....0100 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:162 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Lpm2::Execute;
+                    i.GetStatementString = Insn::Lpm2::GetStatementString;
+                    i.cycles = Insn::Lpm2::kCycles;
+                    i.is_32bit = Insn::Lpm2::kIs32Bit;
+                    return i;
+                  }
+              case 0x0005:
+                  /* 1001000. ....0101 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:163 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Lpmx::Execute;
+                    i.GetStatementString = Insn::Lpmx::GetStatementString;
+                    i.cycles = Insn::Lpmx::kCycles;
+                    i.is_32bit = Insn::Lpmx::kIs32Bit;
+                    return i;
+                  }
+              case 0x0009:
+                  /* 1001000. ....1001 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:145 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Ldy2::Execute;
+                    i.GetStatementString = Insn::Ldy2::GetStatementString;
+                    i.cycles = Insn::Ldy2::kCycles;
+                    i.is_32bit = Insn::Ldy2::kIs32Bit;
+                    return i;
+                  }
+              case 0x000a:
+                  /* 1001000. ....1010 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:146 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Ldy3::Execute;
+                    i.GetStatementString = Insn::Ldy3::GetStatementString;
+                    i.cycles = Insn::Ldy3::kCycles;
+                    i.is_32bit = Insn::Ldy3::kIs32Bit;
+                    return i;
+                  }
+              case 0x000c:
+                  /* 1001000. ....1100 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:142 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Ldx1::Execute;
+                    i.GetStatementString = Insn::Ldx1::GetStatementString;
+                    i.cycles = Insn::Ldx1::kCycles;
+                    i.is_32bit = Insn::Ldx1::kIs32Bit;
+                    return i;
+                  }
+              case 0x000d:
+                  /* 1001000. ....1101 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:143 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Ldx2::Execute;
+                    i.GetStatementString = Insn::Ldx2::GetStatementString;
+                    i.cycles = Insn::Ldx2::kCycles;
+                    i.is_32bit = Insn::Ldx2::kIs32Bit;
+                    return i;
+                  }
+              case 0x000e:
+                  /* 1001000. ....1110 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:144 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Ldx3::Execute;
+                    i.GetStatementString = Insn::Ldx3::GetStatementString;
+                    i.cycles = Insn::Ldx3::kCycles;
+                    i.is_32bit = Insn::Ldx3::kIs32Bit;
+                    return i;
+                  }
+              case 0x000f:
+                  /* 1001000. ....1111 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:172 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Pop::Execute;
+                    i.GetStatementString = Insn::Pop::GetStatementString;
+                    i.cycles = Insn::Pop::kCycles;
+                    i.is_32bit = Insn::Pop::kIs32Bit;
+                    return i;
+                  }
+              }
+              break;
+          case 0x1:
+              /* 1001001. ........ */
+              switch (opcode & 0x000f) {
+              case 0x0000:
+                  /* 1001001. ....0000 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:151 */
+                  {
+                    DoDecode_extract_ldst_s(ctx, &u.rd_imm, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Sts::Execute;
+                    i.GetStatementString = Insn::Sts::GetStatementString;
+                    i.cycles = Insn::Sts::kCycles;
+                    i.is_32bit = Insn::Sts::kIs32Bit;
+                    return i;
+                  }
+              case 0x0001:
+                  /* 1001001. ....0001 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:157 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_17(ctx, &u.rr, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Stz2::Execute;
+                    i.GetStatementString = Insn::Stz2::GetStatementString;
+                    i.cycles = Insn::Stz2::kCycles;
+                    i.is_32bit = Insn::Stz2::kIs32Bit;
+                    return i;
+                  }
+              case 0x0002:
+                  /* 1001001. ....0010 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:158 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_17(ctx, &u.rr, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Stz3::Execute;
+                    i.GetStatementString = Insn::Stz3::GetStatementString;
+                    i.cycles = Insn::Stz3::kCycles;
+                    i.is_32bit = Insn::Stz3::kIs32Bit;
+                    return i;
+                  }
+              case 0x0004:
+                  /* 1001001. ....0100 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:173 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Xch::Execute;
+                    i.GetStatementString = Insn::Xch::GetStatementString;
+                    i.cycles = Insn::Xch::kCycles;
+                    i.is_32bit = Insn::Xch::kIs32Bit;
+                    return i;
+                  }
+              case 0x0005:
+                  /* 1001001. ....0101 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:175 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Las::Execute;
+                    i.GetStatementString = Insn::Las::GetStatementString;
+                    i.cycles = Insn::Las::kCycles;
+                    i.is_32bit = Insn::Las::kIs32Bit;
+                    return i;
+                  }
+              case 0x0006:
+                  /* 1001001. ....0110 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:174 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Lac::Execute;
+                    i.GetStatementString = Insn::Lac::GetStatementString;
+                    i.cycles = Insn::Lac::kCycles;
+                    i.is_32bit = Insn::Lac::kIs32Bit;
+                    return i;
+                  }
+              case 0x0007:
+                  /* 1001001. ....0111 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:176 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Lat::Execute;
+                    i.GetStatementString = Insn::Lat::GetStatementString;
+                    i.cycles = Insn::Lat::kCycles;
+                    i.is_32bit = Insn::Lat::kIs32Bit;
+                    return i;
+                  }
+              case 0x0009:
+                  /* 1001001. ....1001 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:155 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_17(ctx, &u.rr, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Sty2::Execute;
+                    i.GetStatementString = Insn::Sty2::GetStatementString;
+                    i.cycles = Insn::Sty2::kCycles;
+                    i.is_32bit = Insn::Sty2::kIs32Bit;
+                    return i;
+                  }
+              case 0x000a:
+                  /* 1001001. ....1010 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:156 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_17(ctx, &u.rr, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Sty3::Execute;
+                    i.GetStatementString = Insn::Sty3::GetStatementString;
+                    i.cycles = Insn::Sty3::kCycles;
+                    i.is_32bit = Insn::Sty3::kIs32Bit;
+                    return i;
+                  }
+              case 0x000c:
+                  /* 1001001. ....1100 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:152 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_17(ctx, &u.rr, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Stx1::Execute;
+                    i.GetStatementString = Insn::Stx1::GetStatementString;
+                    i.cycles = Insn::Stx1::kCycles;
+                    i.is_32bit = Insn::Stx1::kIs32Bit;
+                    return i;
+                  }
+              case 0x000d:
+                  /* 1001001. ....1101 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:153 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_17(ctx, &u.rr, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Stx2::Execute;
+                    i.GetStatementString = Insn::Stx2::GetStatementString;
+                    i.cycles = Insn::Stx2::kCycles;
+                    i.is_32bit = Insn::Stx2::kIs32Bit;
+                    return i;
+                  }
+              case 0x000e:
+                  /* 1001001. ....1110 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:154 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_17(ctx, &u.rr, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Stx3::Execute;
+                    i.GetStatementString = Insn::Stx3::GetStatementString;
+                    i.cycles = Insn::Stx3::kCycles;
+                    i.is_32bit = Insn::Stx3::kIs32Bit;
+                    return i;
+                  }
+              case 0x000f:
+                  /* 1001001. ....1111 */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:171 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Push::Execute;
+                    i.GetStatementString = Insn::Push::GetStatementString;
+                    i.cycles = Insn::Push::kCycles;
+                    i.is_32bit = Insn::Push::kIs32Bit;
+                    return i;
+                  }
+              }
+              break;
+          case 0x2:
+              /* 1001010. ........ */
+              switch ((opcode >> 1) & 0x7) {
+              case 0x0:
+                  /* 1001010. ....000. */
+                  DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                  switch (opcode & 0x0001) {
+                  case 0x0000:
+                      /* 1001010. ....0000 */
+                      /* /home/niko/repos/arduvp/src/decode/insn.decode:80 */
+                      {
+                        Instruction i;
+                        i.args = u;
+                        i.Execute = Insn::Com::Execute;
+                        i.GetStatementString = Insn::Com::GetStatementString;
+                        i.cycles = Insn::Com::kCycles;
+                        i.is_32bit = Insn::Com::kIs32Bit;
+                        return i;
+                      }
+                  case 0x0001:
+                      /* 1001010. ....0001 */
+                      /* /home/niko/repos/arduvp/src/decode/insn.decode:81 */
+                      {
+                        Instruction i;
+                        i.args = u;
+                        i.Execute = Insn::Neg::Execute;
+                        i.GetStatementString = Insn::Neg::GetStatementString;
+                        i.cycles = Insn::Neg::kCycles;
+                        i.is_32bit = Insn::Neg::kIs32Bit;
+                        return i;
+                      }
+                  }
+                  break;
+              case 0x1:
+                  /* 1001010. ....001. */
+                  DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                  switch (opcode & 0x0001) {
+                  case 0x0000:
+                      /* 1001010. ....0010 */
+                      /* /home/niko/repos/arduvp/src/decode/insn.decode:184 */
+                      {
+                        Instruction i;
+                        i.args = u;
+                        i.Execute = Insn::Swap::Execute;
+                        i.GetStatementString = Insn::Swap::GetStatementString;
+                        i.cycles = Insn::Swap::kCycles;
+                        i.is_32bit = Insn::Swap::kIs32Bit;
+                        return i;
+                      }
+                  case 0x0001:
+                      /* 1001010. ....0011 */
+                      /* /home/niko/repos/arduvp/src/decode/insn.decode:82 */
+                      {
+                        Instruction i;
+                        i.args = u;
+                        i.Execute = Insn::Inc::Execute;
+                        i.GetStatementString = Insn::Inc::GetStatementString;
+                        i.cycles = Insn::Inc::kCycles;
+                        i.is_32bit = Insn::Inc::kIs32Bit;
+                        return i;
+                      }
+                  }
+                  break;
+              case 0x2:
+                  /* 1001010. ....010. */
+                  DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                  switch (opcode & 0x0001) {
+                  case 0x0001:
+                      /* 1001010. ....0101 */
+                      /* /home/niko/repos/arduvp/src/decode/insn.decode:183 */
+                      {
+                        Instruction i;
+                        i.args = u;
+                        i.Execute = Insn::Asr::Execute;
+                        i.GetStatementString = Insn::Asr::GetStatementString;
+                        i.cycles = Insn::Asr::kCycles;
+                        i.is_32bit = Insn::Asr::kIs32Bit;
+                        return i;
+                      }
+                  }
+                  break;
+              case 0x3:
+                  /* 1001010. ....011. */
+                  DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                  switch (opcode & 0x0001) {
+                  case 0x0000:
+                      /* 1001010. ....0110 */
+                      /* /home/niko/repos/arduvp/src/decode/insn.decode:181 */
+                      {
+                        Instruction i;
+                        i.args = u;
+                        i.Execute = Insn::Lsr::Execute;
+                        i.GetStatementString = Insn::Lsr::GetStatementString;
+                        i.cycles = Insn::Lsr::kCycles;
+                        i.is_32bit = Insn::Lsr::kIs32Bit;
+                        return i;
+                      }
+                  case 0x0001:
+                      /* 1001010. ....0111 */
+                      /* /home/niko/repos/arduvp/src/decode/insn.decode:182 */
+                      {
+                        Instruction i;
+                        i.args = u;
+                        i.Execute = Insn::Ror::Execute;
+                        i.GetStatementString = Insn::Ror::GetStatementString;
+                        i.cycles = Insn::Ror::kCycles;
+                        i.is_32bit = Insn::Ror::kIs32Bit;
+                        return i;
+                      }
+                  }
+                  break;
+              case 0x4:
+                  /* 1001010. ....100. */
+                  switch (opcode & 0x0181) {
+                  case 0x0000:
+                      /* 10010100 0...1000 */
+                      /* /home/niko/repos/arduvp/src/decode/insn.decode:189 */
+                      {
+                        DoDecode_extract_op_bit(ctx, &u.bit, opcode);
+                        Instruction i;
+                        i.args = u;
+                        i.Execute = Insn::Bset::Execute;
+                        i.GetStatementString = Insn::Bset::GetStatementString;
+                        i.cycles = Insn::Bset::kCycles;
+                        i.is_32bit = Insn::Bset::kIs32Bit;
+                        return i;
+                      }
+                  case 0x0001:
+                      /* 10010100 0...1001 */
+                      DoDecode_extract_DoDecode_fmt_9(ctx, &u.none, opcode);
+                      switch ((opcode >> 4) & 0x7) {
+                      case 0x0:
+                          /* 10010100 00001001 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:105 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Ijmp::Execute;
+                            i.GetStatementString = Insn::Ijmp::GetStatementString;
+                            i.cycles = Insn::Ijmp::kCycles;
+                            i.is_32bit = Insn::Ijmp::kIs32Bit;
+                            return i;
+                          }
+                      case 0x1:
+                          /* 10010100 00011001 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:106 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Eijmp::Execute;
+                            i.GetStatementString = Insn::Eijmp::GetStatementString;
+                            i.cycles = Insn::Eijmp::kCycles;
+                            i.is_32bit = Insn::Eijmp::kIs32Bit;
+                            return i;
+                          }
+                      }
+                      break;
+                  case 0x0080:
+                      /* 10010100 1...1000 */
+                      /* /home/niko/repos/arduvp/src/decode/insn.decode:190 */
+                      {
+                        DoDecode_extract_op_bit(ctx, &u.bit, opcode);
+                        Instruction i;
+                        i.args = u;
+                        i.Execute = Insn::Bclr::Execute;
+                        i.GetStatementString = Insn::Bclr::GetStatementString;
+                        i.cycles = Insn::Bclr::kCycles;
+                        i.is_32bit = Insn::Bclr::kIs32Bit;
+                        return i;
+                      }
+                  case 0x0100:
+                      /* 10010101 0...1000 */
+                      DoDecode_extract_DoDecode_fmt_9(ctx, &u.none, opcode);
+                      switch ((opcode >> 4) & 0x7) {
+                      case 0x0:
+                          /* 10010101 00001000 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:112 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Ret::Execute;
+                            i.GetStatementString = Insn::Ret::GetStatementString;
+                            i.cycles = Insn::Ret::kCycles;
+                            i.is_32bit = Insn::Ret::kIs32Bit;
+                            return i;
+                          }
+                      case 0x1:
+                          /* 10010101 00011000 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:113 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Reti::Execute;
+                            i.GetStatementString = Insn::Reti::GetStatementString;
+                            i.cycles = Insn::Reti::kCycles;
+                            i.is_32bit = Insn::Reti::kIs32Bit;
+                            return i;
+                          }
+                      }
+                      break;
+                  case 0x0101:
+                      /* 10010101 0...1001 */
+                      DoDecode_extract_DoDecode_fmt_9(ctx, &u.none, opcode);
+                      switch ((opcode >> 4) & 0x7) {
+                      case 0x0:
+                          /* 10010101 00001001 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:109 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Icall::Execute;
+                            i.GetStatementString = Insn::Icall::GetStatementString;
+                            i.cycles = Insn::Icall::kCycles;
+                            i.is_32bit = Insn::Icall::kIs32Bit;
+                            return i;
+                          }
+                      case 0x1:
+                          /* 10010101 00011001 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:110 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Eicall::Execute;
+                            i.GetStatementString = Insn::Eicall::GetStatementString;
+                            i.cycles = Insn::Eicall::kCycles;
+                            i.is_32bit = Insn::Eicall::kIs32Bit;
+                            return i;
+                          }
+                      }
+                      break;
+                  case 0x0180:
+                      /* 10010101 1...1000 */
+                      DoDecode_extract_DoDecode_fmt_9(ctx, &u.none, opcode);
+                      switch ((opcode >> 4) & 0x7) {
+                      case 0x0:
+                          /* 10010101 10001000 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:197 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Sleep::Execute;
+                            i.GetStatementString = Insn::Sleep::GetStatementString;
+                            i.cycles = Insn::Sleep::kCycles;
+                            i.is_32bit = Insn::Sleep::kIs32Bit;
+                            return i;
+                          }
+                      case 0x1:
+                          /* 10010101 10011000 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:195 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Break::Execute;
+                            i.GetStatementString = Insn::Break::GetStatementString;
+                            i.cycles = Insn::Break::kCycles;
+                            i.is_32bit = Insn::Break::kIs32Bit;
+                            return i;
+                          }
+                      case 0x2:
+                          /* 10010101 10101000 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:198 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Wdr::Execute;
+                            i.GetStatementString = Insn::Wdr::GetStatementString;
+                            i.cycles = Insn::Wdr::kCycles;
+                            i.is_32bit = Insn::Wdr::kIs32Bit;
+                            return i;
+                          }
+                      case 0x4:
+                          /* 10010101 11001000 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:161 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Lpm1::Execute;
+                            i.GetStatementString = Insn::Lpm1::GetStatementString;
+                            i.cycles = Insn::Lpm1::kCycles;
+                            i.is_32bit = Insn::Lpm1::kIs32Bit;
+                            return i;
+                          }
+                      case 0x6:
+                          /* 10010101 11101000 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:167 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Spm::Execute;
+                            i.GetStatementString = Insn::Spm::GetStatementString;
+                            i.cycles = Insn::Spm::kCycles;
+                            i.is_32bit = Insn::Spm::kIs32Bit;
+                            return i;
+                          }
+                      case 0x7:
+                          /* 10010101 11111000 */
+                          /* /home/niko/repos/arduvp/src/decode/insn.decode:168 */
+                          {
+                            Instruction i;
+                            i.args = u;
+                            i.Execute = Insn::Spmx::Execute;
+                            i.GetStatementString = Insn::Spmx::GetStatementString;
+                            i.cycles = Insn::Spmx::kCycles;
+                            i.is_32bit = Insn::Spmx::kIs32Bit;
+                            return i;
+                          }
+                      }
+                      break;
+                  }
+                  break;
+              case 0x5:
+                  /* 1001010. ....101. */
+                  DoDecode_extract_DoDecode_fmt_4(ctx, &u.rd, opcode);
+                  switch (opcode & 0x0001) {
+                  case 0x0000:
+                      /* 1001010. ....1010 */
+                      /* /home/niko/repos/arduvp/src/decode/insn.decode:83 */
+                      {
+                        Instruction i;
+                        i.args = u;
+                        i.Execute = Insn::Dec::Execute;
+                        i.GetStatementString = Insn::Dec::GetStatementString;
+                        i.cycles = Insn::Dec::kCycles;
+                        i.is_32bit = Insn::Dec::kIs32Bit;
+                        return i;
+                      }
+                  }
+                  break;
+              case 0x6:
+                  /* 1001010. ....110. */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:107 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_10(ctx, &u.imm, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Jmp::Execute;
+                    i.GetStatementString = Insn::Jmp::GetStatementString;
+                    i.cycles = Insn::Jmp::kCycles;
+                    i.is_32bit = Insn::Jmp::kIs32Bit;
+                    return i;
+                  }
+              case 0x7:
+                  /* 1001010. ....111. */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:111 */
+                  {
+                    DoDecode_extract_DoDecode_fmt_10(ctx, &u.imm, opcode);
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Call::Execute;
+                    i.GetStatementString = Insn::Call::GetStatementString;
+                    i.cycles = Insn::Call::kCycles;
+                    i.is_32bit = Insn::Call::kIs32Bit;
+                    return i;
+                  }
+              }
+              break;
+          case 0x3:
+              /* 1001011. ........ */
+              DoDecode_extract_op_rd_imm6(ctx, &u.rd_imm, opcode);
+              switch ((opcode >> 8) & 0x1) {
+              case 0x0:
+                  /* 10010110 ........ */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:69 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Adiw::Execute;
+                    i.GetStatementString = Insn::Adiw::GetStatementString;
+                    i.cycles = Insn::Adiw::kCycles;
+                    i.is_32bit = Insn::Adiw::kIs32Bit;
+                    return i;
+                  }
+              case 0x1:
+                  /* 10010111 ........ */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:74 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Sbiw::Execute;
+                    i.GetStatementString = Insn::Sbiw::GetStatementString;
+                    i.cycles = Insn::Sbiw::kCycles;
+                    i.is_32bit = Insn::Sbiw::kIs32Bit;
+                    return i;
+                  }
+              }
+              break;
+          }
+          break;
+      case 0x0800:
+          /* 10011... ........ */
+          switch ((opcode >> 10) & 0x1) {
+          case 0x0:
+              /* 100110.. ........ */
+              DoDecode_extract_DoDecode_fmt_12(ctx, &u.reg_bit, opcode);
+              switch ((opcode >> 8) & 0x3) {
+              case 0x0:
+                  /* 10011000 ........ */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:186 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Cbi::Execute;
+                    i.GetStatementString = Insn::Cbi::GetStatementString;
+                    i.cycles = Insn::Cbi::kCycles;
+                    i.is_32bit = Insn::Cbi::kIs32Bit;
+                    return i;
+                  }
+              case 0x1:
+                  /* 10011001 ........ */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:120 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Sbic::Execute;
+                    i.GetStatementString = Insn::Sbic::GetStatementString;
+                    i.cycles = Insn::Sbic::kCycles;
+                    i.is_32bit = Insn::Sbic::kIs32Bit;
+                    return i;
+                  }
+              case 0x2:
+                  /* 10011010 ........ */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:185 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Sbi::Execute;
+                    i.GetStatementString = Insn::Sbi::GetStatementString;
+                    i.cycles = Insn::Sbi::kCycles;
+                    i.is_32bit = Insn::Sbi::kIs32Bit;
+                    return i;
+                  }
+              case 0x3:
+                  /* 10011011 ........ */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:121 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Sbis::Execute;
+                    i.GetStatementString = Insn::Sbis::GetStatementString;
+                    i.cycles = Insn::Sbis::kCycles;
+                    i.is_32bit = Insn::Sbis::kIs32Bit;
+                    return i;
+                  }
+              }
+              break;
+          case 0x1:
+              /* 100111.. ........ */
+              /* /home/niko/repos/arduvp/src/decode/insn.decode:84 */
+              {
+                DoDecode_extract_op_rd_rr(ctx, &u.rd_rr, opcode);
+                Instruction i;
+                i.args = u;
+                i.Execute = Insn::Mul::Execute;
+                i.GetStatementString = Insn::Mul::GetStatementString;
+                i.cycles = Insn::Mul::kCycles;
+                i.is_32bit = Insn::Mul::kIs32Bit;
+                return i;
+              }
+          }
+          break;
+      case 0x2000:
+          /* 10110... ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:169 */
+          {
+            DoDecode_extract_io_rd_imm(ctx, &u.rd_imm, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::In::Execute;
+            i.GetStatementString = Insn::In::GetStatementString;
+            i.cycles = Insn::In::kCycles;
+            i.is_32bit = Insn::In::kIs32Bit;
+            return i;
+          }
+      case 0x2800:
+          /* 10111... ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:170 */
+          {
+            DoDecode_extract_io_rd_imm(ctx, &u.rd_imm, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Out::Execute;
+            i.GetStatementString = Insn::Out::GetStatementString;
+            i.cycles = Insn::Out::kCycles;
+            i.is_32bit = Insn::Out::kIs32Bit;
+            return i;
+          }
+      }
+      break;
+  case 0xc000:
+      /* 11.0.... ........ */
+      switch ((opcode >> 13) & 0x1) {
+      case 0x0:
+          /* 1100.... ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:104 */
+          {
+            DoDecode_extract_DoDecode_fmt_8(ctx, &u.imm, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Rjmp::Execute;
+            i.GetStatementString = Insn::Rjmp::GetStatementString;
+            i.cycles = Insn::Rjmp::kCycles;
+            i.is_32bit = Insn::Rjmp::kIs32Bit;
+            return i;
+          }
+      case 0x1:
+          /* 1110.... ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:140 */
+          {
+            DoDecode_extract_op_rd_imm8(ctx, &u.rd_imm, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Ldi::Execute;
+            i.GetStatementString = Insn::Ldi::GetStatementString;
+            i.cycles = Insn::Ldi::kCycles;
+            i.is_32bit = Insn::Ldi::kIs32Bit;
+            return i;
+          }
+      }
+      break;
+  case 0xd000:
+      /* 11.1.... ........ */
+      switch ((opcode >> 13) & 0x1) {
+      case 0x0:
+          /* 1101.... ........ */
+          /* /home/niko/repos/arduvp/src/decode/insn.decode:108 */
+          {
+            DoDecode_extract_DoDecode_fmt_8(ctx, &u.imm, opcode);
+            Instruction i;
+            i.args = u;
+            i.Execute = Insn::Rcall::Execute;
+            i.GetStatementString = Insn::Rcall::GetStatementString;
+            i.cycles = Insn::Rcall::kCycles;
+            i.is_32bit = Insn::Rcall::kIs32Bit;
+            return i;
+          }
+      case 0x1:
+          /* 1111.... ........ */
+          switch ((opcode >> 10) & 0x3) {
+          case 0x0:
+              /* 111100.. ........ */
+              /* /home/niko/repos/arduvp/src/decode/insn.decode:122 */
+              {
+                DoDecode_extract_op_bit_imm(ctx, &u.imm_bit, opcode);
+                Instruction i;
+                i.args = u;
+                i.Execute = Insn::Brbs::Execute;
+                i.GetStatementString = Insn::Brbs::GetStatementString;
+                i.cycles = Insn::Brbs::kCycles;
+                i.is_32bit = Insn::Brbs::kIs32Bit;
+                return i;
+              }
+          case 0x1:
+              /* 111101.. ........ */
+              /* /home/niko/repos/arduvp/src/decode/insn.decode:123 */
+              {
+                DoDecode_extract_op_bit_imm(ctx, &u.imm_bit, opcode);
+                Instruction i;
+                i.args = u;
+                i.Execute = Insn::Brbc::Execute;
+                i.GetStatementString = Insn::Brbc::GetStatementString;
+                i.cycles = Insn::Brbc::kCycles;
+                i.is_32bit = Insn::Brbc::kIs32Bit;
+                return i;
+              }
+          case 0x2:
+              /* 111110.. ........ */
+              DoDecode_extract_DoDecode_fmt_18(ctx, &u.rd_bit, opcode);
+              switch (opcode & 0x0208) {
+              case 0x0000:
+                  /* 1111100. ....0... */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:188 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Bld::Execute;
+                    i.GetStatementString = Insn::Bld::GetStatementString;
+                    i.cycles = Insn::Bld::kCycles;
+                    i.is_32bit = Insn::Bld::kIs32Bit;
+                    return i;
+                  }
+              case 0x0200:
+                  /* 1111101. ....0... */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:187 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Bst::Execute;
+                    i.GetStatementString = Insn::Bst::GetStatementString;
+                    i.cycles = Insn::Bst::kCycles;
+                    i.is_32bit = Insn::Bst::kIs32Bit;
+                    return i;
+                  }
+              }
+              break;
+          case 0x3:
+              /* 111111.. ........ */
+              DoDecode_extract_DoDecode_fmt_11(ctx, &u.rr_bit, opcode);
+              switch (opcode & 0x0208) {
+              case 0x0000:
+                  /* 1111110. ....0... */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:118 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Sbrc::Execute;
+                    i.GetStatementString = Insn::Sbrc::GetStatementString;
+                    i.cycles = Insn::Sbrc::kCycles;
+                    i.is_32bit = Insn::Sbrc::kIs32Bit;
+                    return i;
+                  }
+              case 0x0200:
+                  /* 1111111. ....0... */
+                  /* /home/niko/repos/arduvp/src/decode/insn.decode:119 */
+                  {
+                    Instruction i;
+                    i.args = u;
+                    i.Execute = Insn::Sbrs::Execute;
+                    i.GetStatementString = Insn::Sbrs::GetStatementString;
+                    i.cycles = Insn::Sbrs::kCycles;
+                    i.is_32bit = Insn::Sbrs::kIs32Bit;
+                    return i;
+                  }
+              }
+              break;
+          }
+          break;
+      }
+      break;
+  }
+  // No pattern matched.
+  Instruction i;
+  i.args = u;
+  i.Execute = Insn::Illegal::Execute;
+  i.GetStatementString = Insn::Illegal::GetStatementString;
+  i.cycles = Insn::Illegal::kCycles;
+  i.is_32bit = Insn::Illegal::kIs32Bit;
+  return i;
+}
+
+}  // namespace Decode

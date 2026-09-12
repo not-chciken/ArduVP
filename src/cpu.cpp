@@ -64,26 +64,17 @@ u8* Cpu::SramDmiPtr(vcml::u64 adr) {
   return sram_dmi_ptr_ + (adr - SRAM_BASE);
 }
 
-std::function<void()> Cpu::FetchInstruction(vcml::u64 adr, uint* cycles) {
-  u16 data;
-  data = InsnDmiRead(adr);
+Instruction Cpu::FetchInstruction(vcml::u64 adr) {
+  DisasContext ctx;
+  ctx.next_word = (adr + 4 <= PROGRAM_MEM_SIZE) ? InsnDmiRead(adr + 2) : 0;
 
-  new_pc += 1;
-  Insn::InsnBase* inst = Decode::DecodeInsn(data);
-  *cycles = inst->cycles;
-
-  if (inst->is_32bit) {
-    new_pc += 1;
-    u16 data2;
-    data2 = InsnDmiRead(adr + 2);
-    return inst->GenFunc32(data, data2, this);
-  }
-
-  return inst->GenFunc(data, this);
+  Instruction inst = Decode::DoDecode(InsnDmiRead(adr), &ctx);
+  new_pc += inst.is_32bit ? 2 : 1;
+  return inst;
 }
 
 void Cpu::simulate(size_t max_cycles) {
-  sc_core::wait(sc_core::SC_ZERO_TIME); // Avoids immediate start after reset.
+  sc_core::wait(sc_core::SC_ZERO_TIME);  // Avoids immediate start after reset.
 
   uint cycles = 0;
   while (cycles < max_cycles) {
@@ -97,24 +88,22 @@ void Cpu::simulate(size_t max_cycles) {
       return;
     }
 
-    uint cyc = 0;
-    auto inst_func = FetchInstruction(pc * 2, &cyc);
-    if (inst_func) {
-      try {
-        inst_func();
-        ++retired_instructions;
-      } catch (...) {
-        log_error("Illegal instruction at PC=0x%04x", pc * 2);
-        exit(1);
-      }
+    const Instruction inst = FetchInstruction(pc * 2);
+    try {
+      inst.Execute(this, inst.args);
+      ++retired_instructions;
+    } catch (...) {
+      log_error("Illegal instruction at PC=0x%04x", pc * 2);
+      exit(1);
     }
 
     if (skip) {
       u16 data;
-      tlm::tlm_response_status rs = insn.read(new_pc * 2, &data, 2, vcml::SBI_DEBUG);
-      Insn::InsnBase* inst = Decode::DecodeInsn(data);
-      cycles += inst->is_32bit ? 2 : 1;
-      new_pc += inst->is_32bit ? 2 : 1;
+      insn.read(new_pc * 2, &data, 2, vcml::SBI_DEBUG);
+      DisasContext ctx = {0};
+      const Instruction skipped = Decode::DoDecode(data, &ctx);
+      cycles += skipped.is_32bit ? 2 : 1;
+      new_pc += skipped.is_32bit ? 2 : 1;
       skip = false;
     }
 
@@ -124,7 +113,7 @@ void Cpu::simulate(size_t max_cycles) {
     }
 
     pc = new_pc;
-    cycles += cyc;
+    cycles += inst.cycles;
   }
   cycle_counter += cycles;
 };
@@ -302,21 +291,17 @@ bool Cpu::remove_breakpoint(vcml::u64 addr) {
 }
 
 bool Cpu::disassemble(vcml::u8* ibuf, vcml::u64& addr, string& code) {
-  u16 word = ibuf[0] | (ibuf[1] << 8);
-  Insn::InsnBase* inst = Decode::DecodeInsn(word);
+  const u16 word = ibuf[0] | (ibuf[1] << 8);
+  DisasContext ctx = {0};
+  Instruction inst = Decode::DoDecode(word, &ctx);
 
-  if (!inst)
-    return false;
-
-  if (inst->is_32bit) {
-    u16 word2 = ibuf[2] | (ibuf[3] << 8);
-    u32 full = ((u32)word2 << 16) | word;
-    code = inst->GetStatementString(full);
-    addr += 4;
-  } else {
-    code = inst->GetStatementString(word);
-    addr += 2;
+  if (inst.is_32bit) {
+    ctx.next_word = ibuf[2] | (ibuf[3] << 8);
+    inst = Decode::DoDecode(word, &ctx);
   }
+
+  code = inst.GetStatementString(inst.args);
+  addr += inst.is_32bit ? 4 : 2;
   return true;
 }
 
@@ -393,9 +378,8 @@ void Cpu::end_of_simulation() {
 }
 
 static constexpr u16 IRQ_TABLE[] = {
-    0x000E, 0x0010, 0x0012, 0x0014, 0x0016, 0x0018, 0x001A,
-    0x001C, 0x001E, 0x0020, 0x0022, 0x0024, 0x0026, 0x0028,
-    0x002A, 0x002C, 0x002E, 0x0030, 0x0032,
+    0x000E, 0x0010, 0x0012, 0x0014, 0x0016, 0x0018, 0x001A, 0x001C, 0x001E, 0x0020,
+    0x0022, 0x0024, 0x0026, 0x0028, 0x002A, 0x002C, 0x002E, 0x0030, 0x0032,
 };
 
 bool Cpu::service_pending_interrupt() {
