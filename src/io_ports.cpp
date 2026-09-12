@@ -69,8 +69,7 @@ u8 IoPorts::ReadPinB() {
 }
 
 void IoPorts::WritePinB(u8 val) {
-  u8 new_val = portb ^ val;
-  WritePortB(new_val);
+  WritePortB(portb.get() ^ val);
 }
 
 void IoPorts::WritePortB(u8 val) {
@@ -94,8 +93,7 @@ u8 IoPorts::ReadPinC() {
 }
 
 void IoPorts::WritePinC(u8 val) {
-  u8 new_val = portc ^ val;
-  WritePortC(new_val);
+  WritePortC(portc.get() ^ val);
 }
 
 void IoPorts::WritePortC(u8 val) {
@@ -119,8 +117,7 @@ u8 IoPorts::ReadPinD() {
 }
 
 void IoPorts::WritePinD(u8 val) {
-  u8 new_val = portd ^ val;
-  WritePortD(new_val);
+  WritePortD(portd.get() ^ val);
 }
 
 void IoPorts::WritePortD(u8 val) {

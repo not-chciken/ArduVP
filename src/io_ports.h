@@ -6,6 +6,7 @@ struct IoPorts : public vcml::peripheral {
   static constexpr size_t NUM_PORTS = 8;
 
   IoPorts(const sc_core::sc_module_name& nm);
+  ~IoPorts() = default;
 
   vcml::tlm_target_socket in;
 
@@ -29,6 +30,9 @@ struct IoPorts : public vcml::peripheral {
   vcml::reg<u8> ddrd;
   vcml::reg<u8> portd;
 
+  virtual void reset() override;
+
+ private:
   u8 ReadPinB();
   void WritePinB(u8 val);
   void WritePortB(u8 val);
@@ -40,6 +44,4 @@ struct IoPorts : public vcml::peripheral {
   u8 ReadPinD();
   void WritePinD(u8 val);
   void WritePortD(u8 val);
-
-  virtual void reset() override;
 };
