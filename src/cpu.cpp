@@ -5,6 +5,8 @@
 #include "decode/decode.h"
 
 constexpr u64 PROGRAM_MEM_SIZE = 0x8000;
+constexpr u64 SRAM_BASE = 0x100;
+constexpr u64 SRAM_SIZE = 0x800;
 
 Cpu::Cpu()
     : vcml::processor("cpu", "avr"),
@@ -45,6 +47,21 @@ u16 Cpu::InsnDmiRead(vcml::u64 adr) {
   }
   memcpy(&insn_data, insn_dmi_ptr_ + adr, sizeof(insn_data));
   return insn_data;
+}
+
+u8* Cpu::SramDmiPtr(vcml::u64 adr) {
+  if (adr < SRAM_BASE || adr >= SRAM_BASE + SRAM_SIZE)
+    return nullptr;
+
+  if (sram_dmi_ptr_ == nullptr) {
+    sram_dmi_ptr_ = data.lookup_dmi_ptr(SRAM_BASE, SRAM_SIZE, vcml::VCML_ACCESS_READ_WRITE);
+    if (sram_dmi_ptr_ == nullptr) {
+      log_debug("could not fetch sram dmi pointer, falling back to bus accesses");
+      return nullptr;
+    }
+  }
+
+  return sram_dmi_ptr_ + (adr - SRAM_BASE);
 }
 
 std::function<void()> Cpu::FetchInstruction(vcml::u64 adr, uint* cycles) {
@@ -155,6 +172,9 @@ u8 Cpu::MemoryRead(u32 adr) {
     }
   }
 
+  if (u8* dmi_ptr = SramDmiPtr(adr))
+    return *dmi_ptr;
+
   u8 dat;
   tlm::tlm_response_status rs = data.read(adr, &dat, sizeof(u8), vcml::SBI_NONE);
 
@@ -241,6 +261,11 @@ void Cpu::MemoryWrite(u64 adr, u8 dat) {
     } else {
       IoWrite(adr - 0x20, dat);
     }
+    return;
+  }
+
+  if (u8* dmi_ptr = SramDmiPtr(adr)) {
+    *dmi_ptr = dat;
     return;
   }
 
@@ -345,7 +370,12 @@ void Cpu::interrupt(size_t irq, bool set) {
 
 void Cpu::invalidate_direct_mem_ptr(vcml::tlm_initiator_socket& origin, vcml::u64 start, vcml::u64 end) {
   processor::invalidate_direct_mem_ptr(origin, start, end);
-  insn_dmi_ptr_ == nullptr;
+
+  if (&origin == &insn) {
+    insn_dmi_ptr_ = nullptr;
+  } else if (&origin == &data) {
+    sram_dmi_ptr_ = nullptr;
+  }
 }
 
 void Cpu::start_of_simulation() {
@@ -375,6 +405,9 @@ bool Cpu::service_pending_interrupt() {
   }
 
   if (!sreg.i)
+    return false;
+
+  if (irq_level_mask_ == 0)
     return false;
 
   for (size_t idx = 0; idx < std::size(IRQ_TABLE); ++idx) {

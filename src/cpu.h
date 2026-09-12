@@ -60,6 +60,10 @@ struct Cpu : public vcml::processor {
 
   u16 InsnDmiRead(vcml::u64 adr);
 
+  // Returns a direct pointer to `adr` inside the SRAM, or nullptr if the
+  // address is outside the SRAM or no DMI region could be obtained.
+  u8* SramDmiPtr(vcml::u64 adr);
+
   u8 gpior0 = 0;
   u8 gpior1 = 0;
   u8 gpior2 = 0;
@@ -98,6 +102,7 @@ struct Cpu : public vcml::processor {
   bool service_pending_interrupt();
 
   u8* insn_dmi_ptr_ = nullptr;
+  u8* sram_dmi_ptr_ = nullptr;
 
   u64 irq_level_mask_ = 0;  // bit i: irq[i] currently asserted
   u64 irq_acked_mask_ = 0;  // bit i: irq[i] already accepted, wait for deassert
