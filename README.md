@@ -1,3 +1,6 @@
+
+![build badge](https://github.com/not-chciken/arduvp/actions/workflows/ci.yml/badge.svg)
+
 # ArduVP
 
 ArduVP is a virtual twin of an Arduino Uno, allowing you to develop and test software virtually,
