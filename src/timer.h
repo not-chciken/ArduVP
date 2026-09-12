@@ -4,33 +4,8 @@
 #include "common.h"
 
 struct Timer : public vcml::peripheral {
-  vcml::tlm_target_socket in;
-
-  vcml::gpio_initiator_socket ocie0a_out;
-  vcml::gpio_initiator_socket ocie0b_out;
-  vcml::gpio_initiator_socket toie0_out;
-
-  vcml::gpio_initiator_socket ocie1a_out;
-  vcml::gpio_initiator_socket ocie1b_out;
-  vcml::gpio_initiator_socket toie1_out;
-  vcml::gpio_initiator_socket icie1_out;
-
-  vcml::gpio_initiator_socket ocie2a_out;
-  vcml::gpio_initiator_socket ocie2b_out;
-  vcml::gpio_initiator_socket toie2_out;
-
-  vcml::gpio_target_socket ocie0a_ack;
-  vcml::gpio_target_socket ocie0b_ack;
-  vcml::gpio_target_socket toie0_ack;
-
-  vcml::gpio_target_socket ocie1a_ack;
-  vcml::gpio_target_socket ocie1b_ack;
-  vcml::gpio_target_socket toie1_ack;
-  vcml::gpio_target_socket icie1_ack;
-
-  vcml::gpio_target_socket ocie2a_ack;
-  vcml::gpio_target_socket ocie2b_ack;
-  vcml::gpio_target_socket toie2_ack;
+  Timer(const sc_core::sc_module_name& nm);
+  ~Timer() = default;
 
   vcml::reg<u8> gtccr;
 
@@ -65,7 +40,33 @@ struct Timer : public vcml::peripheral {
   vcml::reg<u8> assr;
   vcml::reg<u8> timsk2;
 
-  Timer(const sc_core::sc_module_name& nm);
+  vcml::tlm_target_socket in;
+
+  vcml::gpio_initiator_socket ocie0a_out;
+  vcml::gpio_initiator_socket ocie0b_out;
+  vcml::gpio_initiator_socket toie0_out;
+
+  vcml::gpio_initiator_socket ocie1a_out;
+  vcml::gpio_initiator_socket ocie1b_out;
+  vcml::gpio_initiator_socket toie1_out;
+  vcml::gpio_initiator_socket icie1_out;
+
+  vcml::gpio_initiator_socket ocie2a_out;
+  vcml::gpio_initiator_socket ocie2b_out;
+  vcml::gpio_initiator_socket toie2_out;
+
+  vcml::gpio_target_socket ocie0a_ack;
+  vcml::gpio_target_socket ocie0b_ack;
+  vcml::gpio_target_socket toie0_ack;
+
+  vcml::gpio_target_socket ocie1a_ack;
+  vcml::gpio_target_socket ocie1b_ack;
+  vcml::gpio_target_socket toie1_ack;
+  vcml::gpio_target_socket icie1_ack;
+
+  vcml::gpio_target_socket ocie2a_ack;
+  vcml::gpio_target_socket ocie2b_ack;
+  vcml::gpio_target_socket toie2_ack;
 
   virtual void reset() override;
 
@@ -95,78 +96,73 @@ struct Timer : public vcml::peripheral {
   bool dir1_;
   bool dir2_;
 
-  // Woken whenever gtccr is written (timer stop/start, prescaler reset).
   sc_core::sc_event resume_ev_;
-  // Woken whenever the respective clock-select bits are written, used only
-  // while a timer is idle because its divisor is 0.
   sc_core::sc_event div0_ev_;
   sc_core::sc_event div1_ev_;
   sc_core::sc_event div2_ev_;
 
-  // Timestamp of the start of the currently pending tick wait, so the
-  // elapsed prescaler progress can be recovered if the wait gets cancelled.
   sc_core::sc_time wait_start0_;
   sc_core::sc_time wait_start1_;
   sc_core::sc_time wait_start2_;
 
-  void run_timer0();
-  void run_timer1();
-  void run_timer2();
-  void run_timer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(),
+  void RunTimer0();
+  void RunTimer1();
+  void RunTimer2();
+  void RunTimer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(),
                  u32& ps, sc_core::sc_time& wait_start,
                  sc_core::sc_event& div_ev);
 
-  u32 elapsed_cycles(const sc_core::sc_time& start) const;
+  u32 ElapsedCycles(const sc_core::sc_time& start) const;
 
-  void write_gtccr(u8 val);
-  void write_tifr0(u8 val);
-  void write_tifr1(u8 val);
-  void write_tifr2(u8 val);
-  void write_timsk0(u8 val);
-  void write_timsk1(u8 val);
-  void write_timsk2(u8 val);
+  void WriteGtccr(u8 val);
+  void WriteTifr0(u8 val);
+  void WriteTifr1(u8 val);
+  void WriteTifr2(u8 val);
+  void WriteTimsk0(u8 val);
+  void WriteTimsk1(u8 val);
+  void WriteTimsk2(u8 val);
 
-  void write_tccr0b(u8 val);
-  void write_tccr1b(u8 val);
-  void write_tccr2b(u8 val);
+  void WriteTccr0b(u8 val);
+  void WriteTccr1b(u8 val);
+  void WriteTccr2b(u8 val);
 
-  u8 read_tcnt1l();
-  u8 read_tcnt1h();
-  void write_tcnt1h(u8 val);
-  void write_tcnt1l(u8 val);
+  u8 ReadTcnt1l();
+  u8 ReadTcnt1h();
+  void WriteTcnt1h(u8 val);
+  void WriteTcnt1l(u8 val);
 
-  u8 read_ocr1al();
-  u8 read_ocr1ah();
-  void write_ocr1ah(u8 val);
-  void write_ocr1al(u8 val);
+  u8 ReadOcr1al();
+  u8 ReadOcr1ah();
+  void WriteOcr1ah(u8 val);
+  void WriteOcr1al(u8 val);
 
-  u8 read_ocr1bl();
-  u8 read_ocr1bh();
-  void write_ocr1bh(u8 val);
-  void write_ocr1bl(u8 val);
+  u8 ReadOcr1bl();
+  u8 ReadOcr1bh();
+  void WriteOcr1bh(u8 val);
+  void WriteOcr1bl(u8 val);
 
-  u8 read_icr1l();
-  u8 read_icr1h();
-  void write_icr1h(u8 val);
-  void write_icr1l(u8 val);
+  u8 ReadIcr1l();
+  u8 ReadIcr1h();
+  void WriteIcr1h(u8 val);
+  void WriteIcr1l(u8 val);
 
-  bool timers_stopped() const;
+  bool TimersStopped() const;
 
-  u32 timer0_div() const;
-  u32 timer1_div() const;
-  u32 timer2_div() const;
+  u32 Timer0Div() const;
+  u32 Timer1Div() const;
+  u32 Timer2Div() const;
 
-  void tick_timer0();
-  void tick_timer1();
-  void tick_timer2();
+  void TickTimer0();
+  void TickTimer1();
+  void TickTimer2();
 
-  void set_tifr0(u8 mask);
-  void set_tifr1(u8 mask);
-  void set_tifr2(u8 mask);
+  void SetTifr0(u8 mask);
+  void SetTifr1(u8 mask);
+  void SetTifr2(u8 mask);
 
-  void check_interrupts();
+  void CheckInterrupts();
 
-  void sync_16bit_regs_from_state();
+  void Sync16bitRegsFromState();
 
   virtual void gpio_notify(const vcml::gpio_target_socket& socket, bool state) override;
 };

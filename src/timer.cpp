@@ -26,26 +26,6 @@ static inline u8 clamp_u8(int v) {
 Timer::Timer(const sc_core::sc_module_name& nm)
     : peripheral(nm),
       in("in"),
-      ocie0a_out("ocie0a_out"),
-      ocie0b_out("ocie0b_out"),
-      toie0_out("toie0_out"),
-      ocie1a_out("ocie1a_out"),
-      ocie1b_out("ocie1b_out"),
-      toie1_out("toie1_out"),
-      icie1_out("icie1_out"),
-      ocie2a_out("ocie2a_out"),
-      ocie2b_out("ocie2b_out"),
-      toie2_out("toie2_out"),
-      ocie0a_ack("ocie0a_ack"),
-      ocie0b_ack("ocie0b_ack"),
-      toie0_ack("toie0_ack"),
-      ocie1a_ack("ocie1a_ack"),
-      ocie1b_ack("ocie1b_ack"),
-      toie1_ack("toie1_ack"),
-      icie1_ack("icie1_ack"),
-      ocie2a_ack("ocie2a_ack"),
-      ocie2b_ack("ocie2b_ack"),
-      toie2_ack("toie2_ack"),
       gtccr("gtccr", 0x43, 0x00),
       tifr0("tifr0", 0x35, 0x00),
       tccr0a("tccr0a", 0x44, 0x00),
@@ -75,6 +55,26 @@ Timer::Timer(const sc_core::sc_module_name& nm)
       ocr2b("ocr2b", 0xb4, 0x00),
       assr("assr", 0xb6, 0x00),
       timsk2("timsk2", 0x70, 0x00),
+      ocie0a_out("ocie0a_out"),
+      ocie0b_out("ocie0b_out"),
+      toie0_out("toie0_out"),
+      ocie1a_out("ocie1a_out"),
+      ocie1b_out("ocie1b_out"),
+      toie1_out("toie1_out"),
+      icie1_out("icie1_out"),
+      ocie2a_out("ocie2a_out"),
+      ocie2b_out("ocie2b_out"),
+      toie2_out("toie2_out"),
+      ocie0a_ack("ocie0a_ack"),
+      ocie0b_ack("ocie0b_ack"),
+      toie0_ack("toie0_ack"),
+      ocie1a_ack("ocie1a_ack"),
+      ocie1b_ack("ocie1b_ack"),
+      toie1_ack("toie1_ack"),
+      icie1_ack("icie1_ack"),
+      ocie2a_ack("ocie2a_ack"),
+      ocie2b_ack("ocie2b_ack"),
+      toie2_ack("toie2_ack"),
       tcnt1_(0),
       ocr1a_(0),
       ocr1b_(0),
@@ -97,19 +97,19 @@ Timer::Timer(const sc_core::sc_module_name& nm)
 
   gtccr.sync_always();
   gtccr.allow_read_write();
-  gtccr.on_write(&Timer::write_gtccr);
+  gtccr.on_write(&Timer::WriteGtccr);
 
   tifr0.sync_always();
   tifr0.allow_read_write();
-  tifr0.on_write(&Timer::write_tifr0);
+  tifr0.on_write(&Timer::WriteTifr0);
 
   tifr1.sync_always();
   tifr1.allow_read_write();
-  tifr1.on_write(&Timer::write_tifr1);
+  tifr1.on_write(&Timer::WriteTifr1);
 
   tifr2.sync_always();
   tifr2.allow_read_write();
-  tifr2.on_write(&Timer::write_tifr2);
+  tifr2.on_write(&Timer::WriteTifr2);
 
   tccr0a.sync_always();
   tccr0a.allow_read_write();
@@ -117,7 +117,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
 
   tccr0b.sync_always();
   tccr0b.allow_read_write();
-  tccr0b.on_write(&Timer::write_tccr0b); // TODO: FOC0A and FOC0B.
+  tccr0b.on_write(&Timer::WriteTccr0b); // TODO: FOC0A and FOC0B.
 
   tcnt0.sync_always();
   tcnt0.allow_read_write();
@@ -130,7 +130,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
 
   timsk0.sync_always();
   timsk0.allow_read_write();
-  timsk0.on_write(&Timer::write_timsk0);
+  timsk0.on_write(&Timer::WriteTimsk0);
 
   tccr1a.sync_always();
   tccr1a.allow_read_write();
@@ -138,7 +138,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
 
   tccr1b.sync_always();
   tccr1b.allow_read_write();
-  tccr1b.on_write(&Timer::write_tccr1b);
+  tccr1b.on_write(&Timer::WriteTccr1b);
 
   tccr1c.sync_always();
   tccr1c.allow_read_write();
@@ -146,53 +146,53 @@ Timer::Timer(const sc_core::sc_module_name& nm)
 
   tcnt1l.sync_always();
   tcnt1l.allow_read_write();
-  tcnt1l.on_read(&Timer::read_tcnt1l);
-  tcnt1l.on_write(&Timer::write_tcnt1l);
+  tcnt1l.on_read(&Timer::ReadTcnt1l);
+  tcnt1l.on_write(&Timer::WriteTcnt1l);
 
   tcnt1h.sync_always();
   tcnt1h.allow_read_write();
-  tcnt1h.on_read(&Timer::read_tcnt1h);
-  tcnt1h.on_write(&Timer::write_tcnt1h);
+  tcnt1h.on_read(&Timer::ReadTcnt1h);
+  tcnt1h.on_write(&Timer::WriteTcnt1h);
 
   icr1l.sync_always();
   icr1l.allow_read_write();
-  icr1l.on_read(&Timer::read_icr1l);
-  icr1l.on_write(&Timer::write_icr1l);
+  icr1l.on_read(&Timer::ReadIcr1l);
+  icr1l.on_write(&Timer::WriteIcr1l);
 
   icr1h.sync_always();
   icr1h.allow_read_write();
-  icr1h.on_read(&Timer::read_icr1h);
-  icr1h.on_write(&Timer::write_icr1h);
+  icr1h.on_read(&Timer::ReadIcr1h);
+  icr1h.on_write(&Timer::WriteIcr1h);
 
   ocr1al.sync_always();
   ocr1al.allow_read_write();
-  ocr1al.on_read(&Timer::read_ocr1al);
-  ocr1al.on_write(&Timer::write_ocr1al);
+  ocr1al.on_read(&Timer::ReadOcr1al);
+  ocr1al.on_write(&Timer::WriteOcr1al);
 
   ocr1ah.sync_always();
   ocr1ah.allow_read_write();
-  ocr1ah.on_read(&Timer::read_ocr1ah);
-  ocr1ah.on_write(&Timer::write_ocr1ah);
+  ocr1ah.on_read(&Timer::ReadOcr1ah);
+  ocr1ah.on_write(&Timer::WriteOcr1ah);
 
   ocr1bl.sync_always();
   ocr1bl.allow_read_write();
-  ocr1bl.on_read(&Timer::read_ocr1bl);
-  ocr1bl.on_write(&Timer::write_ocr1bl);
+  ocr1bl.on_read(&Timer::ReadOcr1bl);
+  ocr1bl.on_write(&Timer::WriteOcr1bl);
 
   ocr1bh.sync_always();
   ocr1bh.allow_read_write();
-  ocr1bh.on_read(&Timer::read_ocr1bh);
-  ocr1bh.on_write(&Timer::write_ocr1bh);
+  ocr1bh.on_read(&Timer::ReadOcr1bh);
+  ocr1bh.on_write(&Timer::WriteOcr1bh);
 
   timsk1.sync_always();
   timsk1.allow_read_write();
-  timsk1.on_write(&Timer::write_timsk1);
+  timsk1.on_write(&Timer::WriteTimsk1);
 
   tccr2a.sync_always();
   tccr2a.allow_read_write();
   tccr2b.sync_always();
   tccr2b.allow_read_write();
-  tccr2b.on_write(&Timer::write_tccr2b);
+  tccr2b.on_write(&Timer::WriteTccr2b);
   tcnt2.sync_always();
   tcnt2.allow_read_write();
   ocr2a.sync_always();
@@ -203,11 +203,11 @@ Timer::Timer(const sc_core::sc_module_name& nm)
   assr.allow_read_write();
   timsk2.sync_always();
   timsk2.allow_read_write();
-  timsk2.on_write(&Timer::write_timsk2);
+  timsk2.on_write(&Timer::WriteTimsk2);
 
-  SC_THREAD(run_timer0);
-  SC_THREAD(run_timer1);
-  SC_THREAD(run_timer2);
+  SC_THREAD(RunTimer0);
+  SC_THREAD(RunTimer1);
+  SC_THREAD(RunTimer2);
 }
 
 void Timer::reset() {
@@ -232,7 +232,7 @@ void Timer::reset() {
   const sc_core::sc_time now = sc_core::sc_time_stamp();
   wait_start0_ = wait_start1_ = wait_start2_ = now;
 
-  sync_16bit_regs_from_state();
+  Sync16bitRegsFromState();
 
   resume_ev_.notify(sc_core::SC_ZERO_TIME);
   div0_ev_.notify(sc_core::SC_ZERO_TIME);
@@ -240,7 +240,7 @@ void Timer::reset() {
   div2_ev_.notify(sc_core::SC_ZERO_TIME);
 }
 
-void Timer::sync_16bit_regs_from_state() {
+void Timer::Sync16bitRegsFromState() {
   tcnt1l = (u8)(tcnt1_ & 0xff);
   tcnt1h = (u8)(tcnt1_ >> 8);
   ocr1al = (u8)(ocr1a_ & 0xff);
@@ -251,11 +251,11 @@ void Timer::sync_16bit_regs_from_state() {
   icr1h = (u8)(icr1_ >> 8);
 }
 
-bool Timer::timers_stopped() const {
+bool Timer::TimersStopped() const {
   return (gtccr & GTCCR_TSM) != 0;
 }
 
-void Timer::write_gtccr(u8 val) {
+void Timer::WriteGtccr(u8 val) {
   const bool psrasy = (val & GTCCR_PSRASY) != 0;
   const bool psrsync = (val & GTCCR_PSR10) != 0;
 
@@ -277,143 +277,143 @@ void Timer::write_gtccr(u8 val) {
   resume_ev_.notify(sc_core::SC_ZERO_TIME);
 }
 
-void Timer::write_tccr0b(u8 val) {
+void Timer::WriteTccr0b(u8 val) {
   tccr0b = val & 0xf; // TODO: FOC0A and FOC0B.
   div0_ev_.notify(sc_core::SC_ZERO_TIME);
 }
 
-void Timer::write_tccr1b(u8 val) {
+void Timer::WriteTccr1b(u8 val) {
   tccr1b = val & 0xdf;
   div1_ev_.notify(sc_core::SC_ZERO_TIME);
 }
 
-void Timer::write_tccr2b(u8 val) {
+void Timer::WriteTccr2b(u8 val) {
   tccr2b = val;
   div2_ev_.notify(sc_core::SC_ZERO_TIME);
 }
 
-void Timer::write_tifr0(u8 val) {
+void Timer::WriteTifr0(u8 val) {
   tifr0 = (u8)(tifr0 & ~val);
-  check_interrupts();
+  CheckInterrupts();
 }
 
-void Timer::write_tifr1(u8 val) {
+void Timer::WriteTifr1(u8 val) {
   tifr1 = (u8)(tifr1 & ~val);
-  check_interrupts();
+  CheckInterrupts();
 }
 
-void Timer::write_tifr2(u8 val) {
+void Timer::WriteTifr2(u8 val) {
   tifr2 = (u8)(tifr2 & ~val);
-  check_interrupts();
+  CheckInterrupts();
 }
 
-void Timer::write_timsk0(u8 val) {
+void Timer::WriteTimsk0(u8 val) {
   timsk0 = val & 0b111;
-  check_interrupts();
+  CheckInterrupts();
 }
 
-void Timer::write_timsk1(u8 val) {
+void Timer::WriteTimsk1(u8 val) {
   timsk1 = val & 0b100111;
-  check_interrupts();
+  CheckInterrupts();
 }
 
-void Timer::write_timsk2(u8 val) {
+void Timer::WriteTimsk2(u8 val) {
   timsk2 = val;
-  check_interrupts();
+  CheckInterrupts();
 }
 
-u8 Timer::read_tcnt1l() {
+u8 Timer::ReadTcnt1l() {
   tcnt1_latch_h_ = (u8)(tcnt1_ >> 8);
   return (u8)(tcnt1_ & 0xff);
 }
 
-u8 Timer::read_tcnt1h() {
+u8 Timer::ReadTcnt1h() {
   return tcnt1_latch_h_;
 }
 
-void Timer::write_tcnt1h(u8 val) {
+void Timer::WriteTcnt1h(u8 val) {
   tcnt1_write_h_ = val;
   tcnt1h = val;
 }
 
-void Timer::write_tcnt1l(u8 val) {
+void Timer::WriteTcnt1l(u8 val) {
   tcnt1_ = (u16)((u16)tcnt1_write_h_ << 8) | val;
-  sync_16bit_regs_from_state();
+  Sync16bitRegsFromState();
 }
 
-u8 Timer::read_ocr1al() {
+u8 Timer::ReadOcr1al() {
   ocr1a_latch_h_ = (u8)(ocr1a_ >> 8);
   return (u8)(ocr1a_ & 0xff);
 }
 
-u8 Timer::read_ocr1ah() {
+u8 Timer::ReadOcr1ah() {
   return ocr1a_latch_h_;
 }
 
-void Timer::write_ocr1ah(u8 val) {
+void Timer::WriteOcr1ah(u8 val) {
   ocr1a_write_h_ = val;
   ocr1ah = val;
 }
 
-void Timer::write_ocr1al(u8 val) {
+void Timer::WriteOcr1al(u8 val) {
   ocr1a_ = (u16)((u16)ocr1a_write_h_ << 8) | val;
-  sync_16bit_regs_from_state();
+  Sync16bitRegsFromState();
 }
 
-u8 Timer::read_ocr1bl() {
+u8 Timer::ReadOcr1bl() {
   ocr1b_latch_h_ = (u8)(ocr1b_ >> 8);
   return (u8)(ocr1b_ & 0xff);
 }
 
-u8 Timer::read_ocr1bh() {
+u8 Timer::ReadOcr1bh() {
   return ocr1b_latch_h_;
 }
 
-void Timer::write_ocr1bh(u8 val) {
+void Timer::WriteOcr1bh(u8 val) {
   ocr1b_write_h_ = val;
   ocr1bh = val;
 }
 
-void Timer::write_ocr1bl(u8 val) {
+void Timer::WriteOcr1bl(u8 val) {
   ocr1b_ = (u16)((u16)ocr1b_write_h_ << 8) | val;
-  sync_16bit_regs_from_state();
+  Sync16bitRegsFromState();
 }
 
-u8 Timer::read_icr1l() {
+u8 Timer::ReadIcr1l() {
   icr1_latch_h_ = (u8)(icr1_ >> 8);
   return (u8)(icr1_ & 0xff);
 }
 
-u8 Timer::read_icr1h() {
+u8 Timer::ReadIcr1h() {
   return icr1_latch_h_;
 }
 
-void Timer::write_icr1h(u8 val) {
+void Timer::WriteIcr1h(u8 val) {
   icr1_write_h_ = val;
   icr1h = val;
 }
 
-void Timer::write_icr1l(u8 val) {
+void Timer::WriteIcr1l(u8 val) {
   icr1_ = (u16)((u16)icr1_write_h_ << 8) | val;
-  sync_16bit_regs_from_state();
+  Sync16bitRegsFromState();
 }
 
-void Timer::set_tifr0(u8 mask) {
+void Timer::SetTifr0(u8 mask) {
   tifr0 = (u8)(tifr0 | mask);
-  check_interrupts();
+  CheckInterrupts();
 }
 
-void Timer::set_tifr1(u8 mask) {
+void Timer::SetTifr1(u8 mask) {
   tifr1 = (u8)(tifr1 | mask);
-  check_interrupts();
+  CheckInterrupts();
 }
 
-void Timer::set_tifr2(u8 mask) {
+void Timer::SetTifr2(u8 mask) {
   tifr2 = (u8)(tifr2 | mask);
-  check_interrupts();
+  CheckInterrupts();
 }
 
-u32 Timer::timer0_div() const {
+u32 Timer::Timer0Div() const {
   u8 cs = tccr0b & 0b111;
   switch (cs) {
   case 0:
@@ -435,7 +435,7 @@ u32 Timer::timer0_div() const {
   }
 }
 
-u32 Timer::timer1_div() const {
+u32 Timer::Timer1Div() const {
   const u8 cs = (u8)(tccr1b & 0x07);
   switch (cs) {
   case 0:
@@ -457,7 +457,7 @@ u32 Timer::timer1_div() const {
   }
 }
 
-u32 Timer::timer2_div() const {
+u32 Timer::Timer2Div() const {
   const u8 cs = (u8)(tccr2b & 0x07);
   switch (cs) {
   case 0:
@@ -481,7 +481,7 @@ u32 Timer::timer2_div() const {
   }
 }
 
-void Timer::tick_timer0() {
+void Timer::TickTimer0() {
   log_debug("timer 0 tick");
 
   u8 wgm = (u8)(((tccr0b >> 3) & 0x1) << 2 | (tccr0a & 0x3));
@@ -504,7 +504,7 @@ void Timer::tick_timer0() {
     } else {
       if (next == 0) {
         dir0_ = true;
-        set_tifr0(TIFR0_TOV0);
+        SetTifr0(TIFR0_TOV0);
         next = 1;
       } else {
         next--;
@@ -513,7 +513,7 @@ void Timer::tick_timer0() {
   } else {
     if (old == top) {
       next = 0;
-      set_tifr0(TIFR0_TOV0);
+      SetTifr0(TIFR0_TOV0);
     } else {
       next++;
     }
@@ -522,9 +522,9 @@ void Timer::tick_timer0() {
   tcnt0 = next;
 
   if ((u8)tcnt0 == (u8)ocr0a)
-    set_tifr0(TIFR0_OCF0A);
+    SetTifr0(TIFR0_OCF0A);
   if ((u8)tcnt0 == (u8)ocr0b)
-    set_tifr0(TIFR0_OCF0B);
+    SetTifr0(TIFR0_OCF0B);
 
   if (ctc && (u8)tcnt0 == (u8)ocr0a) {
     tcnt0 = 0;
@@ -533,7 +533,7 @@ void Timer::tick_timer0() {
   (void)fast_pwm;
 }
 
-void Timer::tick_timer2() {
+void Timer::TickTimer2() {
   log_debug("timer 2 tick");
   const u8 wgm = (u8)(((tccr2b >> 3) & 0x1) << 2 | (tccr2a & 0x3));
   const u8 top = (wgm == 7 || wgm == 5) ? (u8)ocr2a : 0xff;
@@ -554,7 +554,7 @@ void Timer::tick_timer2() {
     } else {
       if (next == 0) {
         dir2_ = true;
-        set_tifr2(TIFR2_TOV2);
+        SetTifr2(TIFR2_TOV2);
         next = 1;
       } else {
         next--;
@@ -563,7 +563,7 @@ void Timer::tick_timer2() {
   } else {
     if (old == top) {
       next = 0;
-      set_tifr2(TIFR2_TOV2);
+      SetTifr2(TIFR2_TOV2);
     } else {
       next++;
     }
@@ -571,16 +571,16 @@ void Timer::tick_timer2() {
 
   tcnt2 = next;
   if ((u8)tcnt2 == (u8)ocr2a)
-    set_tifr2(TIFR2_OCF2A);
+    SetTifr2(TIFR2_OCF2A);
   if ((u8)tcnt2 == (u8)ocr2b)
-    set_tifr2(TIFR2_OCF2B);
+    SetTifr2(TIFR2_OCF2B);
 
   if (ctc && (u8)tcnt2 == (u8)ocr2a) {
     tcnt2 = 0;
   }
 }
 
-void Timer::tick_timer1() {
+void Timer::TickTimer1() {
   log_debug("timer 1 tick");
   const u8 wgm = (u8)(((tccr1b >> 3) & 0x3) << 2 | (tccr1a & 0x3));
 
@@ -611,28 +611,28 @@ void Timer::tick_timer1() {
   // For now: only single-slope operation for implemented modes.
   if (old >= top) {
     next = 0;
-    set_tifr1(TIFR1_TOV1);
+    SetTifr1(TIFR1_TOV1);
   } else {
     next = (u16)(old + 1);
   }
 
   tcnt1_ = next;
-  sync_16bit_regs_from_state();
+  Sync16bitRegsFromState();
 
   if (tcnt1_ == ocr1a_)
-    set_tifr1(TIFR1_OCF1A);
+    SetTifr1(TIFR1_OCF1A);
   if (tcnt1_ == ocr1b_)
-    set_tifr1(TIFR1_OCF1B);
+    SetTifr1(TIFR1_OCF1B);
 
   if (ctc && tcnt1_ == top) {
     tcnt1_ = 0;
-    sync_16bit_regs_from_state();
+    Sync16bitRegsFromState();
   }
 
   (void)fast_pwm;
 }
 
-void Timer::check_interrupts() {
+void Timer::CheckInterrupts() {
   static constexpr u8 TIMSK0_TOIE0 = mwr::bit(0);
   static constexpr u8 TIMSK0_OCIE0A = mwr::bit(1);
   static constexpr u8 TIMSK0_OCIE0B = mwr::bit(2);
@@ -729,38 +729,38 @@ void Timer::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
     return;
 
   if (socket == ocie0a_ack) {
-    write_tifr0(TIFR0_OCF0A);
+    WriteTifr0(TIFR0_OCF0A);
   } else if (socket == ocie0b_ack) {
-    write_tifr0(TIFR0_OCF0B);
+    WriteTifr0(TIFR0_OCF0B);
   } else if (socket == toie0_ack) {
-    write_tifr0(TIFR0_TOV0);
+    WriteTifr0(TIFR0_TOV0);
   } else if (socket == ocie1a_ack) {
-    write_tifr1(TIFR1_OCF1A);
+    WriteTifr1(TIFR1_OCF1A);
   } else if (socket == ocie1b_ack) {
-    write_tifr1(TIFR1_OCF1B);
+    WriteTifr1(TIFR1_OCF1B);
   } else if (socket == toie1_ack) {
-    write_tifr1(TIFR1_TOV1);
+    WriteTifr1(TIFR1_TOV1);
   } else if (socket == icie1_ack) {
-    write_tifr1(TIFR1_ICF1);
+    WriteTifr1(TIFR1_ICF1);
   } else if (socket == ocie2a_ack) {
-    write_tifr2(TIFR2_OCF2A);
+    WriteTifr2(TIFR2_OCF2A);
   } else if (socket == ocie2b_ack) {
-    write_tifr2(TIFR2_OCF2B);
+    WriteTifr2(TIFR2_OCF2B);
   } else if (socket == toie2_ack) {
-    write_tifr2(TIFR2_TOV2);
+    WriteTifr2(TIFR2_TOV2);
   }
 }
 
-u32 Timer::elapsed_cycles(const sc_core::sc_time& start) const {
+u32 Timer::ElapsedCycles(const sc_core::sc_time& start) const {
   const double ratio = (sc_core::sc_time_stamp() - start) / clock_cycle();
   return (u32)(ratio + 0.5);
 }
 
-void Timer::run_timer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(),
+void Timer::RunTimer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(),
                        u32& ps, sc_core::sc_time& wait_start,
                        sc_core::sc_event& div_ev) {
   while (true) {
-    if (timers_stopped()) {
+    if (TimersStopped()) {
       wait(resume_ev_);
       continue;
     }
@@ -781,7 +781,7 @@ void Timer::run_timer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(),
     wait(clock_cycles(div - ps), resume_ev_);
 
     if (resume_ev_.triggered()) {
-      ps += elapsed_cycles(wait_start);
+      ps += ElapsedCycles(wait_start);
     } else {
       ps = 0;
       (this->*tick_fn)();
@@ -789,18 +789,18 @@ void Timer::run_timer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(),
   }
 }
 
-void Timer::run_timer0() {
-  run_timer(&Timer::timer0_div, &Timer::tick_timer0, ps0_, wait_start0_,
+void Timer::RunTimer0() {
+  RunTimer(&Timer::Timer0Div, &Timer::TickTimer0, ps0_, wait_start0_,
             div0_ev_);
 }
 
-void Timer::run_timer1() {
-  sync_16bit_regs_from_state();
-  run_timer(&Timer::timer1_div, &Timer::tick_timer1, ps1_, wait_start1_,
+void Timer::RunTimer1() {
+  Sync16bitRegsFromState();
+  RunTimer(&Timer::Timer1Div, &Timer::TickTimer1, ps1_, wait_start1_,
             div1_ev_);
 }
 
-void Timer::run_timer2() {
-  run_timer(&Timer::timer2_div, &Timer::tick_timer2, ps2_, wait_start2_,
+void Timer::RunTimer2() {
+  RunTimer(&Timer::Timer2Div, &Timer::TickTimer2, ps2_, wait_start2_,
             div2_ev_);
 }
