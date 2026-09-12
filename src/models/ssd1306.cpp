@@ -51,7 +51,7 @@ sc_core::sc_time ssd1306::frame_period() const {
     constexpr double bank0_pulse_width = 50.0;
     constexpr double osc_freq = 370000.0;
 
-    double divide_ratio = m_divide_ratio + 1; // A[3:0]+1, 1..16
+    double divide_ratio = m_divide_ratio + 1;
     double clocks_per_row = m_phase1_period + m_phase2_period +
                             bank0_pulse_width;
     double freq = osc_freq / (divide_ratio * clocks_per_row * m_mux_ratio);
@@ -80,7 +80,7 @@ void ssd1306::reset() {
     m_col_start = 0;
     m_col_end = SCREEN_WIDTH - 1;
     m_page_start = 0;
-    m_page_end = kPages - 1;
+    m_page_end = NUM_PAGES - 1;
     m_page_mode_col_start = 0;
     m_contrast = 0x7f;
     m_divide_ratio = 0;
@@ -101,7 +101,7 @@ void ssd1306::reset() {
     m_scroll_left = false;
     m_scroll_vertical = false;
     m_scroll_page_start = 0;
-    m_scroll_page_end = kPages - 1;
+    m_scroll_page_end = NUM_PAGES - 1;
     m_scroll_frames = SCROLL_FRAME_STEPS[0];
     m_scroll_row_step = 1;
     m_scroll_offset = 0;
@@ -351,9 +351,6 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
 void ssd1306::write_gddram(u8 byte) {
     m_gddram[m_page][m_col] = byte;
 
-    // While scrolling is active a single GDDRAM write can affect pixels well
-    // outside its own page/column (vertical scroll shifts rows across page
-    // boundaries), so fall back to a full recompute instead of the fast path.
     if (m_scroll_on)
         redraw_all_columns();
     else
@@ -460,7 +457,7 @@ void ssd1306::redraw_column(uint page, uint col) {
 }
 
 void ssd1306::redraw_all_columns() {
-    for (uint page = 0; page < kPages; page++)
+    for (uint page = 0; page < NUM_PAGES; page++)
         for (uint col = 0; col < SCREEN_WIDTH; col++)
             redraw_column(page, col);
 

@@ -1,13 +1,3 @@
-/******************************************************************************
- *                                                                            *
- * Copyright (C) 2026 MachineWare GmbH                                        *
- * All Rights Reserved                                                        *
- *                                                                            *
- * This work is licensed under the terms described in the LICENSE file found  *
- * in the root directory of this source tree.                                 *
- *                                                                            *
- ******************************************************************************/
-
 #ifndef VCML_MODELS_SSD1306_H
 #define VCML_MODELS_SSD1306_H
 
@@ -24,10 +14,11 @@ namespace i2c {
 struct ssd1306 : public vcml::component, i2c_host {
     static constexpr u32 SCREEN_WIDTH = 128;
     static constexpr u32 SCREEN_HEIGHT = 64;
-    static constexpr u32 kPages = SCREEN_HEIGHT / 8;
+    static constexpr u32 NUM_PAGES = SCREEN_HEIGHT / 8;
     static constexpr ui::pixelformat PIXEL_FORMAT = ui::FORMAT_R8G8B8;
 
     ssd1306(const sc_core::sc_module_name& nm);
+    ~ssd1306() = default;
     VCML_KIND(i2c::ssd1306);
 
     i2c_target_socket in;
@@ -82,7 +73,7 @@ protected:
     ui::display m_display;
 
     u8 m_video[SCREEN_WIDTH * SCREEN_HEIGHT * 3];
-    u8 m_gddram[kPages][SCREEN_WIDTH];
+    u8 m_gddram[NUM_PAGES][SCREEN_WIDTH];
 
     bool m_await_control;
     bool m_stream_data;
