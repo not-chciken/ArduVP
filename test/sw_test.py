@@ -5,20 +5,22 @@
 ######################################################
 #
 # Runs the named sw/<name> workload(s) against the ArduVP binary and compares
-# their filtered output to a golden reference file (sw/<name>/<name>.golden).
+# their filtered output to a golden reference file
+# (sw/<name>/<basename of name>.golden), so <name> may be a nested path like
+# serial/hello_world.
 # The set of workloads is not auto-discovered: it is passed in explicitly,
 # normally by the fixed list in test/CMakeLists.txt.
 #
 # Usage:
-#   test/sw_test.py hello_world adc       run the named workloads
-#   test/sw_test.py --record hello_world  (re)generate golden files
+#   test/sw_test.py serial/hello_world adc  run the named workloads
+#   test/sw_test.py --record adc          (re)generate golden files
 #   test/sw_test.py --binary build/arduvp_debug --timeout 30 timer
 
 import argparse
 import difflib
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pexpect
 
@@ -73,8 +75,9 @@ def run_workload(binary: Path, cfg: Path, timeout: int) -> tuple[list[str], int]
 
 def run_test(name: str, binary: Path, timeout: int, record: bool) -> bool:
     sw_dir = SW_DIR / name
-    cfg = sw_dir / f"{name}.cfg"
-    golden = sw_dir / f"{name}.golden"
+    stem = PurePosixPath(name).name
+    cfg = sw_dir / f"{stem}.cfg"
+    golden = sw_dir / f"{stem}.golden"
 
     if not cfg.is_file():
         print(f"[FAIL] {name}: no such config {cfg}")

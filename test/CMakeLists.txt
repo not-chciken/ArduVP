@@ -39,7 +39,7 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 set(SW_WORKLOADS
   adc
   builtin_led
-  hello_world
+  serial/hello_world
   mat_mul
   timer
 )
