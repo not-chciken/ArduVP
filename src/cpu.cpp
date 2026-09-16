@@ -372,9 +372,9 @@ void Cpu::end_of_simulation() {
   double elapsed_secs = std::chrono::duration<double>(elapsed).count();
   double mips = elapsed_secs > 0.0 ? retired_instructions / elapsed_secs / 1e6 : 0.0;
 
-  log_info("Retired instructions: %lu", retired_instructions);
-  log_info("Cycle count: %llu", cycle_count());
-  log_info("MIPS: %.3f", mips);
+  log_info("retired instructions: %lu", retired_instructions);
+  log_info("cycle count:          %llu", cycle_count());
+  log_info("MIPS:                 %.3f", mips);
 }
 
 static constexpr u16 IRQ_TABLE[] = {
