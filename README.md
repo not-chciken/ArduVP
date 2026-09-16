@@ -79,7 +79,7 @@ Enable the `trace` property for a given module, and append `--trace-stdout`.
 For example:
 
 ```bash
-./arduvp -f ../sw/hello_world/hello_world.cfg -c system.atm328p.usart.trace=true --trace-stdout
+./arduvp -f ../sw/serial/hello_world/hello_world.cfg -c system.atm328p.usart.trace=true --trace-stdout
 ```
 
 Similarly, debug logging can enabled as follows:
@@ -89,7 +89,7 @@ Similarly, debug logging can enabled as follows:
 
 By default, the simulation runs as fast as it can, but it cannot be faster than wall-clock time.
 If you need more a nuanced setting, use the system's throttle.
-For example, an RTF of 2 allows the system to be twice as fast as wall-clock:
+For example, an RTF of 2 allows the system to be twice as fast as wall-clock time:
 ```
 system.throttle.rtf = 1.0
 ```
