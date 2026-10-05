@@ -279,6 +279,7 @@ void ssd1306::execute_command(u8 opcode, const u8* args) {
         break;
     case 0x81:
         m_contrast = args[0];
+        redraw();
         break;
     case 0xa0:
         m_segment_remap = false;
@@ -385,11 +386,22 @@ void ssd1306::advance_pointer() {
 }
 
 void ssd1306::set_pixel(u32 row, u32 col, bool on) {
-    u32 color = on ? on_color : off_color;
+    u32 off = off_color.get();
+    int r = mwr::extract(off, 16, 8);
+    int g = mwr::extract(off, 8, 8);
+    int b = mwr::extract(off, 0, 8);
+
+    if (on) {
+        u32 onc = on_color.get();
+        r += ((int)mwr::extract(onc, 16, 8) - r) * m_contrast / 255;
+        g += ((int)mwr::extract(onc, 8, 8) - g) * m_contrast / 255;
+        b += ((int)mwr::extract(onc, 0, 8) - b) * m_contrast / 255;
+    }
+
     u8* p = &m_video[(row * SCREEN_WIDTH + col) * 3];
-    p[0] = mwr::extract(color, 16, 8);
-    p[1] = mwr::extract(color, 8, 8);
-    p[2] = mwr::extract(color, 0, 8);
+    p[0] = r;
+    p[1] = g;
+    p[2] = b;
 }
 
 void ssd1306::fill_all_pixels(u32 color) {
