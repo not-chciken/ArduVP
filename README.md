@@ -45,7 +45,7 @@ In case you want to run your own software, take any of the configurations in `sw
 
 ## Modeled System
 
-By default, ArduVP includes an SSD1306 screen and an ADS1015 analog-digital converter attached to its I2C bus:
+By default, ArduVP includes an SSD1306 screen, an ADS1015 analog-digital converter, and an EEPROM 24xx attached to its I2C bus:
 
 ![alt text](system.svg "Modeled System")
 
