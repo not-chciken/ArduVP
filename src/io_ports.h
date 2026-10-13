@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vcml.h>
 
 #include "common.h"

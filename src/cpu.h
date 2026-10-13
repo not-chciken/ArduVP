@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vcml.h>
 
 #include <array>
@@ -59,9 +61,6 @@ struct Cpu : public vcml::processor {
   Instruction FetchInstruction(vcml::u64 adr);
 
   u16 InsnDmiRead(vcml::u64 adr);
-
-  // Returns a direct pointer to `adr` inside the SRAM, or nullptr if the
-  // address is outside the SRAM or no DMI region could be obtained.
   u8* SramDmiPtr(vcml::u64 adr);
 
   u8 gpior0 = 0;
