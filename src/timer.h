@@ -108,9 +108,8 @@ struct Timer : public vcml::peripheral {
   void RunTimer0();
   void RunTimer1();
   void RunTimer2();
-  void RunTimer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(),
-                 u32& ps, sc_core::sc_time& wait_start,
-                 sc_core::sc_event& div_ev);
+  void RunTimer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(), u32& ps, sc_core::sc_time& wait_start,
+                sc_core::sc_event& div_ev);
 
   u32 ElapsedCycles(const sc_core::sc_time& start) const;
 
