@@ -98,7 +98,7 @@ void Adc::ConversionThread() {
   while (true) {
     sc_core::wait(conversion_event_);
 
-    uint mux_channel_ = admux.get() & (ADMUX_MUX0 | ADMUX_MUX1 | ADMUX_MUX2 | ADMUX_MUX3);
+    mux_channel_ = admux.get() & (ADMUX_MUX0 | ADMUX_MUX1 | ADMUX_MUX2 | ADMUX_MUX3);
 
     if (first_conversion_) {
       wait_clock_cycles(25 * clock_prescaler_);
