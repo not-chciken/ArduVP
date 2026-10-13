@@ -143,20 +143,6 @@ void Usart::SetUdre(bool set) {
   }
 }
 
-void Usart::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
-  if (!state)
-    return;
-
-  if (socket == rxc_ack)
-    irq_rx = false;
-
-  if (socket == udre_ack)
-    irq_udre = false;
-
-  if (socket == tx_ack)
-    SetTxComplete(false);
-}
-
 void Usart::UpdateSerialBaud() {
   u32 divisor = (ucsrna & UCSRNA_U2XN) ? 8u : 16u;
   u16 n = (u16)(Ubrr() + 1u);
@@ -334,4 +320,18 @@ void Usart::serial_receive(const vcml::serial_target_socket& socket, vcml::seria
   rx_pending_ = true;
   rx_data_ = (u8)(tx.data & vcml::serial_mask(serial_tx.data_width()));
   SetRxComplete(true);
+}
+
+void Usart::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
+  if (!state)
+    return;
+
+  if (socket == rxc_ack)
+    irq_rx = false;
+
+  if (socket == udre_ack)
+    irq_udre = false;
+
+  if (socket == tx_ack)
+    SetTxComplete(false);
 }

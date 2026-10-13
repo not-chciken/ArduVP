@@ -30,6 +30,7 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
 
   virtual void reset() override;
   virtual void serial_receive(const vcml::serial_target_socket& socket, vcml::serial_payload& tx) override;
+  virtual void gpio_notify(const vcml::gpio_target_socket& socket, bool state) override;
 
  private:
   SC_HAS_PROCESS(Usart);
@@ -60,6 +61,4 @@ struct Usart : public vcml::peripheral, public vcml::serial_host {
   void SetRxComplete(bool set);
   void SetTxComplete(bool set);
   void SetUdre(bool set);
-
-  virtual void gpio_notify(const vcml::gpio_target_socket& socket, bool state) override;
 };
