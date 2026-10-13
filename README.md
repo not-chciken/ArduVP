@@ -94,4 +94,4 @@ For example, an RTF of 2 allows the system to be twice as fast as wall-clock tim
 system.throttle.rtf = 1.0
 ```
 Note that this is just a maximum.
-At one point your host computer's will likely become the determining factor.
+At one point your host computer's performance will likely become the determining factor.
