@@ -375,11 +375,11 @@ void Dec::Execute(Cpu* cpu, const InsnArgs& a) {
   cpu->rf[rd] = result;
 }
 
-void Eicall::Execute(Cpu* cpu, const InsnArgs&) {
+void Eicall::Execute([[maybe_unused]] Cpu* cpu, [[maybe_unused]] const InsnArgs&) {
   throw Cpu::IllegalInsnException();  // Not part of ATmega328p.
 }
 
-void Eijmp::Execute(Cpu* cpu, const InsnArgs&) {
+void Eijmp::Execute([[maybe_unused]] Cpu* cpu, [[maybe_unused]] const InsnArgs&) {
   throw Cpu::IllegalInsnException();  // Not part of ATmega328p.
 }
 
@@ -487,15 +487,15 @@ void Jmp::Execute(Cpu* cpu, const InsnArgs& a) {
   cpu->new_pc = addr;
 }
 
-void Lac::Execute(Cpu* cpu, const InsnArgs&) {
+void Lac::Execute([[maybe_unused]] Cpu* cpu, [[maybe_unused]] const InsnArgs&) {
   throw Cpu::IllegalInsnException();  // Not part of ATmega328p.
 }
 
-void Las::Execute(Cpu* cpu, const InsnArgs&) {
+void Las::Execute([[maybe_unused]] Cpu* cpu, [[maybe_unused]] const InsnArgs&) {
   throw Cpu::IllegalInsnException();  // Not part of ATmega328p.
 }
 
-void Lat::Execute(Cpu* cpu, const InsnArgs&) {
+void Lat::Execute([[maybe_unused]] Cpu* cpu, [[maybe_unused]] const InsnArgs&) {
   throw Cpu::IllegalInsnException();  // Not part of ATmega328p.
 }
 
@@ -732,7 +732,8 @@ void Neg::Execute(Cpu* cpu, const InsnArgs& a) {
   cpu->rf[rd] = result;
 }
 
-void Nop::Execute(Cpu* cpu, const InsnArgs&) {
+void Nop::Execute([[maybe_unused]] Cpu* cpu, [[maybe_unused]] const InsnArgs&) {
+  // Nothing to do.
 }
 
 void Or::Execute(Cpu* cpu, const InsnArgs& a) {
@@ -935,16 +936,16 @@ void Sbrs::Execute(Cpu* cpu, const InsnArgs& a) {
   }
 }
 
-void Sleep::Execute(Cpu* cpu, const InsnArgs&) {
+void Sleep::Execute([[maybe_unused]] Cpu* cpu, [[maybe_unused]] const InsnArgs&) {
   cpu->sleeping = true;
 }
 
-void Spm::Execute(Cpu* cpu, const InsnArgs&) {
+void Spm::Execute([[maybe_unused]] Cpu* cpu, [[maybe_unused]] const InsnArgs&) {
   log_error("SPM executed");
   // TODO: Implement.
 }
 
-void Spmx::Execute(Cpu* cpu, const InsnArgs&) {
+void Spmx::Execute([[maybe_unused]] Cpu* cpu, [[maybe_unused]] const InsnArgs&) {
   log_error("SPMX executed");
   // TODO: Implement.
 }
@@ -1096,7 +1097,7 @@ void Swap::Execute(Cpu* cpu, const InsnArgs& a) {
   cpu->rf[rd] = (reg << 4) | (reg >> 4);
 }
 
-void Xch::Execute(Cpu* cpu, const InsnArgs&) {
+void Xch::Execute([[maybe_unused]] Cpu* cpu, [[maybe_unused]] const InsnArgs&) {
   throw Cpu::IllegalInsnException();  // Not part of ATmega328p.
 }
 
@@ -1104,7 +1105,7 @@ void Wdr::Execute(Cpu* cpu, const InsnArgs&) {
   cpu->watchdog_timer = 0;
 }
 
-void Illegal::Execute(Cpu* cpu, const InsnArgs&) {
+void Illegal::Execute([[maybe_unused]] Cpu* cpu, [[maybe_unused]] const InsnArgs&) {
   throw Cpu::IllegalInsnException();  // Not part of ATmega328p.
 }
 
