@@ -130,6 +130,8 @@ void IoPorts::WritePortD(u8 val) {
 void IoPorts::reset() {
   peripheral::reset();
   for (size_t i = 0; i < NUM_PORTS; ++i) {
+    out_pinb[i] = false;
+    out_pinc[i] = false;
     out_pind[i] = false;
   }
 }
