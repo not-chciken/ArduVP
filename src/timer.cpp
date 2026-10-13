@@ -117,7 +117,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
 
   tccr0b.sync_always();
   tccr0b.allow_read_write();
-  tccr0b.on_write(&Timer::WriteTccr0b); // TODO: FOC0A and FOC0B.
+  tccr0b.on_write(&Timer::WriteTccr0b);  // TODO: FOC0A and FOC0B.
 
   tcnt0.sync_always();
   tcnt0.allow_read_write();
@@ -142,7 +142,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
 
   tccr1c.sync_always();
   tccr1c.allow_read_write();
-  tccr1c.on_write_mask(0x00); // TODO: FOC1A and FOC1B.
+  tccr1c.on_write_mask(0x00);  // TODO: FOC1A and FOC1B.
 
   tcnt1l.sync_always();
   tcnt1l.allow_read_write();
@@ -278,7 +278,7 @@ void Timer::WriteGtccr(u8 val) {
 }
 
 void Timer::WriteTccr0b(u8 val) {
-  tccr0b = val & 0xf; // TODO: FOC0A and FOC0B.
+  tccr0b = val & 0xf;  // TODO: FOC0A and FOC0B.
   div0_ev_.notify(sc_core::SC_ZERO_TIME);
 }
 
@@ -756,9 +756,8 @@ u32 Timer::ElapsedCycles(const sc_core::sc_time& start) const {
   return (u32)(ratio + 0.5);
 }
 
-void Timer::RunTimer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(),
-                       u32& ps, sc_core::sc_time& wait_start,
-                       sc_core::sc_event& div_ev) {
+void Timer::RunTimer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(), u32& ps, sc_core::sc_time& wait_start,
+                     sc_core::sc_event& div_ev) {
   while (true) {
     if (TimersStopped()) {
       wait(resume_ev_);
@@ -790,17 +789,14 @@ void Timer::RunTimer(u32 (Timer::*div_fn)() const, void (Timer::*tick_fn)(),
 }
 
 void Timer::RunTimer0() {
-  RunTimer(&Timer::Timer0Div, &Timer::TickTimer0, ps0_, wait_start0_,
-            div0_ev_);
+  RunTimer(&Timer::Timer0Div, &Timer::TickTimer0, ps0_, wait_start0_, div0_ev_);
 }
 
 void Timer::RunTimer1() {
   Sync16bitRegsFromState();
-  RunTimer(&Timer::Timer1Div, &Timer::TickTimer1, ps1_, wait_start1_,
-            div1_ev_);
+  RunTimer(&Timer::Timer1Div, &Timer::TickTimer1, ps1_, wait_start1_, div1_ev_);
 }
 
 void Timer::RunTimer2() {
-  RunTimer(&Timer::Timer2Div, &Timer::TickTimer2, ps2_, wait_start2_,
-            div2_ev_);
+  RunTimer(&Timer::Timer2Div, &Timer::TickTimer2, ps2_, wait_start2_, div2_ev_);
 }
