@@ -25,7 +25,6 @@ static inline u8 clamp_u8(int v) {
 
 Timer::Timer(const sc_core::sc_module_name& nm)
     : peripheral(nm),
-      in("in"),
       gtccr("gtccr", 0x43, 0x00),
       tifr0("tifr0", 0x35, 0x00),
       tccr0a("tccr0a", 0x44, 0x00),
@@ -55,6 +54,7 @@ Timer::Timer(const sc_core::sc_module_name& nm)
       ocr2b("ocr2b", 0xb4, 0x00),
       assr("assr", 0xb6, 0x00),
       timsk2("timsk2", 0x70, 0x00),
+      in("in"),
       ocie0a_out("ocie0a_out"),
       ocie0b_out("ocie0b_out"),
       toie0_out("toie0_out"),
