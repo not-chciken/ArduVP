@@ -503,7 +503,7 @@ void Lddy::Execute(Cpu* cpu, const InsnArgs& a) {
   const uint rd = a.rd_imm.rd;
   const uint imm = a.rd_imm.imm;
 
-  cpu->rf[rd] = cpu->MemoryRead(cpu->y + imm);  // TODO: Is imm signed or unsigned?
+  cpu->rf[rd] = cpu->MemoryRead(cpu->y + imm);
 }
 
 string Lddy::GetStatementString(const InsnArgs& a) {
@@ -514,7 +514,7 @@ void Lddz::Execute(Cpu* cpu, const InsnArgs& a) {
   const uint rd = a.rd_imm.rd;
   const uint imm = a.rd_imm.imm;
 
-  cpu->rf[rd] = cpu->MemoryRead(cpu->z + imm);  // TODO: Is imm signed or unsigned?
+  cpu->rf[rd] = cpu->MemoryRead(cpu->z + imm);
 }
 
 string Lddz::GetStatementString(const InsnArgs& a) {
