@@ -1,6 +1,7 @@
 #include <vector>
 
-#include "system.h"
+#include "usart.h"
+
 #include "testing.h"
 
 struct SerialBuffer : public vcml::component, vcml::serial_host {
