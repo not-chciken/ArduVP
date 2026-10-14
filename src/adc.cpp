@@ -92,6 +92,8 @@ void Adc::reset() {
 }
 
 void Adc::signal_transport(const vcml::signal_target_socket<float>& socket, const float& value) {
+  (void)socket;
+  (void)value;
 }
 
 void Adc::ConversionThread() {

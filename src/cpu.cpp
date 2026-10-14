@@ -17,7 +17,7 @@ Cpu::Cpu()
   set_little_endian();
 
   // See: vcml/debugging/gdbarch.*
-  for (int i = 0; i < rf.size(); ++i)
+  for (size_t i = 0; i < rf.size(); ++i)
     define_cpureg_rw(i, RegName(i), sizeof(RegType));
 
   define_cpureg_rw(32, "sreg", sizeof(RegType));
@@ -305,7 +305,7 @@ bool Cpu::disassemble(vcml::u8* ibuf, vcml::u64& addr, string& code) {
   return true;
 }
 
-bool Cpu::read_reg_dbg(size_t regno, void* buf, size_t len) {
+bool Cpu::read_reg_dbg(size_t regno, void* buf, [[maybe_unused]] size_t len) {
   if (regno < rf.size())
     *(RegType*)buf = rf[regno];
   else if (regno == 32)
@@ -322,7 +322,7 @@ bool Cpu::read_reg_dbg(size_t regno, void* buf, size_t len) {
   return true;
 }
 
-bool Cpu::write_reg_dbg(size_t regno, const void* buf, size_t len) {
+bool Cpu::write_reg_dbg(size_t regno, const void* buf, [[maybe_unused]] size_t len) {
   if (regno < rf.size())
     rf[regno] = *(RegType*)buf;
   else if (regno == 32)

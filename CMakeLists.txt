@@ -12,8 +12,6 @@ include(CTest)
 include(CPack)
 enable_testing()
 
-#set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS "-Wno-deprecated")
 set(CMAKE_CXX_STANDARD 23)
 add_definitions(-DSC_DISABLE_API_VERSION_CHECK) # "Fix" c++ version issue.
 add_definitions(-DSC_INCLUDE_DYNAMIC_PROCESSES)
@@ -52,6 +50,9 @@ set(ALL_CPPS
   ${CMAKE_SOURCE_DIR}/src/models/eeprom_24xx.cpp
   ${CMAKE_SOURCE_DIR}/src/models/ssd1306.cpp
 )
+
+set_source_files_properties(${ALL_CPPS} PROPERTIES
+  COMPILE_OPTIONS "-Wno-deprecated;-Wall;-Wextra")
 
 add_subdirectory(vcml)
 

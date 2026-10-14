@@ -10,12 +10,12 @@ inline void DoDecode_extract_DoDecode_fmt_10(DisasContext* ctx, ArgImm* a, u16 o
   a->imm = Append16(ctx, DepositBits(ExtractBits(opcode, 0, 1), 1, 31, ExtractBits(opcode, 4, 5)));
 }
 
-inline void DoDecode_extract_DoDecode_fmt_11(DisasContext* ctx, ArgRrBit* a, u16 opcode) {
+inline void DoDecode_extract_DoDecode_fmt_11([[maybe_unused]] DisasContext* ctx, ArgRrBit* a, u16 opcode) {
   a->bit = ExtractBits(opcode, 0, 3);
   a->rr = ExtractBits(opcode, 4, 5);
 }
 
-inline void DoDecode_extract_DoDecode_fmt_12(DisasContext* ctx, ArgRegBit* a, u16 opcode) {
+inline void DoDecode_extract_DoDecode_fmt_12([[maybe_unused]] DisasContext* ctx, ArgRegBit* a, u16 opcode) {
   a->reg = ExtractBits(opcode, 3, 5);
   a->bit = ExtractBits(opcode, 0, 3);
 }
@@ -25,16 +25,16 @@ inline void DoDecode_extract_DoDecode_fmt_16(DisasContext* ctx, ArgRdRr* a, u16 
   a->rr = ToRegs00To30ByTwo(ctx, ExtractBits(opcode, 0, 4));
 }
 
-inline void DoDecode_extract_DoDecode_fmt_17(DisasContext* ctx, ArgRr* a, u16 opcode) {
+inline void DoDecode_extract_DoDecode_fmt_17([[maybe_unused]] DisasContext* ctx, ArgRr* a, u16 opcode) {
   a->rr = ExtractBits(opcode, 4, 5);
 }
 
-inline void DoDecode_extract_DoDecode_fmt_18(DisasContext* ctx, ArgRdBit* a, u16 opcode) {
+inline void DoDecode_extract_DoDecode_fmt_18([[maybe_unused]] DisasContext* ctx, ArgRdBit* a, u16 opcode) {
   a->rd = ExtractBits(opcode, 4, 5);
   a->bit = ExtractBits(opcode, 0, 3);
 }
 
-inline void DoDecode_extract_DoDecode_fmt_4(DisasContext* ctx, ArgRd* a, u16 opcode) {
+inline void DoDecode_extract_DoDecode_fmt_4([[maybe_unused]] DisasContext* ctx, ArgRd* a, u16 opcode) {
   a->rd = ExtractBits(opcode, 4, 5);
 }
 
@@ -43,11 +43,14 @@ inline void DoDecode_extract_DoDecode_fmt_5(DisasContext* ctx, ArgRdRr* a, u16 o
   a->rr = ToRegs16To31ByOne(ctx, ExtractBits(opcode, 0, 4));
 }
 
-inline void DoDecode_extract_DoDecode_fmt_8(DisasContext* ctx, ArgImm* a, u16 opcode) {
+inline void DoDecode_extract_DoDecode_fmt_8([[maybe_unused]] DisasContext* ctx, ArgImm* a, u16 opcode) {
   a->imm = ExtractBitsSigned(opcode, 0, 12);
 }
 
 inline void DoDecode_extract_DoDecode_fmt_9(DisasContext* ctx, ArgNone* a, u16 opcode) {
+  (void)ctx;
+  (void)a;
+  (void)opcode;
 }
 
 inline void DoDecode_extract_fmul(DisasContext* ctx, ArgRdRr* a, u16 opcode) {
@@ -55,12 +58,12 @@ inline void DoDecode_extract_fmul(DisasContext* ctx, ArgRdRr* a, u16 opcode) {
   a->rr = ToRegs16To23ByOne(ctx, ExtractBits(opcode, 0, 3));
 }
 
-inline void DoDecode_extract_io_rd_imm(DisasContext* ctx, ArgRdImm* a, u16 opcode) {
+inline void DoDecode_extract_io_rd_imm([[maybe_unused]] DisasContext* ctx, ArgRdImm* a, u16 opcode) {
   a->imm = DepositBits(ExtractBits(opcode, 0, 4), 4, 28, ExtractBits(opcode, 9, 2));
   a->rd = ExtractBits(opcode, 4, 5);
 }
 
-inline void DoDecode_extract_ldst_d(DisasContext* ctx, ArgRdImm* a, u16 opcode) {
+inline void DoDecode_extract_ldst_d([[maybe_unused]] DisasContext* ctx, ArgRdImm* a, u16 opcode) {
   a->imm = DepositBits(DepositBits(ExtractBits(opcode, 0, 3), 3, 29, ExtractBits(opcode, 10, 2)), 5, 27, ExtractBits(opcode, 13, 1));
   a->rd = ExtractBits(opcode, 4, 5);
 }
@@ -70,11 +73,11 @@ inline void DoDecode_extract_ldst_s(DisasContext* ctx, ArgRdImm* a, u16 opcode) 
   a->rd = ExtractBits(opcode, 4, 5);
 }
 
-inline void DoDecode_extract_op_bit(DisasContext* ctx, ArgBit* a, u16 opcode) {
+inline void DoDecode_extract_op_bit([[maybe_unused]] DisasContext* ctx, ArgBit* a, u16 opcode) {
   a->bit = ExtractBits(opcode, 4, 3);
 }
 
-inline void DoDecode_extract_op_bit_imm(DisasContext* ctx, ArgImmBit* a, u16 opcode) {
+inline void DoDecode_extract_op_bit_imm([[maybe_unused]] DisasContext* ctx, ArgImmBit* a, u16 opcode) {
   a->imm = ExtractBitsSigned(opcode, 3, 7);
   a->bit = ExtractBits(opcode, 0, 3);
 }
@@ -89,7 +92,7 @@ inline void DoDecode_extract_op_rd_imm8(DisasContext* ctx, ArgRdImm* a, u16 opco
   a->rd = ToRegs16To31ByOne(ctx, ExtractBits(opcode, 4, 4));
 }
 
-inline void DoDecode_extract_op_rd_rr(DisasContext* ctx, ArgRdRr* a, u16 opcode) {
+inline void DoDecode_extract_op_rd_rr([[maybe_unused]] DisasContext* ctx, ArgRdRr* a, u16 opcode) {
   a->rd = ExtractBits(opcode, 4, 5);
   a->rr = DepositBits(ExtractBits(opcode, 0, 4), 4, 28, ExtractBits(opcode, 9, 1));
 }
