@@ -35,14 +35,19 @@ Comparator::Comparator(const sc_core::sc_module_name& nm)
 }
 
 void Comparator::signal_transport(const vcml::signal_target_socket<float>& socket, const float& value) {
+  (void)socket;
+  (void)value;
   DoComparison();
 }
 
 void Comparator::signal_transport(const vcml::signal_target_socket<u8>& socket, const u8& value) {
+  (void)socket;
+  (void)value;
   DoComparison();
 }
 
 void Comparator::gpio_notify(const vcml::gpio_target_socket& socket, bool state) {
+  (void)state;
   if (socket == ack) {
     irq = false;
     acsr &= ~ACSR_ACI;

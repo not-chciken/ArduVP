@@ -511,6 +511,7 @@ void ssd1306::scroll_thread() {
 }
 
 VCML_EXPORT_MODEL(vcml::i2c::ssd1306, name, args) {
+    (void) args;
     return new ssd1306(name);
 }
 
