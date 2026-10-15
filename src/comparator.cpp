@@ -9,10 +9,6 @@ constexpr u8 ACSR_ACO = mwr::bit(5);
 constexpr u8 ACSR_ACBG = mwr::bit(6);
 constexpr u8 ACSR_ACD = mwr::bit(7);
 
-constexpr u8 ADCSRB_ACME = mwr::bit(6);
-
-constexpr u8 ADCSRA_ADEN = mwr::bit(7);
-
 Comparator::Comparator(const sc_core::sc_module_name& nm)
     : peripheral(nm),
       signal_host<float>(),
