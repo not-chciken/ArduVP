@@ -1446,8 +1446,8 @@ struct CpuTest : public test_base {
     sc_core::wait(1 * kCycle, sc_core::SC_US);
     ASSERT_EQ(cpu.rf[24], 0x7f);
     ASSERT_EQ(cpu.sreg.h, 1);
-    ASSERT_EQ(cpu.sreg.s, 0);
-    ASSERT_EQ(cpu.sreg.v, 0);
+    ASSERT_EQ(cpu.sreg.s, 1);
+    ASSERT_EQ(cpu.sreg.v, 1);
     ASSERT_EQ(cpu.sreg.n, 0);
     ASSERT_EQ(cpu.sreg.z, 0);
     ASSERT_EQ(cpu.sreg.c, 0);
