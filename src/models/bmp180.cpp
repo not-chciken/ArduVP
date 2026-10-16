@@ -21,20 +21,24 @@ constexpr u8 CTRL_MEAS_OSS = mwr::bit(7) | mwr::bit(6);
 constexpr u8 CTRL_MEAS_MC = 0x1fu;
 constexpr u8 CTRL_MEAS_MC_TEMPERATURE = 0x0eu;
 constexpr u8 CTRL_MEAS_MC_PRESSURE = 0x14u;
-
-constexpr double TEMPERATURE_CONVERSION_MS = 4.5;
-constexpr double PRESSURE_CONVERSION_MS[] = {4.5, 7.5, 13.5, 25.5};
+constexpr u8 CTRL_MEAS_MC_SEL_TEMPERATURE = mwr::bit(3);
+constexpr u8 CTRL_MEAS_MC_SEL_PRESSURE = mwr::bit(4);
+constexpr u8 CTRL_MEAS_UNUSED = mwr::bit(2);
 
 constexpr double PRESSURE_NOISE_HPA[] = {0.06, 0.05, 0.04, 0.03};
-constexpr double TEMPERATURE_NOISE_C = 0.1;
+constexpr double TEMPERATURE_NOISE_C = 0.007;
+
+constexpr i64 ADC_MID_SCALE = 0x8000;
+constexpr u32 OUT_MID_SCALE = 0x800000u;
 
 bmp180::bmp180(const sc_core::sc_module_name& nm):
     component(nm),
     in("in"),
-    pressure("pressure", 1013.25),
+    pressure_hpa("pressure_hpa", 1013.25),
     pressure_noise("pressure_noise", false),
-    temperature("temperature", 22.0),
+    temperature_c("temperature_c", 22.0),
     temperature_noise("temperature_noise", false),
+    conversion_time_ms("conversion_time_ms", {4.5, 7.5, 13.5, 25.5}),
     ac1("ac1", 408),
     ac2("ac2", -72),
     ac3("ac3", -14383),
@@ -52,8 +56,8 @@ bmp180::bmp180(const sc_core::sc_module_name& nm):
     out_msb_(0x80u),
     ctrl_meas_(0x00u),
     id_(0x55),
-    oversampling_ratio_(0),
-    measure_type_(TEMPERATURE),
+    converting_(false),
+    samples_oss_(0),
     write_state_(WRITE_ADDR),
     rng_()
     {
@@ -70,6 +74,7 @@ void bmp180::reset() {
     out_lsb_ = 0x00u;
     out_msb_ = 0x80u;
     ctrl_meas_ = 0x00u;
+    converting_ = false;
     measure_event_.cancel();
 }
 
@@ -96,7 +101,11 @@ i2c_response bmp180::i2c_write(const i2c_target_socket&, u8 data) {
         write_state_ = WRITE_DATA;
         break;
     case WRITE_DATA:
-        set_reg(address_++, data);
+        set_reg(address_, data);
+        write_state_ = WRITE_IGNORE;
+        break;
+    case WRITE_IGNORE:
+        log_debug("ignoring burst write 0x%02hhx", data);
         break;
     default:
         VCML_ERROR("unknown write state");
@@ -134,7 +143,7 @@ u8 bmp180::get_reg(u8 addr) {
     case REG_ID:
         return id_;
     case REG_CTRL_MEAS:
-        return ctrl_meas_;
+        return ctrl_meas_ | (converting_ ? CTRL_MEAS_SCO : 0x00u);
     case REG_OUT_MSB:
         return out_msb_;
     case REG_OUT_LSB:
@@ -153,9 +162,11 @@ void bmp180::set_reg(u8 addr, u8 data) {
             reset();
         break;
     case REG_CTRL_MEAS:
-        ctrl_meas_ = data;
-        if (ctrl_meas_ & CTRL_MEAS_SCO)
-            trigger_measure();
+        ctrl_meas_ = data & ~(CTRL_MEAS_SCO | CTRL_MEAS_UNUSED);
+        if (converting_)
+            log_warn("ctrl_meas 0x%02hhx written during conversion", data);
+        else if (data & CTRL_MEAS_SCO)
+            start_conversion();
         break;
     default:
         break;
@@ -163,54 +174,59 @@ void bmp180::set_reg(u8 addr, u8 data) {
 }
 
 void bmp180::measure_method() {
-    if (measure_type_ == TEMPERATURE) {
-        double temp = temperature;
-        if (temperature_noise)
-            temp += std::normal_distribution<double>(0.0, TEMPERATURE_NOISE_C)(rng_);
+    u8 mc = ctrl_meas_ & CTRL_MEAS_MC;
+    u8 oss = (ctrl_meas_ & CTRL_MEAS_OSS) >> 6;
+    i64 samples = 1 << samples_oss_;
 
-        u16 ut = calculate_ut(temp);
-        out_msb_ = (u8)(ut >> 8);
-        out_lsb_ = (u8)ut;
-        out_xlsb_ = 0x00u;
-    } else {
-        double press = pressure;
+    i64 sum = 0;
+    switch (mc & (CTRL_MEAS_MC_SEL_TEMPERATURE | CTRL_MEAS_MC_SEL_PRESSURE)) {
+    case CTRL_MEAS_MC_SEL_TEMPERATURE:
+        for (i64 i = 0; i < samples; i++) {
+            double temp = temperature_c;
+            if (temperature_noise) {
+                temp += std::normal_distribution<double>(
+                    0.0, TEMPERATURE_NOISE_C)(rng_);
+            }
+            sum += (i64)calculate_ut(temp) - ADC_MID_SCALE;
+        }
+        break;
+    case CTRL_MEAS_MC_SEL_PRESSURE: {
+        double press = pressure_hpa;
         if (pressure_noise) {
-            double sigma = PRESSURE_NOISE_HPA[oversampling_ratio_];
+            double sigma = PRESSURE_NOISE_HPA[samples_oss_];
             press += std::normal_distribution<double>(0.0, sigma)(rng_);
         }
 
-        i32 b5 = compensate_b5(calculate_ut(temperature));
-        u32 up = calculate_up(press, b5, oversampling_ratio_);
-        u32 raw = up << (8 - oversampling_ratio_);
-        out_msb_ = (u8)(raw >> 16);
-        out_lsb_ = (u8)(raw >> 8);
-        out_xlsb_ = (u8)raw & 0xf8u;
-    }
-
-    ctrl_meas_ &= ~CTRL_MEAS_SCO;
-}
-
-void bmp180::trigger_measure() {
-    measure_event_.cancel();
-
-    switch (ctrl_meas_ & CTRL_MEAS_MC) {
-    case CTRL_MEAS_MC_TEMPERATURE:
-        measure_type_ = TEMPERATURE;
+        i32 b5 = compensate_b5(calculate_ut(temperature_c));
+        u32 up = calculate_up(press, b5, samples_oss_);
+        sum = (i64)up - samples * ADC_MID_SCALE;
         break;
-    case CTRL_MEAS_MC_PRESSURE:
-        measure_type_ = PRESSURE;
+    }
+    case 0:
+        sum = -samples * ADC_MID_SCALE;
         break;
     default:
-        log_warn("unsupported measurement control 0x%02hhx", ctrl_meas_);
-        ctrl_meas_ &= ~CTRL_MEAS_SCO;
-        return;
+        sum = 0;
+        break;
     }
 
-    oversampling_ratio_ = (ctrl_meas_ & CTRL_MEAS_OSS) >> 6;
-    double time = measure_type_ == TEMPERATURE
-                      ? TEMPERATURE_CONVERSION_MS
-                      : PRESSURE_CONVERSION_MS[oversampling_ratio_];
-    measure_event_.notify(time, SC_MS);
+    u32 raw = (u32)(OUT_MID_SCALE + ((sum * 256) >> oss)) & 0xffffffu;
+    out_msb_ = (u8)(raw >> 16);
+    out_lsb_ = (u8)(raw >> 8);
+    out_xlsb_ = (u8)raw;
+
+    converting_ = false;
+}
+
+void bmp180::start_conversion() {
+    u8 mc = ctrl_meas_ & CTRL_MEAS_MC;
+    if (mc != (CTRL_MEAS_MC_TEMPERATURE & ~CTRL_MEAS_UNUSED) &&
+        mc != (CTRL_MEAS_MC_PRESSURE & ~CTRL_MEAS_UNUSED))
+        log_warn("unsupported measurement control 0x%02hhx", ctrl_meas_);
+
+    samples_oss_ = (ctrl_meas_ & CTRL_MEAS_OSS) >> 6;
+    converting_ = true;
+    measure_event_.notify(conversion_time_ms[samples_oss_], SC_MS);
 }
 
 i32 bmp180::compensate_b5(i32 ut) const {

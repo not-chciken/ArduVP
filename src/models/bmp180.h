@@ -11,28 +11,6 @@
 #include "vcml/core/types.h"
 #include "vcml/protocols/i2c.h"
 
-// Open question:
-// What happens if a measurement is started while one is ongoing?
-//   -> currently restarts the conversion with the new settings.
-// What happens if the control register neither uses temperature (0x34) nor pressure (0x2e)?
-//   -> currently no conversion is started, a warning is logged and sco is cleared.
-// What happens if the oversampling bits are changed during measurement?
-//   -> currently the settings latched at the start of the conversion are used.
-// Does a reset stop any ongoing measurements?
-//   -> currently yes.
-// What happens if there is a write into a non-existing/read-only register?
-//   -> currently ignored.
-// What is read from a non-existing register or from the write-only soft reset register?
-//   -> currently 0x00.
-// Does the register address auto-increment on burst writes (it does on reads)?
-//   -> currently yes.
-// What does out_xlsb contain after a temperature conversion?
-//   -> currently 0x00.
-// What do the data registers contain during a conversion?
-//   -> currently the result of the previous conversion.
-// What is the RMS noise of the temperature measurement (not in datasheet)?
-//   -> currently 0.1 °C, i.e. the output resolution.
-
 namespace vcml {
 namespace i2c {
 
@@ -43,10 +21,11 @@ struct bmp180 : public vcml::component, i2c_host {
 
     i2c_target_socket in;
 
-    property<double> pressure;    // hPa
+    property<double> pressure_hpa;
     property<bool> pressure_noise;
-    property<double> temperature; // °C
+    property<double> temperature_c;
     property<bool> temperature_noise;
+    property<double, 4> conversion_time_ms;
 
     property<i16> ac1;
     property<i16> ac2;
@@ -82,7 +61,7 @@ protected:
     void measure_method();
     sc_event measure_event_;
 
-    void trigger_measure();
+    void start_conversion();
 
     u16 calculate_ut(double temp);
     u32 calculate_up(double press, i32 b5, u8 oss);
@@ -96,9 +75,9 @@ private:
     u8 ctrl_meas_;
     u8 id_;
 
-    u8 oversampling_ratio_;
-    enum measure_type {TEMPERATURE = 0, PRESSURE} measure_type_;
-    enum write_state {WRITE_ADDR = 0, WRITE_DATA} write_state_;
+    bool converting_;
+    u8 samples_oss_;
+    enum write_state {WRITE_ADDR = 0, WRITE_DATA, WRITE_IGNORE} write_state_;
 
     std::mt19937 rng_;
 

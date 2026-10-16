@@ -39,7 +39,8 @@ create_test_case(ssd1306)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 set(SW_WORKLOADS
   adc
-  bmp180
+  bmp180/simple
+  bmp180/verification
   builtin_led
   serial/hello_world
   mat_mul
