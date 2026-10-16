@@ -8,6 +8,7 @@
 #include "atm328p.h"
 #include "models/ssd1306.h"
 #include "models/eeprom_24xx.h"
+#include "models/bmp180.h"
 
 struct ArduSystem : public vcml::system {
   static constexpr size_t NUM_ANALOG_PINS = 6;
@@ -22,6 +23,7 @@ struct ArduSystem : public vcml::system {
         ads1015("ads1015", 0x48),
         eeprom_24xx256("eeprom_24xx256"),
         ssd1306("ssd1306"),
+        bmp180("bmp180"),
         builtin_led("builtin_led"),
         buttons("buttons"),
         clock("clock", 16 * vcml::MHz),
@@ -31,6 +33,7 @@ struct ArduSystem : public vcml::system {
         throttle("throttle") {
     i2c_bus.bind(atm328p.twi.out_i2c);
     i2c_bus.bind(ssd1306.in);
+    i2c_bus.bind(bmp180.in);
     i2c_bus.bind(ads1015.i2c_in);
     i2c_bus.bind(eeprom_24xx256.i2c_in);
     atm328p.twi.in_i2c.stub();
@@ -40,6 +43,7 @@ struct ArduSystem : public vcml::system {
 
     reset.rst.bind(atm328p.rst);
     reset.rst.bind(ssd1306.rst);
+    reset.rst.bind(bmp180.rst);
     reset.rst.bind(eeprom_24xx256.rst);
     reset.rst.bind(i2c_bus.rst);
 
@@ -88,6 +92,7 @@ struct ArduSystem : public vcml::system {
   vcml::i2c::ads1015 ads1015;
   vcml::i2c::eeprom_24xx eeprom_24xx256;
   vcml::i2c::ssd1306 ssd1306;
+  vcml::i2c::bmp180 bmp180;
 
   vcml::gpio::leds builtin_led;
   vcml::gpio::buttons buttons;
