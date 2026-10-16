@@ -1,0 +1,175 @@
+BMP180 edge cases
+samples for noise: 16
+Q0 reference
+ready after soft reset: 0.1 ms
+chip id: 55
+ctrl_meas after reset: 00
+out after reset: 80 00 00
+calibration: 1B 15 FB 82 C6 2F 84 B6 60 43 3F CE 15 7A 00 3D 80 00 D4 BD 09 80
+temperature (2e)
+sco cleared after: 3.0 ms
+out: 5F FE 00
+pressure oss0 (34)
+sco cleared after: 3.0 ms
+out: A0 2D 00
+pressure oss1 (74)
+sco cleared after: 5.3 ms
+out: A0 2C 80
+pressure oss2 (b4)
+sco cleared after: 9.0 ms
+out: A0 2C 00
+pressure oss3 (f4)
+sco cleared after: 17.0 ms
+out: A0 2B A0
+temperature: 22.3 C
+pressure: 994.85 hPa
+Q1 conversion started while another one is ongoing
+pressure oss3, temperature after 2 ms
+ctrl_meas after 2nd write: 2A
+sco cleared after: 17.0 ms (1st write), 14.9 ms (2nd write)
+out when sco cleared: 7F EF 00 (unknown)
+out 30 ms later: 7F EF 00 (unknown)
+ctrl_meas 30 ms later: 0A
+temperature, pressure oss3 after 1 ms
+ctrl_meas after 2nd write: F0
+sco cleared after: 3.0 ms (1st write), 2.0 ms (2nd write)
+out when sco cleared: 84 05 60 (unknown)
+out 30 ms later: 84 05 60 (unknown)
+ctrl_meas 30 ms later: D0
+pressure oss3, pressure oss3 again after 10 ms
+ctrl_meas after 2nd write: F0
+sco cleared after: 17.0 ms (1st write), 7.0 ms (2nd write)
+out when sco cleared: A0 2A A0 (pressure)
+out 30 ms later: A0 2A A0 (pressure)
+ctrl_meas 30 ms later: D0
+Q2 measurement control other than temperature/pressure
+ctrl_meas <- 20
+ctrl_meas readback: 20
+sco cleared after: 3.0 ms
+out when sco cleared: 00 00 00 (unknown)
+out 30 ms later: 00 00 00 (unknown)
+ctrl_meas 30 ms later: 00
+ctrl_meas <- 2F
+ctrl_meas readback: 2B
+sco cleared after: 3.0 ms
+out when sco cleared: 60 00 00 (temperature)
+out 30 ms later: 60 00 00 (temperature)
+ctrl_meas 30 ms later: 0B
+ctrl_meas <- 35
+ctrl_meas readback: 31
+sco cleared after: 3.0 ms
+out when sco cleared: A0 2E 00 (pressure)
+out 30 ms later: A0 2E 00 (pressure)
+ctrl_meas 30 ms later: 11
+ctrl_meas <- 3F
+ctrl_meas readback: 3B
+sco cleared after: 3.0 ms
+out when sco cleared: 80 00 00 (reset value)
+out 30 ms later: 80 00 00 (reset value)
+ctrl_meas 30 ms later: 1B
+ctrl_meas <- EE
+ctrl_meas readback: EA
+sco cleared after: 17.0 ms
+out when sco cleared: 5F FE E0 (temperature)
+out 30 ms later: 5F FE E0 (temperature)
+ctrl_meas 30 ms later: CA
+ctrl_meas <- 0E
+ctrl_meas readback: 0A
+sco cleared after: 0.1 ms
+out when sco cleared: 80 00 00 (reset value)
+out 30 ms later: 80 00 00 (reset value)
+ctrl_meas 30 ms later: 0A
+ctrl_meas <- 14
+ctrl_meas readback: 10
+sco cleared after: 0.1 ms
+out when sco cleared: 80 00 00 (reset value)
+out 30 ms later: 80 00 00 (reset value)
+ctrl_meas 30 ms later: 10
+Q3 oversampling changed during conversion
+pressure oss3, oss0 without sco after 2 ms
+ctrl_meas after 2nd write: 30
+sco cleared after: 17.0 ms (1st write), 14.9 ms (2nd write)
+out when sco cleared: 81 6B 00 (unknown)
+out 30 ms later: 81 6B 00 (unknown)
+ctrl_meas 30 ms later: 10
+pressure oss0, oss3 without sco after 1 ms
+ctrl_meas after 2nd write: F0
+sco cleared after: 3.0 ms (1st write), 2.0 ms (2nd write)
+out when sco cleared: 84 05 C0 (unknown)
+out 30 ms later: 84 05 C0 (unknown)
+ctrl_meas 30 ms later: D0
+Q4 soft reset during conversion
+pressure oss3, soft reset after 2 ms
+ctrl_meas after 2nd write: 00
+sco cleared after: 2.2 ms (1st write), 0.1 ms (2nd write)
+out when sco cleared: 80 00 00 (reset value)
+out 30 ms later: 80 00 00 (reset value)
+ctrl_meas 30 ms later: 00
+temperature, soft reset after 1 ms
+ctrl_meas after 2nd write: 00
+sco cleared after: 1.2 ms (1st write), 0.1 ms (2nd write)
+out when sco cleared: 80 00 00 (reset value)
+out 30 ms later: 80 00 00 (reset value)
+ctrl_meas 30 ms later: 00
+Q5 writes to read-only and reserved registers
+D0 <- 00: ack, before 55, after 55, after soft reset 55
+AA <- 00: ack, before 1B, after 1B, after soft reset 1B
+F6 <- 12: ack, before 80, after 80, after soft reset 80
+F8 <- 07: ack, before 00, after 00, after soft reset 00
+F3 <- 5A: ack, before 00, after 00, after soft reset 00
+F5 <- 5A: ack, before 00, after 00, after soft reset 00
+Q6 reads from reserved and write-only registers
+soft_reset: 00
+soft_reset after writing 5a: 00
+burst read from fe: 00 00 00 00
+register dump
+00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+10: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+20: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+30: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+40: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+50: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+60: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+70: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+90: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+A0: 00 00 00 00 00 00 00 00 00 00 1B 15 FB 82 C6 2F
+B0: 84 B6 60 43 3F CE 15 7A 00 3D 80 00 D4 BD 09 80
+C0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+D0: 55 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+E0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+F0: 00 00 00 00 00 00 80 00 00 00 00 00 00 00 00 00
+Q7 burst writes
+f4 <- 14 2e: ack, ctrl_meas 10
+f3 <- 00 2e: ack, ctrl_meas 00
+verdict: address/data pairs or extra bytes ignored
+Q8 out_xlsb after temperature conversion
+temperature after reset
+sco cleared after: 3.0 ms
+out: 5F FF 00 (temperature)
+pressure oss3
+sco cleared after: 17.0 ms
+out: A0 2B A0 (pressure)
+temperature after pressure oss3
+sco cleared after: 3.0 ms
+out: 5F FC 00 (temperature)
+Q9 data registers during conversion
+temperature after reset
+0.1 ms: ctrl_meas 2A, out 80 00 00 (reset value)
+3.1 ms: ctrl_meas 0A, out 5F FC 00 (temperature)
+5.1 ms: ctrl_meas 0A, out 5F FC 00 (temperature)
+pressure oss3 after temperature
+0.1 ms: ctrl_meas F0, out 5F FC 00 (temperature)
+17.1 ms: ctrl_meas D0, out A0 2A 00 (pressure)
+19.1 ms: ctrl_meas D0, out A0 2A 00 (pressure)
+temperature after pressure
+0.1 ms: ctrl_meas 2A, out A0 2A 00 (pressure)
+3.1 ms: ctrl_meas 0A, out 5F FD 00 (temperature)
+5.1 ms: ctrl_meas 0A, out 5F FD 00 (temperature)
+Q10 noise
+temperature: mean 22.30 C, rms 0.011 C, ut rms 1.57
+pressure oss0: mean 994.83 hPa, rms 6.5 Pa, up rms 2.18
+pressure oss1: mean 994.84 hPa, rms 4.5 Pa, up rms 2.94
+pressure oss2: mean 994.84 hPa, rms 2.9 Pa, up rms 4.07
+pressure oss3: mean 994.86 hPa, rms 3.5 Pa, up rms 9.61
+done after 1757 ms
