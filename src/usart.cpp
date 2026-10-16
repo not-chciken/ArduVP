@@ -224,6 +224,7 @@ void Usart::WriteUcsrna(u8 val) {
 void Usart::WriteUcsrnb(u8 val) {
   ucsrnb = val;
   UpdateSerialFormat();
+  irq_udre = (ucsrna & UCSRNA_UDREN) && (ucsrnb & UCSRNB_UDRIEN);
 }
 
 void Usart::WriteUcsrnc(u8 val) {

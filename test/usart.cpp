@@ -67,6 +67,7 @@ struct UsartTest : public test_base {
     add_test("character_size", &UsartTest::TestCharacterSize);
     add_test("irq_ack", &UsartTest::TestIrqAck);
     add_test("udre_does_not_raise_rx_irq", &UsartTest::TestUdreDoesNotRaiseRxIrq);
+    add_test("udre_irq_on_enable", &UsartTest::TestUdreIrqOnEnable);
   }
 
   void TestInit() {
@@ -238,6 +239,20 @@ struct UsartTest : public test_base {
 
     ASSERT_FALSE((u8)usart.ucsrna & 0x80) << "RXCN must not be set - nothing was received";
     ASSERT_FALSE(usart.irq_rx.read()) << "SetUdre must not raise irq_rx";
+  }
+
+  void TestUdreIrqOnEnable() {
+    socket.writew<u8>(0xc1, 0x08);
+    socket.writew<u8>(0xc6, 0x55);
+    sc_core::wait(1, sc_core::SC_MS);
+    ASSERT_TRUE((u8)usart.ucsrna & 0x20) << "UDREN should be set after transmission";
+    ASSERT_FALSE(usart.irq_udre.read()) << "irq_udre must not be raised while UDRIE is clear";
+
+    socket.writew<u8>(0xc1, 0x28);
+    ASSERT_TRUE(usart.irq_udre.read()) << "enabling UDRIE while UDREN is set should raise irq_udre";
+
+    socket.writew<u8>(0xc1, 0x08);
+    ASSERT_FALSE(usart.irq_udre.read()) << "disabling UDRIE should drop irq_udre";
   }
 };
 
