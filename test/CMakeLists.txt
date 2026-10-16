@@ -25,6 +25,7 @@ macro(create_test_case test_name)
 endmacro()
 
 create_test_case(adc)
+create_test_case(bmp180)
 create_test_case(comparator)
 create_test_case(cpu)
 create_test_case(eeprom_24xx)
@@ -38,6 +39,7 @@ create_test_case(ssd1306)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 set(SW_WORKLOADS
   adc
+  bmp180
   builtin_led
   serial/hello_world
   mat_mul
