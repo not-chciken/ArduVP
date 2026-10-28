@@ -1,6 +1,10 @@
 .vscode
 *.asm
-build
-tmp
-temp
+*.vplaunch
+*viper.json
+*vplaunch.json
+build*
+BUILD*
 coverage
+temp
+tmp
