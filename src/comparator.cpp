@@ -1,3 +1,8 @@
+/******************************************************************************
+ * Apache License, Version 2.0
+ * Copyright (c) 2026 chciken/Niko Zurstraßen
+ *****************************************************************************/
+
 #include "comparator.h"
 
 constexpr u8 ACSR_ACIS0 = mwr::bit(0);

@@ -1,3 +1,8 @@
+/******************************************************************************
+ * Apache License, Version 2.0
+ * Copyright (c) 2026 chciken/Niko Zurstraßen
+ *****************************************************************************/
+
 #ifndef VCML_MODELS_SSD1306_H
 #define VCML_MODELS_SSD1306_H
 

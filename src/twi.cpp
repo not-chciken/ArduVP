@@ -1,3 +1,8 @@
+/******************************************************************************
+ * Apache License, Version 2.0
+ * Copyright (c) 2026 chciken/Niko Zurstraßen
+ *****************************************************************************/
+
 #include "twi.h"
 
 static constexpr u8 TWCR_TWINT = mwr::bit(7);

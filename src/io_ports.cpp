@@ -1,3 +1,8 @@
+/******************************************************************************
+ * Apache License, Version 2.0
+ * Copyright (c) 2026 chciken/Niko Zurstraßen
+ *****************************************************************************/
+
 #include "io_ports.h"
 
 IoPorts::IoPorts(const sc_core::sc_module_name& nm)
