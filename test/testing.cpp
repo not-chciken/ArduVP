@@ -23,7 +23,6 @@ test_base::~test_base() {
 }
 
 void test_base::run() {
-    wait(SC_ZERO_TIME);
     run_test();
     sc_stop();
 }

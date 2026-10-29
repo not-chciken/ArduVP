@@ -79,8 +79,6 @@ Instruction Cpu::FetchInstruction(vcml::u64 adr) {
 }
 
 void Cpu::simulate(size_t max_cycles) {
-  sc_core::wait(sc_core::SC_ZERO_TIME);  // Avoids immediate start after reset.
-
   uint cycles = 0;
   while (cycles < max_cycles) {
     if (service_pending_interrupt()) {
