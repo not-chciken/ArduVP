@@ -12,6 +12,7 @@
 #include "comparator.h"
 #include "cpu.h"
 #include "io_ports.h"
+#include "spi.h"
 #include "timer.h"
 #include "twi.h"
 #include "usart.h"
@@ -26,6 +27,7 @@ struct Atm328p : public vcml::component {
         comparator("comparator"),
         cpu(),
         io_ports("io_ports"),
+        spi("spi"),
         timer("timer"),
         twi("twi"),
         usart("usart"),
@@ -38,6 +40,7 @@ struct Atm328p : public vcml::component {
     bus.bind(cpu.data);
     bus.bind(sram_bus.in[0], mem_range_sram);
     bus.bind(io_ports.in, vcml::range(0x23, 0x2b));
+    bus.bind(spi.in, vcml::range(0x4c, 0x4e));
     bus.bind(timer.in, vcml::range(0x35, 0x37), 0x35);
     bus.bind(timer.in, vcml::range(0x43, 0x48), 0x43);
     bus.bind(timer.in, vcml::range(0x6e, 0x70), 0x6e);
@@ -60,6 +63,7 @@ struct Atm328p : public vcml::component {
     clk.bind(comparator.clk);
     clk.bind(cpu.clk);
     clk.bind(io_ports.clk);
+    clk.bind(spi.clk);
     clk.bind(timer.clk);
     clk.bind(twi.clk);
     clk.bind(usart.clk);
@@ -73,6 +77,7 @@ struct Atm328p : public vcml::component {
     rst.bind(comparator.rst);
     rst.bind(cpu.rst);
     rst.bind(io_ports.rst);
+    rst.bind(spi.rst);
     rst.bind(timer.rst);
     rst.bind(twi.rst);
     rst.bind(usart.rst);
@@ -106,6 +111,7 @@ struct Atm328p : public vcml::component {
     timer.ocie0a_out.bind(cpu.irq[7]);
     timer.ocie0b_out.bind(cpu.irq[8]);
     timer.toie0_out.bind(cpu.irq[9]);
+    spi.irq.bind(cpu.irq[10]);
     usart.irq_rx.bind(cpu.irq[11]);
     usart.irq_udre.bind(cpu.irq[12]);
     usart.irq_tx.bind(cpu.irq[13]);
@@ -123,6 +129,7 @@ struct Atm328p : public vcml::component {
     cpu.irq_ack[7].bind(timer.ocie0a_ack);
     cpu.irq_ack[8].bind(timer.ocie0b_ack);
     cpu.irq_ack[9].bind(timer.toie0_ack);
+    cpu.irq_ack[10].bind(spi.ack);
     cpu.irq_ack[11].bind(usart.rxc_ack);
     cpu.irq_ack[12].bind(usart.udre_ack);
     cpu.irq_ack[13].bind(usart.tx_ack);
@@ -139,6 +146,7 @@ struct Atm328p : public vcml::component {
   Comparator comparator;
   Cpu cpu;
   IoPorts io_ports;
+  Spi spi;
   Timer timer;
   Twi twi;
   Usart usart;

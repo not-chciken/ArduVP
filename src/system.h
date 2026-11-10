@@ -81,6 +81,8 @@ struct ArduSystem : public vcml::system {
       if (!atm328p.io_ports.out_pind[i].is_stubbed())
         atm328p.io_ports.out_pind[i].stub();
     }
+
+    atm328p.spi.spi_out.stub();
   }
 
   virtual int run() override { return vcml::system::run(); }

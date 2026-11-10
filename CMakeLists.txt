@@ -44,6 +44,7 @@ set(ALL_CPPS
   ${CMAKE_SOURCE_DIR}/src/io_ports.cpp
   ${CMAKE_SOURCE_DIR}/src/insn.cpp
   ${CMAKE_SOURCE_DIR}/src/main.cpp
+  ${CMAKE_SOURCE_DIR}/src/spi.cpp
   ${CMAKE_SOURCE_DIR}/src/timer.cpp
   ${CMAKE_SOURCE_DIR}/src/twi.cpp
   ${CMAKE_SOURCE_DIR}/src/usart.cpp

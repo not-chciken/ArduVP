@@ -35,6 +35,7 @@ create_test_case(timer)
 create_test_case(twi)
 create_test_case(usart)
 create_test_case(ssd1306)
+create_test_case(spi)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 set(SW_WORKLOADS
