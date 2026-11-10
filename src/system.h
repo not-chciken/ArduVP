@@ -29,6 +29,7 @@ struct ArduSystem : public vcml::system {
         eeprom_24xx256("eeprom_24xx256"),
         ssd1306("ssd1306"),
         bmp180("bmp180"),
+        max31855("max31855"),
         builtin_led("builtin_led"),
         buttons("buttons"),
         clock("clock", 16 * vcml::MHz),
@@ -63,6 +64,9 @@ struct ArduSystem : public vcml::system {
       pin_a[i] = volt_pin_a[i];
     }
 
+    atm328p.spi.spi_out.bind(max31855.spi_in);
+    max31855.bind(atm328p.io_ports.out_pinb[2], false);
+
     atm328p.io_ports.out_pinb[5].bind(builtin_led.gpio_in[0]);
     buttons.gpio_in[0].bind(atm328p.io_ports.in_pind[2]);
 
@@ -81,8 +85,6 @@ struct ArduSystem : public vcml::system {
       if (!atm328p.io_ports.out_pind[i].is_stubbed())
         atm328p.io_ports.out_pind[i].stub();
     }
-
-    atm328p.spi.spi_out.stub();
   }
 
   virtual int run() override { return vcml::system::run(); }
@@ -100,6 +102,8 @@ struct ArduSystem : public vcml::system {
   vcml::i2c::eeprom_24xx eeprom_24xx256;
   vcml::i2c::ssd1306 ssd1306;
   vcml::i2c::bmp180 bmp180;
+
+  vcml::spi::max31855 max31855;
 
   vcml::gpio::leds builtin_led;
   vcml::gpio::buttons buttons;

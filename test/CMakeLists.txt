@@ -45,6 +45,7 @@ set(SW_WORKLOADS
   builtin_led
   serial/hello_world
   mat_mul
+  max31855
   timer
 )
 
