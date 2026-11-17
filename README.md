@@ -55,12 +55,7 @@ By default, ArduVP includes an SSD1306 screen, an ADS1015 analog-digital convert
 | ADS1015     | 0x48        |
 | EEPROM 24xx | 0x50        |
 
-A MAX31855 thermocouple converter is attached to the hardware SPI, with its chip select on pin 10 (SS).
-Its temperatures can be set in the configuration file:
-```
-system.max31855.temp_thermocouple = 327.75
-system.max31855.temp_internal = 23.5
-```
+A MAX7219, and a daisy-chained MAX31855 thermocouple converter are attached to the hardware SPI, with chip select on pin 10 (SS).
 
 With ArduVP being based on [VCML](https://github.com/machineware-gmbh/vcml),
 any kind of system can be set up.

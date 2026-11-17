@@ -14,6 +14,7 @@
 #include "models/ssd1306.h"
 #include "models/eeprom_24xx.h"
 #include "models/bmp180.h"
+#include "models/max7219.h"
 
 struct ArduSystem : public vcml::system {
   static constexpr size_t NUM_ANALOG_PINS = 6;
@@ -30,6 +31,7 @@ struct ArduSystem : public vcml::system {
         ssd1306("ssd1306"),
         bmp180("bmp180"),
         max31855("max31855"),
+        max7219("max7219"),
         builtin_led("builtin_led"),
         buttons("buttons"),
         clock("clock", 16 * vcml::MHz),
@@ -64,7 +66,9 @@ struct ArduSystem : public vcml::system {
       pin_a[i] = volt_pin_a[i];
     }
 
-    atm328p.spi.spi_out.bind(max31855.spi_in);
+    atm328p.spi.spi_out.bind(max7219.spi_in);
+    max7219.spi_out.bind(max31855.spi_in);
+    atm328p.io_ports.out_pinb[2].bind(max7219.cs);
     max31855.bind(atm328p.io_ports.out_pinb[2], false);
 
     atm328p.io_ports.out_pinb[5].bind(builtin_led.gpio_in[0]);
@@ -104,6 +108,7 @@ struct ArduSystem : public vcml::system {
   vcml::i2c::bmp180 bmp180;
 
   vcml::spi::max31855 max31855;
+  vcml::spi::max7219 max7219;
 
   vcml::gpio::leds builtin_led;
   vcml::gpio::buttons buttons;

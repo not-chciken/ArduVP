@@ -2,6 +2,10 @@
 
 // Reads the thermocouple and cold-junction temperature of a MAX31855 in a
 // loop using the hardware SPI. The chip select is on pin 10 (SS).
+//
+// On ArduVP, the MAX31855 sits behind a MAX7219 in an SPI daisy chain with
+// a shared chip select. The zero bytes clocked out here end up in the
+// MAX7219 as a No-Op, so the display is left untouched.
 
 const uint8_t CS_PIN = 10;
 

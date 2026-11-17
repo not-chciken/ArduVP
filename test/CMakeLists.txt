@@ -36,6 +36,7 @@ create_test_case(twi)
 create_test_case(usart)
 create_test_case(ssd1306)
 create_test_case(spi)
+create_test_case(max7219)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 set(SW_WORKLOADS
@@ -46,6 +47,8 @@ set(SW_WORKLOADS
   serial/hello_world
   mat_mul
   max31855
+  max7219/basics
+  max7219/text_scroll
   timer
 )
 
